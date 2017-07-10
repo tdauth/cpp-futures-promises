@@ -10,8 +10,8 @@ enable_testing()
 
 include(CTest)
 
-# The thesis code is based on the standard C++14.
-add_compile_options(-std=c++14 -Wall)
+# The thesis code is based on the standard C++17.
+add_compile_options(-std=c++1z -Wall)
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 # These flags are required for Boost.Thread and Boost.Test.
@@ -28,7 +28,6 @@ set(BOOST_LIB_DIR "${BOOST_INSTALL_DIR}/lib")
 ExternalProject_Add(
 	boost
 	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
-	URL_HASH SHA256=beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0
 	INSTALL_COMMAND "" # Disable install step
 	UPDATE_COMMAND "" # Doesn't change often
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_INSTALL_DIR}"
@@ -55,7 +54,6 @@ set(BOOST_RELEASE_LIB_DIR "${BOOST_RELEASE_INSTALL_DIR}/lib")
 ExternalProject_Add(
 	boostrelease
 	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
-	URL_HASH SHA256=beae2529f759f6b3bf3f4969a19c2e9d6f0c503edcb2de4a61d1428519fcb3b0
 	INSTALL_COMMAND "" # Disable install step
 	UPDATE_COMMAND "" # Doesn't change often
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_INSTALL_DIR}"
@@ -92,7 +90,6 @@ set(folly_LIBRARIES
 
 ExternalProject_Add(folly
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	#URL_HASH SHA256=e48507f08cb3ec071d756c2a3c49177a99566566375ab7fb0f351fcb8690ada1
 	INSTALL_COMMAND ""
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so" "${BOOST_INSTALL_DIR}"
 	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so"
@@ -115,7 +112,6 @@ set(folly_RELEASE_LIBRARIES
 
 ExternalProject_Add(follyrelease
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	#URL_HASH SHA256=e48507f08cb3ec071d756c2a3c49177a99566566375ab7fb0f351fcb8690ada1
 	INSTALL_COMMAND ""
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly_release.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so" "${BOOST_RELEASE_INSTALL_DIR}"
 	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so"
@@ -128,7 +124,6 @@ set(wangle_BUILD_DIR "${CMAKE_BINARY_DIR}/wangle-prefix/src/wangle-build")
 
 ExternalProject_Add(wangle
 	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
-	#URL_HASH SHA256=d63074e974ecc25fe7129dfb0e4f061bec96722c38a30f7ac686b3d1a8f0b89e
 	INSTALL_COMMAND ""
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle.sh" "${folly_LIB_DIR}" "${folly_INCLUDE_DIR}" "${BOOST_INSTALL_DIR}" "${wangle_INSTALL_DIR}"
 	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_BUILD_DIR}"
@@ -147,7 +142,6 @@ set(wangle_RELEASE_BUILD_DIR "${CMAKE_BINARY_DIR}/wanglerelease-prefix/src/wangl
 
 ExternalProject_Add(wanglerelease
 	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
-	#URL_HASH SHA256=d63074e974ecc25fe7129dfb0e4f061bec96722c38a30f7ac686b3d1a8f0b89e
 	INSTALL_COMMAND ""
 	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle_release.sh" "${folly_RELEASE_LIB_DIR}" "${folly_RELEASE_INCLUDE_DIR}" "${BOOST_RELEASE_INSTALL_DIR}" "${wangle_RELEASE_INSTALL_DIR}"
 	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_RELEASE_BUILD_DIR}"
@@ -185,6 +179,8 @@ find_program(BASH_PATH bash)
 if (NOT BASH_PATH)
 	message(FATAL_ERROR "bash not found.")
 endif ()
+
+add_subdirectory(src)
 
 set(futures_URL "https://github.com/tdauth/cpp-futures-promises")
 set(futures_VERSION_MAJOR "1")
