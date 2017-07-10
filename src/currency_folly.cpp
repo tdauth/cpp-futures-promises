@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	folly::Future<double> rateQuote = folly::via(wangle::getCPUExecutor().get(), std::bind(currentValue, USD));
+	folly::Future<double> rateQuote = folly::via(wangle::getCPUExecutor().get(), std::bind(currentValue, EUR));
 
 	folly::Future<double> purchase = rateQuote
 		.filter(isProfitable)
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 			return 0.0;
 		});
 
-	purchase.then(printPurchase)
+	purchase.then(std::bind(printPurchase, std::placeholders::_1, EUR)).onError(printFailure)
 		.wait(); // synchronize in the end?
 
 	return 0;

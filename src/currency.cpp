@@ -4,7 +4,7 @@
 
 int main()
 {
-	std::future<double> rateQuote = std::async(currentValue, USD);
+	std::future<double> rateQuote = std::async(currentValue, EUR);
 
 	std::future<double> purchase = std::async([rateQuote = std::move(rateQuote)] () mutable {
 		auto quote = rateQuote.get();
@@ -20,10 +20,11 @@ int main()
 	std::async([purchase = std::move(purchase)] () mutable {
 		try
 		{
-			printPurchase(purchase.get());
+			printPurchase(purchase.get(), EUR);
 		}
 		catch (const std::exception &e)
 		{
+			printFailure(e);
 		}
 	}).wait(); // synchronize in the end?
 

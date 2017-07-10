@@ -10,12 +10,14 @@ enable_testing()
 
 include(CTest)
 
-# The thesis code is based on the standard C++17.
+# The thesis code is based on the standard C++17:
 add_compile_options(-std=c++1z -Wall)
 set(CMAKE_C_COMPILER "/usr/bin/clang")
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-# These flags are required for Boost.Thread and Boost.Test.
+# These flags are required for Boost.Thread and Boost.Test:
 add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK)
+# Workaround for Fedora:
+set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
 
 include(ExternalProject)
 

@@ -6,7 +6,7 @@
 int main()
 {
 	boost:: basic_thread_pool ex;
-	boost::future<double> rateQuote = boost::async(ex, std::bind(currentValue, USD));
+	boost::future<double> rateQuote = boost::async(ex, std::bind(currentValue, EUR));
 
 	boost::future<double> purchase = rateQuote
 		.then([] (boost::future<double> f)
@@ -24,7 +24,14 @@ int main()
 
 	purchase.then([] (boost::future<double> f)
 		{
-			printPurchase(f.get());
+			try
+			{
+				printPurchase(f.get(), EUR);
+			}
+			catch (const std::exception &e)
+			{
+				printFailure(e);
+			}
 		})
 		.wait(); // synchronize in the end?
 

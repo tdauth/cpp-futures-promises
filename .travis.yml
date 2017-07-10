@@ -10,3 +10,5 @@ addons:
   apt:
     packages:
       - cmake
+    sources:
+      - kalakris-cmake
