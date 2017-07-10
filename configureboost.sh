@@ -14,6 +14,5 @@ cd "$1"
 # thread is required for the futures and promises component
 # chrono is required for time measurements
 # context, regex, filesystem and program_options are required by Folly
-# asio is required for the real code example chat program, seems to be header-only?
 # test is required for all unit tests
 ./bootstrap.sh --with-toolset=gcc --with-libraries=thread,chrono,context,program_options,regex,filesystem,test --prefix="\"$2\""

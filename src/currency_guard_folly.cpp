@@ -20,7 +20,8 @@ int main(int argc, char *argv[])
 			return 0.0;
 		});
 
-	purchase.then(std::bind(printPurchase, std::placeholders::_1, EUR)).onError(printFailure)
+	purchase.then(std::bind(printPurchase, std::placeholders::_1, EUR))
+		.onError(printFailure)
 		.wait(); // synchronize in the end?
 
 	return 0;

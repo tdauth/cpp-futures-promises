@@ -9,31 +9,15 @@ int main()
 	boost::future<double> rateQuote = boost::async(ex, std::bind(currentValue, EUR));
 
 	boost::future<double> purchase = rateQuote
-		.then([] (boost::future<double> f)
-		{
-			auto quote = f.get();
-
-			if (isProfitable(quote))
-			{
-				return buy(amount, quote);
-			}
-
-			throw std::runtime_error("not profitable");
-		});
-
+	.then([] (boost::future<double> f)
+	{
+		return buy(amount, f.get());
+	});
 
 	purchase.then([] (boost::future<double> f)
-		{
-			try
-			{
-				printPurchase(f.get(), EUR);
-			}
-			catch (const std::exception &e)
-			{
-				printFailure(e);
-			}
-		})
-		.wait(); // synchronize in the end?
+	{
+		printPurchase(f.get(), EUR);
+	}).wait(); // synchronize in the end?
 
 	return 0;
 }

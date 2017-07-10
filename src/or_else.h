@@ -3,13 +3,10 @@
 
 #include <folly/futures/Future.h>
 
-namespace folly
-{
-
 template<typename T>
-Future<T> orElse(Future<T> &&first, Future<T> &&second)
+folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 {
-	return first.then([second = std::move(second)] (Try<T> t) mutable
+	return first.then([second = std::move(second)] (folly::Try<T> t) mutable
 		{
 			if (!t.hasValue())
 			{
@@ -17,7 +14,7 @@ Future<T> orElse(Future<T> &&first, Future<T> &&second)
 
 				if (second.hasValue())
 				{
-					return second.getTry().value();
+					return second.value();
 				}
 
 				t.exception().throw_exception();
@@ -26,8 +23,6 @@ Future<T> orElse(Future<T> &&first, Future<T> &&second)
 			return t.value();
 		}
 	);
-}
-
 }
 
 #endif
