@@ -8,26 +8,47 @@
 
 enum Currency
 {
-	CHF,
-	EUR
+	USD,
+	EUR,
+	CHF
 };
 
 double amount = 100;
 
-double currentValue(Currency currency)
+double currentValue(Currency from, Currency to)
 {
-	switch (currency)
+	switch (from)
 	{
-		case CHF:
+		case USD:
 		{
-			return 0.97;
+			switch (to)
+			{
+				case EUR:
+				{
+					return 0.88;
+				}
+
+				case CHF:
+				{
+					return 0.97;
+				}
+
+				case USD:
+				{
+					return 1.0;
+				}
+			}
+
+			break;
 		}
 
-		case EUR:
+		default:
 		{
-			return 0.88;
+			break;
 		}
 	}
+
+	throw std::runtime_error("unknown exchange rate");
 
 	return 0;
 }
@@ -36,14 +57,19 @@ std::string currencyName(Currency currency)
 {
 	switch (currency)
 	{
+		case EUR:
+		{
+			return "EUR";
+		}
+
 		case CHF:
 		{
 			return "CHF";
 		}
 
-		case EUR:
+		case USD:
 		{
-			return "EUR";
+			return "USD";
 		}
 	}
 
@@ -60,7 +86,9 @@ double buy(double amount, double quote)
 	return amount * quote;
 }
 
-std::tuple<Currency, double> buy2(Currency currency, double amount, double quote)
+typedef std::tuple<Currency, double> Transaction;
+
+Transaction buy2(Currency currency, double amount, double quote)
 {
 	return std::make_tuple(currency, amount * quote);
 }
@@ -70,7 +98,7 @@ void printPurchase(double amount, Currency currency)
 	std::cout << "Purchased " << amount << " " << currencyName(currency) << std::endl;
 }
 
-void printPurchase2(std::tuple<Currency, double> v)
+void printPurchase2(Transaction v)
 {
 	std::cout << "Purchased " << std::get<1>(v) << " " << currencyName(std::get<0>(v)) << std::endl;
 }

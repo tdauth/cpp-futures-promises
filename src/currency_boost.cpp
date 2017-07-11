@@ -5,19 +5,22 @@
 
 int main()
 {
-	boost:: basic_thread_pool ex;
-	boost::future<double> rateQuote = boost::async(ex, std::bind(currentValue, EUR));
+	boost::basic_thread_pool ex;
+	boost::future<double> exchangeRate = boost::async(ex, std::bind(currentValue, USD, EUR));
 
-	boost::future<double> purchase = rateQuote
+	boost::future<double> purchase = exchangeRate
 	.then([] (boost::future<double> f)
 	{
 		return buy(amount, f.get());
 	});
 
-	purchase.then([] (boost::future<double> f)
+	boost::future<void> print = purchase
+	.then([] (boost::future<double> f)
 	{
 		printPurchase(f.get(), EUR);
-	}).wait(); // synchronize in the end?
+	});
+
+	print.wait();
 
 	return 0;
 }

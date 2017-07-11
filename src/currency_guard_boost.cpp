@@ -5,24 +5,25 @@
 
 int main()
 {
-	boost:: basic_thread_pool ex;
-	boost::future<double> rateQuote = boost::async(ex, std::bind(currentValue, EUR));
+	boost::basic_thread_pool ex;
+	boost::future<double> exchangeRate = boost::async(ex, std::bind(currentValue, USD, EUR));
 
-	boost::future<double> purchase = rateQuote
+	boost::future<double> purchase = exchangeRate
 		.then([] (boost::future<double> f)
 		{
-			auto quote = f.get();
+			double exchangeRate = f.get();
 
-			if (!isProfitable(quote))
+			if (!isProfitable(exchangeRate))
 			{
 				throw std::runtime_error("not profitable");
 			}
 
-			return buy(amount, quote);
+			return buy(amount, exchangeRate);
 		});
 
 
-	purchase.then([] (boost::future<double> f)
+	boost::future<void> print = purchase
+		.then([] (boost::future<double> f)
 		{
 			try
 			{
@@ -32,8 +33,9 @@ int main()
 			{
 				printFailure(e);
 			}
-		})
-		.wait(); // synchronize in the end?
+		});
+
+	print.wait();
 
 	return 0;
 }

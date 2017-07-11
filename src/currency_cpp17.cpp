@@ -4,17 +4,19 @@
 
 int main()
 {
-	std::future<double> rateQuote = std::async(std::launch::async, currentValue, EUR);
+	std::future<double> exchangeRate = std::async(currentValue, USD, EUR);
 
-	std::future<double> purchase = std::async(std::launch::async, [rateQuote = std::move(rateQuote)] () mutable
+	std::future<double> purchase = std::async([exchangeRate = std::move(exchangeRate)] () mutable
 	{
-		return buy(amount, rateQuote.get());
+		return buy(amount, exchangeRate.get());
 	});
 
-	std::async(std::launch::async, [purchase = std::move(purchase)] () mutable
+	std::future<void> print = std::async([purchase = std::move(purchase)] () mutable
 	{
 		printPurchase(purchase.get(), EUR);
-	}).wait();
+	});
+
+	print.wait();
 
 	return 0;
 }

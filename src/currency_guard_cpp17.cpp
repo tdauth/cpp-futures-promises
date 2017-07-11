@@ -4,10 +4,11 @@
 
 int main()
 {
-	std::future<double> rateQuote = std::async(std::launch::async, currentValue, EUR);
+	std::future<double> exchangeRate = std::async(currentValue, USD, EUR);
 
-	std::future<double> purchase = std::async(std::launch::async, [rateQuote = std::move(rateQuote)] () mutable {
-		auto quote = rateQuote.get();
+	std::future<double> purchase = std::async([exchangeRate = std::move(exchangeRate)] () mutable
+	{
+		double quote = exchangeRate.get();
 
 		if (!isProfitable(quote))
 		{
@@ -17,7 +18,8 @@ int main()
 		return buy(amount, quote);
 	});
 
-	std::async(std::launch::async, [purchase = std::move(purchase)] () mutable {
+	std::future<void> print = std::async([purchase = std::move(purchase)] () mutable
+	{
 		try
 		{
 			printPurchase(purchase.get(), EUR);
@@ -26,7 +28,9 @@ int main()
 		{
 			printFailure(e);
 		}
-	}).wait(); // synchronize in the end?
+	});
+
+	print.wait();
 
 	return 0;
 }

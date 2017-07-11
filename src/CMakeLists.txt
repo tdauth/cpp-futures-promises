@@ -1,3 +1,7 @@
+add_executable(currency_cpp17_sequential currency_cpp17_sequential.cpp)
+target_link_libraries(currency_cpp17_sequential pthread)
+add_test(CurrencyCpp17Sequential currency_cpp17_sequential)
+
 add_executable(currency_cpp17 currency_cpp17.cpp)
 target_link_libraries(currency_cpp17 pthread)
 add_test(CurrencyCpp17 currency_cpp17)
