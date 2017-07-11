@@ -35,8 +35,10 @@ int main(int argc, char *argv[])
 
 	folly::Future<folly::Unit> print = orElse(std::move(purchaseEUR), std::move(purchaseCHF))
 		.then(printPurchase2)
-		.onError(printFailure)
-		.wait(); // synchronize in the end?
+		.onError(printFailure);
+
+
+	print.wait();
 
 	return 0;
 }
