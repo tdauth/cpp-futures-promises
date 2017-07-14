@@ -29,3 +29,23 @@ add_executable(currency_guard_or_else_folly currency_guard_or_else_folly.cpp)
 add_dependencies(currency_guard_or_else_folly folly wangle)
 target_link_libraries(currency_guard_or_else_folly ${folly_LIBRARIES} ${wangle_LIBRARIES})
 add_test(CurrencyGuardOrElseFolly currency_guard_or_else_folly)
+
+add_executable(invalid_boost invalid_boost.cpp)
+add_dependencies(invalid_boost boost)
+target_link_libraries(invalid_boost ${Boost_LIBRARIES})
+add_test(InvalidBoost invalid_boost)
+
+add_executable(invalid_folly invalid_folly.cpp)
+add_dependencies(invalid_folly folly)
+target_link_libraries(invalid_folly ${folly_LIBRARIES})
+add_test(InvalidFolly invalid_folly)
+
+add_executable(shared_boost shared_boost.cpp)
+add_dependencies(shared_boost boost)
+target_link_libraries(shared_boost ${Boost_LIBRARIES})
+add_test(SharedBoost shared_boost)
+
+add_executable(shared_folly shared_folly.cpp)
+add_dependencies(shared_folly folly)
+target_link_libraries(shared_folly ${folly_LIBRARIES})
+add_test(SharedFolly shared_folly)
