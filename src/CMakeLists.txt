@@ -49,3 +49,13 @@ add_executable(shared_folly shared_folly.cpp)
 add_dependencies(shared_folly folly)
 target_link_libraries(shared_folly ${folly_LIBRARIES})
 add_test(SharedFolly shared_folly)
+
+add_executable(callback_boost callback_boost.cpp)
+add_dependencies(callback_boost boost)
+target_link_libraries(callback_boost ${Boost_LIBRARIES})
+add_test(CallbackBoost callback_boost)
+
+add_executable(callback_folly callback_folly.cpp)
+add_dependencies(callback_folly folly)
+target_link_libraries(callback_folly ${folly_LIBRARIES})
+add_test(CallbackFolly callback_folly)
