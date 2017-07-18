@@ -74,3 +74,8 @@ add_executable(combinators_folly combinators_folly.cpp)
 add_dependencies(combinators_folly folly)
 target_link_libraries(combinators_folly ${folly_LIBRARIES})
 add_test(CombinatorsFolly combinators_folly)
+
+add_executable(choices choices.cpp)
+add_dependencies(choices folly)
+target_link_libraries(choices ${folly_LIBRARIES})
+add_test(Choices choices)
