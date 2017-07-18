@@ -9,7 +9,7 @@ int main()
 	std::cout << "Result 0: " << f0.get() << std::endl;
 	std::cout << "Result 1: " << f0.get() << std::endl;
 	boost::shared_future<std::string> f1 = f0;
-	std::cout << "Result 2: " << f0.get() << std::endl;
+	std::cout << "Result 2: " << f1.get() << std::endl;
 	std::cout << "Result 3: " << f1.get() << std::endl;
 
 	return 0;

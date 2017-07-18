@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.8.0)
 project(cpp-futures-promises)
 
-set(boost_VERSION "1.63.0")
-set(boost_VERSION_UNDERSCORE "1_63_0")
+set(boost_VERSION "1.64.0")
+set(boost_VERSION_UNDERSCORE "1_64_0")
 set(folly_VERSION "v2017.07.03.00")
 set(wangle_VERSION "v2017.07.03.00")
 
