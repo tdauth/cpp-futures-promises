@@ -110,52 +110,6 @@ folly::Future<T> firstSuccessRandom(folly::Future<T> &&f0, folly::Future<T> &&f1
 	return r;
 }
 
-template<typename T>
-struct FirstSuccessOnlyContext
-{
-	folly::Promise<T> p;
-	folly::Future<folly::Unit> f0;
-	folly::Future<folly::Unit> f1;
-};
-
-template<typename T>
-void completeFirstSuccessOnlyContext(T &&v, std::shared_ptr<FirstSuccessOnlyContext<T>> st)
-{
-	st->p.setValue(std::move(v));
-}
-
-template<typename T>
-folly::Future<T> firstSuccessOnly(folly::Future<T> &&f0, folly::Future<T> &&f1)
-{
-	std::shared_ptr<FirstSuccessOnlyContext<T>> ctx = std::make_shared<FirstSuccessOnlyContext<T>>();
-	folly::Future<T> r = ctx->p.getFuture();
-
-	ctx->f0 = f0.then(std::bind(completeFirstSuccessOnlyContext<T>, std::placeholders::_1, ctx));
-	ctx->f1 = f1.then(std::bind(completeFirstSuccessOnlyContext<T>, std::placeholders::_1, ctx));
-
-	return r;
-}
-
-template<typename T>
-folly::Future<T> firstSuccessOnlyRandom(folly::Future<T> &&f0, folly::Future<T> &&f1)
-{
-	std::shared_ptr<FirstSuccessOnlyContext<T>> ctx = std::make_shared<FirstSuccessOnlyContext<T>>();
-	folly::Future<T> r = ctx->p.getFuture();
-
-	// Make a randomized choice between the two futures:
-	folly::Future<T> futures[] = {
-		std::move(f0),
-		std::move(f1)
-	};
-
-	const int selection = select();
-
-	ctx->f0 = futures[selection].then(std::bind(completeFirstSuccessOnlyContext<T>, std::placeholders::_1, ctx));
-	ctx->f1 = futures[1- selection].then(std::bind(completeFirstSuccessOnlyContext<T>, std::placeholders::_1, ctx));
-
-	return r;
-}
-
 enum class FirstFailureState
 {
 	Start,
@@ -243,12 +197,6 @@ folly::Future<T> firstFailureRandom(folly::Future<T> &&f0, folly::Future<T> &&f1
 
 	return r;
 }
-
-template<typename T>
-folly::Future<T> firstFailureOnly(folly::Future<T> &&f0, folly::Future<T> &&f1);
-
-template<typename T>
-folly::Future<T> firstFailureOnlyRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
 
 template<typename T>
 folly::Future<T> firstCompletion(folly::Future<T> &&f0, folly::Future<T> &&f1);

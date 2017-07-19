@@ -79,3 +79,8 @@ add_executable(choices choices.cpp)
 add_dependencies(choices boost folly)
 target_link_libraries(choices ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(Choices choices)
+
+add_executable(extensions extensions.cpp)
+add_dependencies(extensions boost folly)
+target_link_libraries(extensions ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(Extensions extensions)

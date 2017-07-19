@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <boost/thread.hpp>
 
 void testWhenAll()
