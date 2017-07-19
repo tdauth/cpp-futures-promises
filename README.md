@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)
+
 # cpp-futures-promises
 Examples  and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
 

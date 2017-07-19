@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8.0)
+cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
 set(boost_VERSION "1.64.0")
