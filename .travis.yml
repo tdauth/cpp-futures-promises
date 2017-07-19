@@ -10,5 +10,7 @@ addons:
   apt:
     packages:
       - cmake
+      - gcc
+      - clang
     sources:
       - kalakris-cmake
