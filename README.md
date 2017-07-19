@@ -1,7 +1,8 @@
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
 
 # cpp-futures-promises
-Examples  and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
+Examples and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
+The extensions are mainly based on the Scala library for futures and promises: http://docs.scala-lang.org/overviews/core/futures.html
 
 ## Compile
 To compile the project run the following script on Linux:

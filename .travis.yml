@@ -13,6 +13,7 @@ addons:
       - gcc
       - clang
       - libgflags-dev
+      - libgflags2
       - libgoogle-glog-dev
       - valgrind
     sources:
