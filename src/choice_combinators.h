@@ -6,10 +6,12 @@
 
 #include <folly/futures/Future.h>
 
+/**
+ * Chooses a random number between 0 and 1.
+ */
 int select()
 {
 	static std::random_device rand;
-	// Choose a random mean between 1 and 6
 	static std::default_random_engine e1(rand());
 	std::uniform_int_distribution<int> uniform_dist(0, 1);
 

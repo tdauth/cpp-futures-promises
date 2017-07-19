@@ -12,5 +12,8 @@ addons:
       - cmake
       - gcc
       - clang
+      - libgflags-dev
+      - libgoogle-glog-dev
+      - valgrind
     sources:
       - kalakris-cmake
