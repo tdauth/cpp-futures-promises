@@ -43,7 +43,7 @@ void testCollectAny()
 
 	f.wait();
 
-	std::cout << "Index: " << f.value().first << std::endl;
+	std::cout << "Collect Any Index: " << f.value().first << std::endl;
 }
 
 void testCollectAnyWithoutException()
