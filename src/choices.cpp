@@ -136,3 +136,75 @@ BOOST_AUTO_TEST_CASE(FirstSuccessOnlyRandomBothFail)
 
 	BOOST_CHECK_THROW(timeout.get(), folly::BrokenPromise);
 }
+
+BOOST_AUTO_TEST_CASE(FirstFailureBothSucceed)
+{
+	folly::Future<int> f0 = folly::makeFuture(0);
+	folly::Future<int> f1 = folly::makeFuture(1);
+
+	folly::Future<int> f = firstFailure(std::move(f0), std::move(f1));
+
+	BOOST_CHECK_THROW(f.get(), folly::BrokenPromise);
+}
+
+BOOST_AUTO_TEST_CASE(FirstFailureOneFails)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure"));
+	folly::Future<int> f1 = folly::makeFuture(1);
+
+	folly::Future<int> f = firstFailure(std::move(f0), std::move(f1));
+
+	f.wait();
+	const std::string what = f.getTry().exception().get_exception()->what();
+
+	BOOST_CHECK_EQUAL("Failure", what);
+}
+
+BOOST_AUTO_TEST_CASE(FirstFailureBothFail)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
+
+	folly::Future<int> f = firstFailure(std::move(f0), std::move(f1));
+
+	f.wait();
+	const std::string what = f.getTry().exception().get_exception()->what();
+
+	BOOST_CHECK_EQUAL("Failure 0", what);
+}
+
+BOOST_AUTO_TEST_CASE(FirstFailureRandomBothSucceed)
+{
+	folly::Future<int> f0 = folly::makeFuture(0);
+	folly::Future<int> f1 = folly::makeFuture(1);
+
+	folly::Future<int> f = firstFailureRandom(std::move(f0), std::move(f1));
+
+	BOOST_CHECK_THROW(f.get(), folly::BrokenPromise);
+}
+
+BOOST_AUTO_TEST_CASE(FirstFailureRandomOneFails)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure"));
+	folly::Future<int> f1 = folly::makeFuture(1);
+
+	folly::Future<int> f = firstFailureRandom(std::move(f0), std::move(f1));
+
+	f.wait();
+	const std::string what = f.getTry().exception().get_exception()->what();
+
+	BOOST_CHECK_EQUAL("Failure", what);
+}
+
+BOOST_AUTO_TEST_CASE(FirstFailureRandomBothFail)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
+
+	folly::Future<int> f = firstFailureRandom(std::move(f0), std::move(f1));
+
+	f.wait();
+	const std::string what = f.getTry().exception().get_exception()->what();
+
+	BOOST_CHECK(what == "Failure 0" || what == "Failure 1");
+}

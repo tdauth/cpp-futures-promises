@@ -154,22 +154,104 @@ folly::Future<T> firstSuccessOnlyRandom(folly::Future<T> &&f0, folly::Future<T> 
 	return r;
 }
 
-template<typename T>
-folly::Future<T> firstFailed(folly::Future<T> &&f0, folly::Future<T> &&f1);
+enum class FirstFailureState
+{
+	Start,
+	FirstSucceeded,
+	FirstFailed
+};
 
 template<typename T>
-folly::Future<T> firstFailedRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
+struct FirstFailureContext
+{
+	std::mutex m;
+	folly::Promise<T> p;
+	folly::Future<folly::Unit> f0;
+	folly::Future<folly::Unit> f1;
+	FirstFailureState state = FirstFailureState::Start;
+};
 
 template<typename T>
-folly::Future<T> firstFailedOnly(folly::Future<T> &&f0, folly::Future<T> &&f1);
+void completeFirstFailureContext(folly::Try<T> &&t, std::shared_ptr<FirstFailureContext<T>> ctx)
+{
+	std::unique_lock<std::mutex> l(ctx->m);
+
+	switch (ctx->state)
+	{
+		case FirstFailureState::Start:
+		{
+			if (t.hasValue())
+			{
+				ctx->state = FirstFailureState::FirstSucceeded;
+			}
+			else
+			{
+				ctx->p.setException(t.exception());
+				ctx->state = FirstFailureState::FirstFailed;
+			}
+
+			break;
+		}
+
+		case FirstFailureState::FirstSucceeded:
+		{
+			if (t.hasException())
+			{
+				ctx->p.setException(t.exception());
+			}
+
+			break;
+		}
+
+		case FirstFailureState::FirstFailed:
+		{
+			break;
+		}
+	}
+}
 
 template<typename T>
-folly::Future<T> firstFailedOnlyRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
+folly::Future<T> firstFailure(folly::Future<T> &&f0, folly::Future<T> &&f1)
+{
+	std::shared_ptr<FirstFailureContext<T>> ctx = std::make_shared<FirstFailureContext<T>>();
+	folly::Future<T> r = ctx->p.getFuture();
+
+	ctx->f0 = f0.then(std::bind(completeFirstFailureContext<T>, std::placeholders::_1, ctx));
+	ctx->f1 = f1.then(std::bind(completeFirstFailureContext<T>, std::placeholders::_1, ctx));
+
+	return r;
+}
 
 template<typename T>
-folly::Future<T> firstCompleted(folly::Future<T> &&f0, folly::Future<T> &&f1);
+folly::Future<T> firstFailureRandom(folly::Future<T> &&f0, folly::Future<T> &&f1)
+{
+	std::shared_ptr<FirstFailureContext<T>> ctx = std::make_shared<FirstFailureContext<T>>();
+	folly::Future<T> r = ctx->p.getFuture();
+
+	// Make a randomized choice between the two futures:
+	folly::Future<T> futures[] = {
+		std::move(f0),
+		std::move(f1)
+	};
+
+	const int selection = select();
+
+	ctx->f0 = futures[selection].then(std::bind(completeFirstFailureContext<T>, std::placeholders::_1, ctx));
+	ctx->f1 = futures[1- selection].then(std::bind(completeFirstFailureContext<T>, std::placeholders::_1, ctx));
+
+	return r;
+}
 
 template<typename T>
-folly::Future<T> firstCompletedRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
+folly::Future<T> firstFailureOnly(folly::Future<T> &&f0, folly::Future<T> &&f1);
+
+template<typename T>
+folly::Future<T> firstFailureOnlyRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
+
+template<typename T>
+folly::Future<T> firstCompletion(folly::Future<T> &&f0, folly::Future<T> &&f1);
+
+template<typename T>
+folly::Future<T> firstCompletiondRandom(folly::Future<T> &&f0, folly::Future<T> &&f1);
 
 #endif
