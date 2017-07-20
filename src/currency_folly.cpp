@@ -15,7 +15,6 @@ int main(int argc, char *argv[])
 	);
 
 	folly::Future<double> purchase = exchangeRate
-		.filter(isProfitable)
 		.then([] (double v)
 			{
 				return buy(amount, v);

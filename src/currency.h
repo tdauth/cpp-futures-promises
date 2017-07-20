@@ -2,7 +2,6 @@
 #define CURRENCY_H
 
 #include <iostream>
-#include <functional>
 #include <utility>
 #include <tuple>
 
@@ -13,7 +12,7 @@ enum Currency
 	CHF
 };
 
-double amount = 100;
+const double amount = 100;
 
 double currentValue(Currency from, Currency to)
 {
@@ -88,19 +87,14 @@ double buy(double amount, double quote)
 
 typedef std::tuple<Currency, double> Transaction;
 
-Transaction buy2(Currency currency, double amount, double quote)
+Transaction buy(Currency currency, double amount, double quote)
 {
 	return std::make_tuple(currency, amount * quote);
 }
 
-void printPurchase(double amount, Currency currency)
+void printPurchase(Currency currency, double amount)
 {
 	std::cout << "Purchased " << amount << " " << currencyName(currency) << std::endl;
-}
-
-void printPurchase2(Transaction v)
-{
-	std::cout << "Purchased " << std::get<1>(v) << " " << currencyName(std::get<0>(v)) << std::endl;
 }
 
 void printFailure(const std::exception &e)

@@ -6,7 +6,11 @@
 int main()
 {
 	boost::basic_thread_pool ex;
-	boost::future<double> exchangeRate = boost::async(ex, std::bind(currentValue, USD, EUR));
+	boost::future<double> exchangeRate = boost::async(ex, [] ()
+		{
+			return currentValue(USD, EUR);
+		}
+	);
 
 	boost::future<double> purchase = exchangeRate
 		.then([] (boost::future<double> f)
@@ -19,7 +23,8 @@ int main()
 			}
 
 			return buy(amount, exchangeRate);
-		});
+		}
+	);
 
 
 	boost::future<void> print = purchase
@@ -27,13 +32,14 @@ int main()
 		{
 			try
 			{
-				printPurchase(f.get(), EUR);
+				printPurchase(EUR, f.get());
 			}
 			catch (const std::exception &e)
 			{
 				printFailure(e);
 			}
-		});
+		}
+	);
 
 	print.wait();
 

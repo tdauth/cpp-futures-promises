@@ -4,31 +4,33 @@
 
 int main()
 {
-	std::future<double> exchangeRate = std::async(currentValue, USD, EUR);
+	std::future<double> exchangeRate = std::async([] { return currentValue(USD, EUR); });
 
 	std::future<double> purchase = std::async([exchangeRate = std::move(exchangeRate)] () mutable
-	{
-		double quote = exchangeRate.get();
-
-		if (!isProfitable(quote))
 		{
-			throw std::runtime_error("not profitable");
-		}
+			double quote = exchangeRate.get();
 
-		return buy(amount, quote);
-	});
+			if (!isProfitable(quote))
+			{
+				throw std::runtime_error("not profitable");
+			}
+
+			return buy(amount, quote);
+		}
+	);
 
 	std::future<void> print = std::async([purchase = std::move(purchase)] () mutable
-	{
-		try
 		{
-			printPurchase(purchase.get(), EUR);
+			try
+			{
+				printPurchase(EUR, purchase.get());
+			}
+			catch (const std::exception &e)
+			{
+				printFailure(e);
+			}
 		}
-		catch (const std::exception &e)
-		{
-			printFailure(e);
-		}
-	});
+	);
 
 	print.wait();
 
