@@ -75,8 +75,12 @@ folly::Future<T> andThen(folly::Future<T> &&f, Func &&func)
 }
 
 /**
- * Similar to folly::collectN():
+ * Similar to folly::collectN() but without returning the indices:
  * Starts an asynchronous call which calls boost::wait_for_any() \p n times and moves the resulting futures into the resulting container.
+ *
+ * \param first The iterator which points to the first element of the collection.
+ * \param last The element which points to the last element of the collection.
+ * \return Returns a boost::future<std::vector<boost::future<T>>>. The indices cannot be returned since boos::wait_for_any() does only return an iterator.
  */
 template<typename InputIterator>
 boost::future<std::vector<typename InputIterator::value_type>>
@@ -113,6 +117,62 @@ when_n(InputIterator first, InputIterator last, std::size_t n)
 			return result;
 		}
 	);
+}
+
+/**
+ * This version uses an implementation which is more similar to Folly's version.
+ * It does also return the indices.
+ */
+template<typename InputIterator>
+boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type>>>
+when_n2(InputIterator first, InputIterator last, std::size_t n)
+{
+	typedef typename InputIterator::value_type future_type;
+	typedef typename std::pair<std::size_t, future_type> value_type;
+	typedef std::vector<value_type> result_type;
+	const std::size_t size = std::distance(first, last);
+
+	if (size < n)
+	{
+		return boost::make_exceptional_future<result_type>(
+			std::runtime_error("Not enough futures")
+		);
+	}
+
+	struct CollectNContext
+	{
+		result_type v;
+		std::atomic<size_t> completed = {0};
+		boost::promise<result_type> p;
+	};
+
+	auto ctx = std::make_shared<CollectNContext>();
+	std::size_t i = 0;
+
+	std::for_each(first, last, [ctx, n, &i] (future_type &v)
+		{
+			v.then([ctx, n, i] (future_type f)
+				{
+					auto c = ++ctx->completed;
+
+					if (c <= n)
+					{
+						assert(ctx->v.size() < n);
+						ctx->v.emplace_back(i, std::move(f));
+
+						if (c == n)
+						{
+							ctx->p.set_value(std::move(ctx->v));
+						}
+					}
+				}
+			);
+
+			++i;
+		}
+	);
+
+	return ctx->p.get_future();
 }
 
 #endif
