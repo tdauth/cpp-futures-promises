@@ -31,4 +31,4 @@ The project provides a number of non-blocking combinators which are missing from
 * firstSuccessRandom()
 * ...
 * orElse()
-* when_n() for Boost.Thread()
+* when_n() for Boost.Thread

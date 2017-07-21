@@ -6,6 +6,8 @@ fi
 
 CMAKE_PREFIX_PATH="$(pwd)/cmake"
 echo "Using prefix path: $CMAKE_PREFIX_PATH"
+echo "It contains the following files:"
+ls -lha "$CMAKE_PREFIX_PATH"
 cd ./build
 # Clang cannot be used due to errors with Folly: https://github.com/facebook/folly/issues/555
 # Create a "compile_commands.json" file for analysis: http://eli.thegreenplace.net/2014/05/21/compilation-databases-for-clang-based-tools

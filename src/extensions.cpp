@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(OrElseBothFailed)
 	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
 	folly::Future<int> f = orElse(std::move(f0), std::move(f1));
 
-	BOOST_REQUIRE_THROW(f.get());
+	BOOST_REQUIRE_THROW(f.get(), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(AndThen)
