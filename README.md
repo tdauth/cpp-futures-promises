@@ -31,4 +31,5 @@ The project provides a number of non-blocking combinators which are missing from
 * firstSuccessRandom()
 * ...
 * orElse()
+* collectNWithoutException() for Folly.
 * when_n() for Boost.Thread

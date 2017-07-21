@@ -12,6 +12,71 @@
 
 #include <execinfo.h>
 
+template <class InputIterator>
+folly::Future<std::vector<std::pair<size_t, typename std::iterator_traits<InputIterator>::value_type::value_type>>>
+collectNWithoutException(InputIterator first, InputIterator last, size_t n)
+{
+	typedef typename std::iterator_traits<InputIterator>::value_type::value_type T;
+	typedef std::vector<std::pair<size_t, T>> V;
+
+	struct CollectNContext
+	{
+		V v;
+		std::atomic<size_t> completed = {0};
+		std::atomic<size_t> failed = {0};
+		folly::Promise<V> p;
+	};
+
+	auto ctx = std::make_shared<CollectNContext>();
+	const size_t total = std::distance(first, last);
+
+	if (total < n)
+	{
+		ctx->p.setException(std::runtime_error("Not enough futures"));
+	}
+	else
+	{
+		// for each completed Future, increase count and add to vector, until we
+		// have n completed futures at which point we fulfil our Promise with the
+		// vector
+		folly::mapSetCallback<T>(first, last, [ctx, n, total](size_t i, folly::Try<T>&& t)
+			{
+				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
+				if (t.hasException())
+				{
+					if (!ctx->p.isFulfilled())
+					{
+						auto c = ++ctx->failed;
+
+						if (total - c < n)
+						{
+							ctx->p.setException(t.exception());
+						}
+				}
+
+			}
+			else if (!ctx->p.isFulfilled())
+			{
+				auto c = ++ctx->completed;
+
+				if (c <= n)
+				{
+					assert(ctx->v.size() < n);
+					ctx->v.emplace_back(i, std::move(t.value()));
+
+					if (c == n)
+					{
+						ctx->p.setValue(std::move(ctx->v));
+					}
+				}
+			}
+			}
+		);
+	}
+
+	return ctx->p.getFuture();
+}
+
 template<typename T>
 folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 {
