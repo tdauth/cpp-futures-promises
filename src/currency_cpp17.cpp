@@ -10,7 +10,8 @@ int main()
 		}
 	);
 
-	std::future<double> purchase = std::async([exchangeRate = std::move(exchangeRate)] () mutable
+	std::future<double> purchase = std::async([exchangeRate = std::move(exchangeRate)]
+		() mutable
 		{
 			return buy(amount, exchangeRate.get());
 		}
