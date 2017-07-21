@@ -4,6 +4,33 @@
 #include "extensions.h"
 #include "folly_fixture.h"
 
+BOOST_AUTO_TEST_CASE(OrElse)
+{
+	folly::Future<int> f0 = folly::makeFuture(10);
+	folly::Future<int> f1 = folly::makeFuture(11);
+	folly::Future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(OrElseFirstFailed)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure"));
+	folly::Future<int> f1 = folly::makeFuture(11);
+	folly::Future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_EQUAL(11, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(OrElseBothFailed)
+{
+	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
+	folly::Future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_THROW(f.get());
+}
+
 BOOST_AUTO_TEST_CASE(AndThen)
 {
 	int v = 0;

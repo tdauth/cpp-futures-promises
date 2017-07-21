@@ -20,9 +20,15 @@ The project requires the following libraries:
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the CMakeLists.txt file in the top level directory of the project.
 
+## Use Case: Currency Exchange
+For demonstrating the libraries, a simple use case of exchanging currencies is demonstrated for all three libraries.
+It is extended with guards and finally a choice between two exchanges, but only for Folly.
+This use case shows the limitations of the libraries.
+
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
 * firstSuccess()
 * firstSuccessRandom()
 * ...
 * orElse()
+* when_n() for Boost.Thread()

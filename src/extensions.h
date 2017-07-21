@@ -12,6 +12,28 @@
 
 #include <execinfo.h>
 
+template<typename T>
+folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
+{
+	return first.then([second = std::move(second)] (folly::Try<T> t) mutable
+		{
+			if (!t.hasValue())
+			{
+				second.wait();
+
+				if (second.hasValue())
+				{
+					return second.value();
+				}
+
+				t.exception().throw_exception();
+			}
+
+			return t.value();
+		}
+	);
+}
+
 namespace
 {
 
@@ -121,7 +143,13 @@ when_n(InputIterator first, InputIterator last, std::size_t n)
 
 /**
  * This version uses an implementation which is more similar to Folly's version.
+ * Actually, the source code is almost the same as in Folly's "Future-inl.h" file
+ * but with the interface of Boost.Thread.
  * It does also return the indices.
+ *
+ * \param first The iterator which points to the first element of the collection.
+ * \param last The element which points to the last element of the collection.
+ * \return Returns a boost::future<std::vector<std::pair<std::size_t, boost::future<T>>>>. The pair holds the original index of the future and the future itself.
  */
 template<typename InputIterator>
 boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type>>>
