@@ -6,6 +6,8 @@ set(boost_VERSION_UNDERSCORE "1_64_0")
 set(folly_VERSION "v2017.07.03.00")
 set(wangle_VERSION "v2017.07.03.00")
 
+message(STATUS "Module path: ${CMAKE_MODULE_PATH}")
+
 enable_testing()
 
 include(CTest)
