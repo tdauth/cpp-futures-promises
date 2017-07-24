@@ -13,6 +13,12 @@ cd ./build
 # Create a "compile_commands.json" file for analysis: http://eli.thegreenplace.net/2014/05/21/compilation-databases-for-clang-based-tools
 cmake ../ -DCMAKE_MODULE_PATH="$CMAKE_MODULE_PATH" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_CXX_COMPILER="/usr/bin/g++" -DCMAKE_C_COMPILER="/usr/bin/gcc"
 make -j4
+
+if [ "$?" -ne 0 ] ; then
+	cat ./build/boost-prefix/src/boost-stamp/boost-build-*.log
+	exit 1
+fi
+
 rm -r "$WORKSPACE/cpp-futures-promises/workspace/build/Testing" || true
 ctest -T test
 cpack -G "RPM" .
