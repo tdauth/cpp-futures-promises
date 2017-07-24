@@ -16,6 +16,7 @@ make -j4
 
 if [ "$?" -ne 0 ] ; then
 	cat ./build/boost-prefix/src/boost-stamp/boost-build-*.log
+	cat ./build/boostrelease-prefix/src/boostrelease-stamp/boostrelease-build-*.log
 	exit 1
 fi
 
