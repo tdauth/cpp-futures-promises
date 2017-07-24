@@ -14,8 +14,6 @@ include(CTest)
 
 # The thesis code is based on the standard C++17:
 add_compile_options(-std=c++1z -Wall)
-set(CMAKE_C_COMPILER "/usr/bin/clang")
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 # These flags are required for Boost.Thread and Boost.Test:
 add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK)
 # Workaround for Fedora:
@@ -159,12 +157,6 @@ set(wangle_RELEASE_LIBRARIES "${wangle_RELEASE_LIB_DIR}/libwangle.so")
 # The file compile_commands.json is require by clang-check and has to be exported.
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=1)
 
-find_program(CLANG_CHECK_PATH clang-check)
-
-if (NOT CLANG_CHECK_PATH)
-	message(FATAL_ERROR "clang-check not found.")
-endif ()
-
 find_program(VALGRIND_PATH valgrind)
 
 if (NOT VALGRIND_PATH)
@@ -176,7 +168,6 @@ find_program(GPROF_PATH gprof)
 if (NOT GPROF_PATH)
 	message(FATAL_ERROR "gprof not found.")
 endif ()
-
 
 find_program(BASH_PATH bash)
 
