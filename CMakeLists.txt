@@ -12,8 +12,18 @@ enable_testing()
 
 include(CTest)
 
-# The thesis code is based on the standard C++17:
-add_compile_options(-std=c++1z -Wall)
+include(CheckCXXCompilerFlag)
+
+CHECK_CXX_COMPILER_FLAG(-std=c++1z HAS_CXX_17)
+
+if (HAS_CXX_17)
+	# The thesis code is based on the standard C++17:
+	add_compile_options(-std=c++1z)
+else ()
+	add_compile_options(-std=c++14)
+endif ()
+
+add_compile_options(-Wall)
 # These flags are required for Boost.Thread and Boost.Test:
 add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK)
 # Workaround for Fedora:
