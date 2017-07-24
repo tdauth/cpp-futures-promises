@@ -33,3 +33,8 @@ The project provides a number of non-blocking combinators which are missing from
 * orElse()
 * collectNWithoutException() for Folly.
 * when_n() for Boost.Thread
+
+## Performance Tests
+THe project provides several performance tests using the benchmark suite from Folly:
+* Shared vs unique future and promise creation
+* Recursive non-blocking combinator calls

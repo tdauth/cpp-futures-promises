@@ -18,13 +18,20 @@ CHECK_CXX_COMPILER_FLAG(-std=c++1z HAS_CXX_17)
 CHECK_CXX_COMPILER_FLAG(-std=c++14 HAS_CXX_14)
 CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 
+# Try to use standard C++17 but if it is not available fallback until C++11.
+# The environment variables are required for the Bash scripts which often compile external libraries.
 if (HAS_CXX_17)
-	# The thesis code is based on the standard C++17:
 	add_compile_options(-std=c++1z)
+	set(ENV{CFLAGS} "-std=c11")
+	set(ENV{CXXFLAGS} "-std=c++1z")
 elseif (HAS_CXX_14)
 	add_compile_options(-std=c++14)
+	set(ENV{CFLAGS} "-std=c11")
+	set(ENV{CXXFLAGS} "-std=c++14")
 elseif (HAS_CXX_11)
 	add_compile_options(-std=c++11)
+	set(ENV{CFLAGS} "-std=c11")
+	set(ENV{CXXFLAGS} "-std=c++11")
 endif ()
 
 add_compile_options(-Wall)
@@ -33,11 +40,18 @@ add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOO
 # Workaround for Fedora:
 set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
 
+# Bash is required for many of the build scripts for the external projects.
+find_program(BASH_PATH bash)
+
+if (NOT BASH_PATH)
+	message(FATAL_ERROR "bash not found.")
+endif ()
+
 include(ExternalProject)
 
 # Boost
 set(BOOST_DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/boost-prefix/src/boost/")
-set(BOOST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostinstall")
+set(BOOST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boost_install")
 set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
 set(BOOST_LIB_DIR "${BOOST_INSTALL_DIR}/lib")
 
@@ -46,8 +60,8 @@ ExternalProject_Add(
 	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
 	INSTALL_COMMAND "" # Disable install step
 	UPDATE_COMMAND "" # Doesn't change often
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_LIB_DIR}"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_LIB_DIR}"
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON
@@ -63,7 +77,7 @@ set(Boost_LIBRARIES "${BOOST_LIB_DIR}/libboost_thread.so" "${BOOST_LIB_DIR}/libb
 
 # Boost Release (for performance tests)
 set(BOOST_RELEASE_DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostrelease-prefix/src/boostrelease/")
-set(BOOST_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostreleaseinstall")
+set(BOOST_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostrelease_install")
 set(BOOST_RELEASE_INCLUDE_DIR "${BOOST_RELEASE_INSTALL_DIR}/include")
 set(BOOST_RELEASE_LIB_DIR "${BOOST_RELEASE_INSTALL_DIR}/lib")
 
@@ -72,8 +86,8 @@ ExternalProject_Add(
 	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
 	INSTALL_COMMAND "" # Disable install step
 	UPDATE_COMMAND "" # Doesn't change often
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildboost_release.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_LIB_DIR}"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost_release.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_LIB_DIR}"
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON
@@ -95,20 +109,23 @@ if (NOT GLOG_LIBRARY)
 endif ()
 
 set(folly_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly-prefix/src/folly/folly")
-set(folly_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/installfolly")
+set(folly_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly_install")
 set(folly_INCLUDE_DIR "${folly_INSTALL_DIR}/include")
 set(folly_LIB_DIR "${folly_INSTALL_DIR}/lib")
 
 set(folly_LIBRARIES
 	"${folly_LIB_DIR}/libfolly.so"
+	"${folly_LIB_DIR}/libfollybenchmark.so"
+	"${folly_LIB_DIR}/libfollyinit.so"
+	"${folly_LIB_DIR}/libfollylogging.so"
 	${GLOG_LIBRARY}
 )
 
 ExternalProject_Add(folly
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
 	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so" "${BOOST_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so"
 	DEPENDS boost
 )
 
@@ -117,32 +134,35 @@ link_directories("${folly_LIB_DIR}")
 
 # Folly Release
 set(folly_RELEASE_DIR "${CMAKE_CURRENT_BINARY_DIR}/follyrelease-prefix/src/follyrelease/folly")
-set(folly_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/installfollyrelease")
+set(folly_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/follyrelease_install")
 set(folly_RELEASE_INCLUDE_DIR "${folly_RELEASE_INSTALL_DIR}/include")
 set(folly_RELEASE_LIB_DIR "${folly_RELEASE_INSTALL_DIR}/lib")
 
 set(folly_RELEASE_LIBRARIES
 	"${folly_RELEASE_LIB_DIR}/libfolly.so"
+	"${folly_RELEASE_LIB_DIR}/libfollybenchmark.so"
+	"${folly_RELEASE_LIB_DIR}/libfollyinit.so"
+	"${folly_RELEASE_LIB_DIR}/libfollylogging.so"
 	${GLOG_LIBRARY}
 )
 
 ExternalProject_Add(follyrelease
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
 	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly_release.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so" "${BOOST_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly_release.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so" "${BOOST_RELEASE_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so"
 	DEPENDS boostrelease
 )
 
 # Wangle is required for the Thread Pool Executors which work with Folly
-set(wangle_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/installwangle")
+set(wangle_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wangle_install")
 set(wangle_BUILD_DIR "${CMAKE_BINARY_DIR}/wangle-prefix/src/wangle-build")
 
 ExternalProject_Add(wangle
 	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
 	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle.sh" "${folly_LIB_DIR}" "${folly_INCLUDE_DIR}" "${BOOST_INSTALL_DIR}" "${wangle_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_BUILD_DIR}"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle.sh" "${folly_LIB_DIR}" "${folly_INCLUDE_DIR}" "${BOOST_INSTALL_DIR}" "${wangle_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_BUILD_DIR}"
 	DEPENDS folly boost
 )
 
@@ -153,14 +173,14 @@ set(wangle_LIBRARIES "${wangle_LIB_DIR}/libwangle.so")
 include_directories("${wangle_INCLUDE_DIR}")
 
 # Wangle Release:
-set(wangle_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/installwanglerelease")
+set(wangle_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wanglerelease_install")
 set(wangle_RELEASE_BUILD_DIR "${CMAKE_BINARY_DIR}/wanglerelease-prefix/src/wangle-build")
 
 ExternalProject_Add(wanglerelease
 	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
 	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle_release.sh" "${folly_RELEASE_LIB_DIR}" "${folly_RELEASE_INCLUDE_DIR}" "${BOOST_RELEASE_INSTALL_DIR}" "${wangle_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_RELEASE_BUILD_DIR}"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle_release.sh" "${folly_RELEASE_LIB_DIR}" "${folly_RELEASE_INCLUDE_DIR}" "${BOOST_RELEASE_INSTALL_DIR}" "${wangle_RELEASE_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_RELEASE_BUILD_DIR}"
 	DEPENDS follyrelease boostrelease
 )
 
@@ -181,12 +201,6 @@ find_program(GPROF_PATH gprof)
 
 if (NOT GPROF_PATH)
 	message(FATAL_ERROR "gprof not found.")
-endif ()
-
-find_program(BASH_PATH bash)
-
-if (NOT BASH_PATH)
-	message(FATAL_ERROR "bash not found.")
 endif ()
 
 add_subdirectory(src)

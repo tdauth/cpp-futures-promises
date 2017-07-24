@@ -94,3 +94,13 @@ add_executable(extensions extensions.cpp)
 add_dependencies(extensions boost folly)
 target_link_libraries(extensions ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)
 add_test(Extensions extensions)
+
+add_executable(performance_combinators performance_combinators.cpp)
+add_dependencies(performance_combinators boost folly)
+target_link_libraries(performance_combinators ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)
+add_test(PerformanceCombinators performance_combinators)
+
+add_executable(performance_shared performance_shared.cpp)
+add_dependencies(performance_shared boostrelease follyrelease)
+target_link_libraries(performance_shared ${Boost_RELEASE_LIBRARIES} ${folly_RELEASE_LIBRARIES} pthread)
+add_test(PerformanceShared performance_shared)

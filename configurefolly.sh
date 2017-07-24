@@ -15,6 +15,4 @@ cd "$1"
 export LDFLAGS="-L\"$4/lib/\" -Wl,-rpath=\"$4/lib/\" -Wl,-rpath-link=\"$4/lib/\""
 echo "LDFLAGS: $LDFLAGS"
 autoreconf -ivf
-CFLAGS='-std=c11' CXXFLAGS='-std=c++1z' ./configure --prefix="$2" --with-boost="$4" --with-boost-libdir="$4/lib/"
-# FIXME Clang build crashes
-#  CC=clang CXX=clang++
+./configure --prefix="$2" --with-boost="$4" --with-boost-libdir="$4/lib/"
