@@ -64,10 +64,22 @@ void test_boost()
 	}
 }
 
-template<typename PromiseType>
+template<typename FutureType>
+void test_folly_futures()
+{
+	std::vector<folly::Future<FutureType>> futures;
+	futures.reserve(FUTURES_NUMBER);
+
+	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
+	{
+		futures.push_back(folly::makeFuture(10));
+	}
+}
+
+template<typename PromiseType, typename FutureType>
 void test_folly()
 {
-	std::vector<folly::Future<FUTURE_VALUE_TYPE_FOLLY>> futures;
+	std::vector<folly::Future<FutureType>> futures;
 	futures.reserve(FUTURES_NUMBER);
 
 	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
@@ -98,14 +110,19 @@ BENCHMARK(BoostThreadSharedFutures)
 	test_boost<boost::shared_future<FUTURE_VALUE_TYPE>>();
 }
 
+BENCHMARK(FollyFutures)
+{
+	test_folly_futures<FUTURE_VALUE_TYPE_FOLLY>();
+}
+
 BENCHMARK(FollyUniquePromises)
 {
-	test_folly<folly::Promise<FUTURE_VALUE_TYPE_FOLLY>>();
+	test_folly<folly::Promise<FUTURE_VALUE_TYPE_FOLLY>, FUTURE_VALUE_TYPE_FOLLY>();
 }
 
 BENCHMARK(FollySharedPromises)
 {
-	test_folly<folly::SharedPromise<FUTURE_VALUE_TYPE_FOLLY>>();
+	test_folly<folly::SharedPromise<FUTURE_VALUE_TYPE_FOLLY>, FUTURE_VALUE_TYPE_FOLLY>();
 }
 
 int main(int argc, char **argv)
