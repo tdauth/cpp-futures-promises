@@ -15,12 +15,16 @@ include(CTest)
 include(CheckCXXCompilerFlag)
 
 CHECK_CXX_COMPILER_FLAG(-std=c++1z HAS_CXX_17)
+CHECK_CXX_COMPILER_FLAG(-std=c++14 HAS_CXX_14)
+CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 
 if (HAS_CXX_17)
 	# The thesis code is based on the standard C++17:
 	add_compile_options(-std=c++1z)
-else ()
+else (HAS_CXX_14)
 	add_compile_options(-std=c++14)
+else (HAS_CXX_11)
+	add_compile_options(-std=c++11)
 endif ()
 
 add_compile_options(-Wall)
