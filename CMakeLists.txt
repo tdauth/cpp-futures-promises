@@ -21,9 +21,9 @@ CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 if (HAS_CXX_17)
 	# The thesis code is based on the standard C++17:
 	add_compile_options(-std=c++1z)
-else (HAS_CXX_14)
+elseif (HAS_CXX_14)
 	add_compile_options(-std=c++14)
-else (HAS_CXX_11)
+elseif (HAS_CXX_11)
 	add_compile_options(-std=c++11)
 endif ()
 
