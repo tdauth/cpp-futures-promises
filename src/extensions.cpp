@@ -136,3 +136,95 @@ BOOST_AUTO_TEST_CASE(CollectNWithoutExceptionTwoFailures)
 
 	BOOST_CHECK_EQUAL("Failure 1", results.getTry().exception().get_exception()->what());
 }
+
+BOOST_AUTO_TEST_CASE(TryComplete)
+{
+	folly::Try<int> t(10);
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryComplete(p, std::move(t)));
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteWith)
+{
+	folly::Future<int> future = folly::makeFuture(10);
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	tryCompleteWith(p, future);
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteSuccess)
+{
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryCompleteSuccess(p, 10));
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteSuccessWith)
+{
+	folly::Future<int> future = folly::makeFuture(10);
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	tryCompleteSuccessWith(p, future);
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteFailure)
+{
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryCompleteFailure(p, std::runtime_error("Failure")));
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteFailureWith)
+{
+	folly::Future<int> future = folly::makeFuture<int>(std::runtime_error("Failure"));
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	tryCompleteFailureWith<int>(p, future);
+
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(CompleteWith)
+{
+	folly::Future<int> future = folly::makeFuture(10);
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	completeWith(p, future);
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(First)
+{
+	folly::Future<int> f1 = folly::makeFuture(10);
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = first(std::move(f1), std::move(f2));
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(FirstRandom)
+{
+	folly::Future<int> f1 = folly::makeFuture(10);
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = firstRandom(std::move(f1), std::move(f2));
+
+	const int result = f.get();
+
+	BOOST_CHECK(result == 10 || result == 11);
+}

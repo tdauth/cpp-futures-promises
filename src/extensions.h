@@ -12,6 +12,8 @@
 
 #include <execinfo.h>
 
+#include "random.h"
+
 template <class InputIterator>
 folly::Future<std::vector<std::pair<size_t, typename std::iterator_traits<InputIterator>::value_type::value_type>>>
 collectNWithoutException(InputIterator first, InputIterator last, size_t n)
@@ -39,7 +41,7 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 		// for each completed Future, increase count and add to vector, until we
 		// have n completed futures at which point we fulfil our Promise with the
 		// vector
-		folly::mapSetCallback<T>(first, last, [ctx, n, total](size_t i, folly::Try<T>&& t)
+		folly::mapSetCallback<T>(first, last, [ctx, n, total] (size_t i, folly::Try<T>&& t)
 			{
 				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
 				if (t.hasException())
@@ -267,5 +269,196 @@ when_n2(InputIterator first, InputIterator last, std::size_t n)
 
 	return ctx->p.get_future();
 }
+
+/**
+ * Extensions for promises based on the Scala library for futures and promises.
+ * These combinators allow to complete a promise without a failure if it has already been completed.
+ * \{
+ */
+template<typename T>
+bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
+{
+	try
+	{
+		p.setTry(std::move(t));
+
+		return true;
+	}
+	catch (const folly::PromiseAlreadySatisfied &e)
+	{
+	}
+
+	return false;
+}
+
+template<typename T>
+folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &f)
+{
+	f.setCallback_([&p] (folly::Try<T> t)
+		{
+			tryComplete(p, std::move(t));
+		}
+	);
+
+	return p;
+}
+
+template<typename T>
+bool tryCompleteSuccess(folly::Promise<T> &p, T &&v)
+{
+	try
+	{
+		p.setValue(std::move(v));
+
+		return true;
+	}
+	catch (const folly::PromiseAlreadySatisfied &e)
+	{
+	}
+
+	return false;
+}
+
+template<typename T>
+folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &f)
+{
+	f.setCallback_([&p] (folly::Try<T> t)
+		{
+			if (t.hasValue())
+			{
+				tryCompleteSuccess(p, std::move(t.value()));
+			}
+		}
+	);
+
+	return p;
+}
+
+template<typename T, typename Exception>
+bool tryCompleteFailure(folly::Promise<T> &p, Exception &&e)
+{
+	try
+	{
+		p.setException(folly::make_exception_wrapper<Exception>(std::move(e)));
+
+		return true;
+	}
+	catch (const folly::PromiseAlreadySatisfied &e)
+	{
+	}
+
+	return false;
+}
+
+template<typename T>
+folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &f)
+{
+	f.setCallback_([&p] (folly::Try<T> t)
+		{
+			try
+			{
+				p.setException(t.exception());
+			}
+			catch (const folly::PromiseAlreadySatisfied &e)
+			{
+			}
+		}
+	);
+
+	return p;
+}
+
+template<typename T>
+folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &f)
+{
+	tryCompleteWith(p, f);
+
+	return p;
+}
+/**
+ * \}
+ */
+
+/**
+ * Paper extensions:
+ * \{
+ */
+/**
+ * The same as boost::when_any() and folly::collectAny() but by using tryCompleteWith().
+ */
+template<typename T>
+folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
+{
+	struct FirstContext
+	{
+		FirstContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		{
+		}
+
+		folly::Future<T> f1;
+		folly::Future<T> f2;
+		folly::Promise<T> p;
+	};
+
+	auto ctx = std::make_shared<FirstContext>(std::move(f1), std::move(f2));
+	folly::Future<T> future = ctx->p.getFuture();
+
+	// tryCompleteWith() + release of the shared context:
+	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
+	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
+
+	return future;
+}
+
+template<typename T>
+folly::Future<T> firstRandom(folly::Future<T> &&f1, folly::Future<T> &&f2)
+{
+	struct FirstContext
+	{
+		FirstContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		{
+		}
+
+		folly::Future<T> f1;
+		folly::Future<T> f2;
+		folly::Promise<T> p;
+	};
+
+	// Make a randomized choice between the two futures:
+	folly::Future<T> futures[] = {
+		std::move(f1),
+		std::move(f2)
+	};
+
+	const int selection = select();
+
+	auto ctx = std::make_shared<FirstContext>(std::move(futures[selection]), std::move(futures[1- selection]));
+	folly::Future<T> future = ctx->p.getFuture();
+
+	// tryCompleteWith() + release of the shared context:
+	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
+	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
+
+	return future;
+}
+/**
+ * \}
+ */
 
 #endif

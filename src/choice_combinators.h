@@ -1,22 +1,11 @@
 #ifndef CHOICECOMBINATORS_H
 #define CHOICECOMBINATORS_H
 
-#include <random>
 #include <mutex>
 
 #include <folly/futures/Future.h>
 
-/**
- * Chooses a random number between 0 and 1.
- */
-int select()
-{
-	static std::random_device rand;
-	static std::default_random_engine e1(rand());
-	std::uniform_int_distribution<int> uniform_dist(0, 1);
-
-	return uniform_dist(e1);
-}
+#include "random.h"
 
 enum class FirstSuccessState
 {
