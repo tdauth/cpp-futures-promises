@@ -20,6 +20,6 @@ if [ "$?" -ne 0 ] ; then
 	exit 1
 fi
 
-rm -r "$WORKSPACE/cpp-futures-promises/workspace/build/Testing" || true
+rm -r "./Testing" || true
 ctest -T test
 cpack -G "RPM" .
