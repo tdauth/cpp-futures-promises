@@ -95,6 +95,7 @@ add_dependencies(extensions boost folly)
 target_link_libraries(extensions ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)
 add_test(Extensions extensions)
 
+# Performance tests:
 add_executable(performance_combinators performance_combinators.cpp)
 add_dependencies(performance_combinators boostrelease follyrelease)
 target_link_libraries(performance_combinators ${Boost_RELEASE_LIBRARIES} ${folly_RELEASE_LIBRARIES} pthread)
@@ -108,3 +109,14 @@ target_link_libraries(performance_shared ${Boost_RELEASE_LIBRARIES} ${folly_RELE
 add_test(PerformanceShared performance_shared)
 get_target_property(PERFORMANCE_SHARED_FLAGS performance_shared LINK_LIBRARIES)
 message(STATUS "Link libraries of performance test shared (should be the release versions): ${PERFORMANCE_SHARED_FLAGS}")
+
+# Use Cases:
+add_executable(santa_boost santa_boost.cpp)
+add_dependencies(santa_boost boost folly)
+target_link_libraries(santa_boost ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(SantaBoost santa_boost)
+
+add_executable(santa_folly santa_folly.cpp)
+add_dependencies(santa_folly boost folly wangle)
+target_link_libraries(santa_folly ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_test(SantaFolly santa_folly)

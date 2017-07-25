@@ -15,4 +15,13 @@ int select()
 	return uniform_dist(e);
 }
 
+int random_number(int min, int max)
+{
+	static std::random_device rand;
+	static std::default_random_engine e(rand());
+	std::uniform_int_distribution<int> uniform_dist(min, max);
+
+	return uniform_dist(e);
+}
+
 #endif

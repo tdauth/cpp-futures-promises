@@ -25,7 +25,7 @@ struct get_power<A, 0>
 
 /**
  * \brief This structure allows to generate recursive combinator calls at compile time.
- *
+ * TODO the formula is wrong for only 1 node per level?
  * Use the following code to call folly::collectAll() with 10^(5 + 1) - 1 nodes (futures), adding completed futures with the value 3 add the deepest level
  * of the tree:
  * \code

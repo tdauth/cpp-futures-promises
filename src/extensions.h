@@ -54,24 +54,23 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 						{
 							ctx->p.setException(t.exception());
 						}
-				}
-
-			}
-			else if (!ctx->p.isFulfilled())
-			{
-				auto c = ++ctx->completed;
-
-				if (c <= n)
-				{
-					assert(ctx->v.size() < n);
-					ctx->v.emplace_back(i, std::move(t.value()));
-
-					if (c == n)
-					{
-						ctx->p.setValue(std::move(ctx->v));
 					}
 				}
-			}
+				else if (!ctx->p.isFulfilled())
+				{
+					auto c = ++ctx->completed;
+
+					if (c <= n)
+					{
+						assert(ctx->v.size() < n);
+						ctx->v.emplace_back(i, std::move(t.value()));
+
+						if (c == n)
+						{
+							ctx->p.setValue(std::move(ctx->v));
+						}
+					}
+				}
 			}
 		);
 	}
@@ -90,13 +89,33 @@ folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 
 				if (second.hasValue())
 				{
-					return second.value();
+					return second.get();
 				}
 
 				t.exception().throw_exception();
 			}
 
 			return t.value();
+		}
+	);
+}
+
+template<typename T>
+boost::future<T> or_else(boost::future<T> &&first, boost::future<T> &&second)
+{
+	return first.then([second = std::move(second)] (boost::future<T> f) mutable
+		{
+			if (!f.has_value())
+			{
+				second.wait();
+
+				if (second.has_value())
+				{
+					return second.get();
+				}
+			}
+
+			return f.get();
 		}
 	);
 }
@@ -164,52 +183,7 @@ folly::Future<T> andThen(folly::Future<T> &&f, Func &&func)
 }
 
 /**
- * Similar to folly::collectN() but without returning the indices:
- * Starts an asynchronous call which calls boost::wait_for_any() \p n times and moves the resulting futures into the resulting container.
- *
- * \param first The iterator which points to the first element of the collection.
- * \param last The element which points to the last element of the collection.
- * \return Returns a boost::future<std::vector<boost::future<T>>>. The indices cannot be returned since boos::wait_for_any() does only return an iterator.
- */
-template<typename InputIterator>
-boost::future<std::vector<typename InputIterator::value_type>>
-when_n(InputIterator first, InputIterator last, std::size_t n)
-{
-	typedef typename InputIterator::value_type value_type;
-	typedef std::vector<value_type> result_type;
-	const std::size_t size = std::distance(first, last);
-
-	if (size < n)
-	{
-		return boost::make_exceptional_future<result_type>(
-			std::runtime_error("Not enough futures")
-		);
-	}
-
-	return boost::async([first, last, n, size] ()
-		{
-			result_type tmp;
-			tmp.reserve(size);
-			std::move(first, last, std::back_inserter(tmp));
-
-			result_type result;
-			result.reserve(n);
-
-			for (std::size_t i = 0; i < n; ++i)
-			{
-				typename result_type::iterator any =
-					boost::wait_for_any(tmp.begin(), tmp.end());
-				result.push_back(std::move(*any));
-				tmp.erase(any);
-			}
-
-			return result;
-		}
-	);
-}
-
-/**
- * This version uses an implementation which is more similar to Folly's version.
+ * Similar to Folly's version of folly::collectN() with iterators.
  * Actually, the source code is almost the same as in Folly's "Future-inl.h" file
  * but with the interface of Boost.Thread.
  * It does also return the indices.
@@ -217,10 +191,12 @@ when_n(InputIterator first, InputIterator last, std::size_t n)
  * \param first The iterator which points to the first element of the collection.
  * \param last The element which points to the last element of the collection.
  * \return Returns a boost::future<std::vector<std::pair<std::size_t, boost::future<T>>>>. The pair holds the original index of the future and the future itself.
+ *
+ * \note Although the iteration and registration of callbacks has a fixed order, the order of completion is not guaranteed with already completed futures since the atomic operations are not protected by one global lock.
  */
 template<typename InputIterator>
 boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type>>>
-when_n2(InputIterator first, InputIterator last, std::size_t n)
+when_n(InputIterator first, InputIterator last, std::size_t n)
 {
 	typedef typename InputIterator::value_type future_type;
 	typedef typename std::pair<std::size_t, future_type> value_type;
@@ -268,6 +244,26 @@ when_n2(InputIterator first, InputIterator last, std::size_t n)
 	);
 
 	return ctx->p.get_future();
+}
+
+/**
+ * Since boost::when_any() does return the whole collection in a future, it is not possible to determine which
+ * future has been completed to complete the resulting future of boost::when_any().
+ * This version returns a future with a pair like folly::collectAny().
+ *
+ * \return Returns a future with a pair holding the index of the completed future and the completed future.
+ */
+template<typename InputIterator>
+boost::future<std::pair<std::size_t, typename InputIterator::value_type>>
+when_any_only_one(InputIterator first, InputIterator last)
+{
+	using future_type = boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type>>>;
+
+	return when_n(first, last, 1).then([] (future_type future)
+		{
+			return std::move(future.get()[0]);
+		}
+	);
 }
 
 /**
