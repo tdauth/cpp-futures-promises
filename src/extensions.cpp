@@ -4,7 +4,7 @@
 #include "extensions.h"
 #include "folly_fixture.h"
 
-BOOST_AUTO_TEST_CASE(OrElse)
+BOOST_AUTO_TEST_CASE(OrElseFolly)
 {
 	folly::Future<int> f0 = folly::makeFuture(10);
 	folly::Future<int> f1 = folly::makeFuture(11);
@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_CASE(OrElse)
 	BOOST_REQUIRE_EQUAL(10, f.get());
 }
 
-BOOST_AUTO_TEST_CASE(OrElseFirstFailed)
+BOOST_AUTO_TEST_CASE(OrElseFollyFirstFailed)
 {
 	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure"));
 	folly::Future<int> f1 = folly::makeFuture(11);
@@ -22,11 +22,38 @@ BOOST_AUTO_TEST_CASE(OrElseFirstFailed)
 	BOOST_REQUIRE_EQUAL(11, f.get());
 }
 
-BOOST_AUTO_TEST_CASE(OrElseBothFailed)
+BOOST_AUTO_TEST_CASE(OrElseFollyBothFailed)
 {
 	folly::Future<int> f0 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
 	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
 	folly::Future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(OrElseBoost)
+{
+	boost::future<int> f0 = boost::make_ready_future(10);
+	boost::future<int> f1 = boost::make_ready_future(11);
+	boost::future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(OrElseBoostFirstFailed)
+{
+	boost::future<int> f0 = boost::make_exceptional_future<int>(std::runtime_error("Failure"));
+	boost::future<int> f1 = boost::make_ready_future(11);
+	boost::future<int> f = orElse(std::move(f0), std::move(f1));
+
+	BOOST_REQUIRE_EQUAL(11, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(OrElseBoostBothFailed)
+{
+	boost::future<int> f0 = boost::make_exceptional_future<int>(std::runtime_error("Failure 0"));
+	boost::future<int> f1 = boost::make_exceptional_future<int>(std::runtime_error("Failure 1"));
+	boost::future<int> f = orElse(std::move(f0), std::move(f1));
 
 	BOOST_REQUIRE_THROW(f.get(), std::runtime_error);
 }

@@ -101,7 +101,7 @@ folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 }
 
 template<typename T>
-boost::future<T> or_else(boost::future<T> &&first, boost::future<T> &&second)
+boost::future<T> orElse(boost::future<T> &&first, boost::future<T> &&second)
 {
 	return first.then([second = std::move(second)] (boost::future<T> f) mutable
 		{
