@@ -182,13 +182,20 @@ folly::Future<T> andThen(folly::Future<T> &&f, Func &&func)
 	});
 }
 
+/**
+ * Similar to folly::mapSetCallback() and useful for combinators on collections.
+ */
 template <class T, class InputIterator, class F>
-void mapSetCallbackBoost(InputIterator first, InputIterator last, F func) {
-  for (size_t i = 0; first != last; ++first, ++i) {
-    first->then([func, i](boost::future<T> f) {
-      func(i, std::move(f));
-    });
-  }
+void mapSetCallbackBoost(InputIterator first, InputIterator last, F func)
+{
+	for (size_t i = 0; first != last; ++first, ++i)
+	{
+		first->then([func, i] (boost::future<T> f)
+			{
+				func(i, std::move(f));
+			}
+		);
+	}
 }
 
 /**
@@ -600,9 +607,9 @@ folly::Future<T> orElseWithoutMove(folly::Future<T> &first, folly::Future<T> &se
  * Similar to folly::collectAnyWithoutException() but implemented with \ref orElse().
  */
 template<typename T>
-folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
+folly::Future<T> firstSucc(folly::Future<T> &f1, folly::Future<T> &f2)
 {
-	return first(orElseWithoutMove(f1, f2), orElse(f2, f1));
+	return first(orElseWithoutMove(f1, f2), orElseWithoutMove(f2, f1));
 }
 
 // TODO How is this implemented??
