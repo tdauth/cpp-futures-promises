@@ -23,13 +23,27 @@ The versions of the libraries are specified in the CMakeLists.txt file in the to
 
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
-* firstSuccess()
-* firstSuccessRandom()
-* ...
-* orElse() for Folly and Boost.Thread
-* collectNWithoutException() for Folly.
-* whenN() for Boost.Thread
-* whenAny() for Boost Thread
+* orElse for Folly and Boost.Thread
+* first
+* firstOnlySucc
+* firstSucc
+* firstSucc2
+* collectNWithoutException for Folly.
+* whenN for Boost.Thread
+* whenAny for Boost Thread which returns a pair of the completed future and its index.
+
+### Promise extensions
+Besides, extensions for promises are provided which do exist in Scala:
+* tryComplete
+* tryCompleteWith
+* tryCompleteSuccess
+* tryCompleteSuccessWith
+* tryCompleteFailure
+* tryCompleteFailureWith
+* completeWith
+* fromTry
+* failed
+* successful
 
 ### Unit Tests
 To test the functionality, several unit tests are provided for the extensions.
@@ -54,4 +68,4 @@ Santa Claus sleeps and is woken up either by a group of reindeer or a group of e
 If both groups arrive at the same time, reindeer are preferred.
 Depending on which group wakes up Santa, he either delivers toys or constructs them.
 
-[Original Paper](https://crsr.net/files/ANewExerciseInConcurrency.pdf)
+[Original Paper](http://dl.acm.org/citation.cfm?id=187391)
