@@ -51,7 +51,7 @@ Bear in mind that concurrent programs can behavior differently every time due to
 Therefore, simple unit tests won't proof that there are no bugs.
 
 ## Performance Tests
-THe project provides several performance tests using the benchmark suite from Folly:
+The project provides several performance tests using the benchmark suite from Folly:
 * Shared vs unique future and promise creation
 * Recursive non-blocking combinator calls
 
