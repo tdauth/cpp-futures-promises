@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(FirstSucc)
 {
 	folly::Future<int> f1 = folly::makeFuture(10);
 	folly::Future<int> f2 = folly::makeFuture(11);
-	folly::Future<int> f = firstSucc(f1, f2);
+	folly::Future<int> f = firstSucc(std::move(f1), std::move(f2));
 
 	BOOST_CHECK_EQUAL(10, f.get());
 }
@@ -342,7 +342,43 @@ BOOST_AUTO_TEST_CASE(FirstSuccFirstFailed)
 {
 	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure"));
 	folly::Future<int> f2 = folly::makeFuture(11);
-	folly::Future<int> f = firstSucc(f1, f2);
+	folly::Future<int> f = firstSucc(std::move(f1), std::move(f2));
 
 	BOOST_CHECK_EQUAL(11, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(FirstSuccBothFailed)
+{
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
+	folly::Future<int> f2 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
+	folly::Future<int> f = firstSucc(std::move(f1), std::move(f2));
+
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(FirstSucc2)
+{
+	folly::Future<int> f1 = folly::makeFuture(10);
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = firstSucc2(std::move(f1), std::move(f2));
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(FirstSucc2FirstFailed)
+{
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure"));
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = firstSucc2(std::move(f1), std::move(f2));
+
+	BOOST_CHECK_EQUAL(11, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(FirstSucc2BothFailed)
+{
+	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
+	folly::Future<int> f2 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
+	folly::Future<int> f = firstSucc2(std::move(f1), std::move(f2));
+
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
 }

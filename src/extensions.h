@@ -607,12 +607,30 @@ folly::Future<T> orElseWithoutMove(folly::Future<T> &first, folly::Future<T> &se
  * Similar to folly::collectAnyWithoutException() but implemented with \ref orElse().
  */
 template<typename T>
-folly::Future<T> firstSucc(folly::Future<T> &f1, folly::Future<T> &f2)
+folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
-	return first(orElseWithoutMove(f1, f2), orElseWithoutMove(f2, f1));
+	struct FirstSuccContext
+	{
+		FirstSuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		{
+		}
+
+		folly::Future<T> f1;
+		folly::Future<T> f2;
+	};
+
+	auto ctx = std::make_shared<FirstSuccContext>(std::move(f1), std::move(f2));
+
+	return first(orElseWithoutMove(ctx->f1, ctx->f2), orElseWithoutMove(ctx->f2, ctx->f1))
+		.then([ctx] (folly::Try<T> t)
+			{
+				t.throwIfFailed();
+
+				return t.value();
+			}
+		);
 }
 
-// TODO How is this implemented??
 template<typename T>
 folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
@@ -624,6 +642,7 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 
 		folly::Future<T> f1;
 		folly::Future<T> f2;
+		folly::Future<folly::Unit> f;
 		folly::Promise<T> p;
 	};
 
@@ -642,7 +661,14 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 		}
 	);
 
-	return orElse(next1, next2).onError();
+	ctx->f = orElse(std::move(next1), std::move(next2))
+		.onError([ctx] (folly::exception_wrapper wrapper)
+			{
+				ctx->p.setException(std::move(wrapper));
+			}
+		).ensure([ctx] () { });
+
+	return future;
 }
 /**
  * \}
