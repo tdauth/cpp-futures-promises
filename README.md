@@ -28,8 +28,8 @@ The project provides a number of non-blocking combinators which are missing from
 * ...
 * orElse() for Folly and Boost.Thread
 * collectNWithoutException() for Folly.
-* when_n() for Boost.Thread
-* when_any_only_one() for Boost Thread
+* whenN() for Boost.Thread
+* whenAny() for Boost Thread
 
 ### Unit Tests
 To test the functionality, several unit tests are provided for the extensions.

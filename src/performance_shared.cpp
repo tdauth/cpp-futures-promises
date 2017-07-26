@@ -1,5 +1,6 @@
 /**
  * This performance test compares the performance of creating unique futures/promises vs creating shared futures/promises.
+ * Use the types void and folly::Unit to make it possible to create futures and promises for all the three libraries.
  */
 #include <future>
 
@@ -11,32 +12,32 @@
 #include <folly/futures/Promise.h>
 #include <folly/futures/Future.h>
 
-const unsigned long long FUTURES_NUMBER = 1000000;
+const unsigned long long FUTURES_NUMBER = 10000000;
 
-typedef int FUTURE_VALUE_TYPE;
-typedef int FUTURE_VALUE_TYPE_FOLLY;
+typedef void FUTURE_VALUE_TYPE;
+typedef folly::Unit FUTURE_VALUE_TYPE_FOLLY;
 
 template<typename FutureType>
-inline FutureType share_cpp14(std::future<FUTURE_VALUE_TYPE> f)
+inline FutureType share_cpp17(std::future<FUTURE_VALUE_TYPE> f)
 {
 	return f;
 }
 
 template<>
-inline std::shared_future<FUTURE_VALUE_TYPE> share_cpp14<std::shared_future<FUTURE_VALUE_TYPE>>(std::future<FUTURE_VALUE_TYPE> f)
+inline std::shared_future<FUTURE_VALUE_TYPE> share_cpp17<std::shared_future<FUTURE_VALUE_TYPE>>(std::future<FUTURE_VALUE_TYPE> f)
 {
 	return f.share();
 }
 
 template<typename FutureType>
-void test_cpp14()
+void test_cpp17()
 {
 	std::vector<FutureType> futures;
 	futures.reserve(FUTURES_NUMBER);
 
 	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
 	{
-		futures.push_back(share_cpp14<FutureType>(std::async([]() { return 10; })));
+		futures.push_back(share_cpp17<FutureType>(std::future<FUTURE_VALUE_TYPE>()));
 	}
 }
 
@@ -60,7 +61,7 @@ void test_boost()
 
 	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
 	{
-		futures.push_back(share_boost<FutureType>(boost::make_future(10)));
+		futures.push_back(share_boost<FutureType>(boost::future<FUTURE_VALUE_TYPE>()));
 	}
 }
 
@@ -72,7 +73,7 @@ void test_folly_futures()
 
 	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
 	{
-		futures.push_back(folly::makeFuture(10));
+		futures.push_back(folly::Future<FUTURE_VALUE_TYPE_FOLLY>());
 	}
 }
 
@@ -85,19 +86,19 @@ void test_folly()
 	for (unsigned long long i = 0; i < FUTURES_NUMBER; ++i)
 	{
 		PromiseType p = PromiseType();
-		p.setValue(10);
+		p.setValue();
 		futures.push_back(p.getFuture());
 	}
 }
 
 BENCHMARK(Cpp17UniqueFutures)
 {
-	test_cpp14<std::future<FUTURE_VALUE_TYPE>>();
+	test_cpp17<std::future<FUTURE_VALUE_TYPE>>();
 }
 
 BENCHMARK(Cpp17SharedFutures)
 {
-	test_cpp14<std::shared_future<FUTURE_VALUE_TYPE>>();
+	test_cpp17<std::shared_future<FUTURE_VALUE_TYPE>>();
 }
 
 BENCHMARK(BoostThreadUniqueFutures)

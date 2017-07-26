@@ -59,18 +59,10 @@ std::vector<boost::future<Type>> createElves()
 }
 
 using CollectionType = std::vector<std::pair<std::size_t, boost::future<Type>>>;
-using CollectionFutureType = boost::future<CollectionType>;
 
-inline CollectionType collectNCallback(boost::future<std::vector<boost::future<Type>>> collection, int n)
+inline void decideBoost(boost::future<CollectionType> f)
 {
-	auto c = collection.get();
-
-	return when_n(c.begin(), c.end(), n).get();
-}
-
-inline void decide_boost(boost::future<std::pair<std::size_t, CollectionFutureType>> f)
-{
-	CollectionType matches = f.get().second.get();
+	CollectionType matches = f.get();
 	decide(matches[0].second.get());
 
 	std::cout << "With members: ";
@@ -96,17 +88,33 @@ int main()
 	 */
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
-		auto reindeer = boost::async(createReindeer);
-		auto reindeerGroup = reindeer.then(boost::bind(collectNCallback, boost::placeholders::_1, REINDEER_MATCH_NUMBER));
+		auto reindeer = boost::async(boost::launch::async, createReindeer);
+		auto reindeerGroup = reindeer.then([]
+			(boost::future<std::vector<boost::future<Type>>> collection)
+			{
+				auto c = collection.get();
+
+				return whenN(c.begin(), c.end(), REINDEER_MATCH_NUMBER).get();
+			}
+		);
 		auto elves = boost::async(createElves);
-		auto elvesGroup = elves.then(boost::bind(collectNCallback, boost::placeholders::_1, ELF_MATCH_NUMBER));
-		std::vector<CollectionFutureType> futures;
-		futures.push_back(std::move(reindeerGroup));
-		futures.push_back(std::move(elvesGroup));
-		auto group = when_any_only_one(futures.begin(), futures.end()); // TODO prefer reindeer if both have enough ready
-		auto x = group.then(decide_boost);
+		auto elvesGroup = elves.then([]
+			(boost::future<std::vector<boost::future<Type>>> collection)
+			{
+				auto c = collection.get();
+
+				return whenN(c.begin(), c.end(), ELF_MATCH_NUMBER).get();
+			}
+		);
+
+		// TEST priority of reindeer (worked!!!):
+		//reindeerGroup.wait();
+		//elvesGroup.wait();
+
+		auto group = firstOnlySucc(std::move(reindeerGroup), std::move(elvesGroup));
+		auto x = group.then(decideBoost);
 		x.wait();
-		santa_does_work();
+		santaDoesWork();
 	}
 
 	std::cout << "Reindeer matches: " << reindeerMatches << std::endl;

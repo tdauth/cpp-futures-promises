@@ -104,7 +104,7 @@ void decide(Type f)
 	}
 }
 
-void santa_does_work()
+void santaDoesWork()
 {
 	santaSleeps = false;
 	std::this_thread::sleep_for(SANTA_DELAY);

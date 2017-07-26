@@ -174,7 +174,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(boost::async(f));
+			v.push_back(boost::make_ready_future(f()));
 		}
 
 		return boost::when_all(v.begin(), v.end());
@@ -187,7 +187,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(boost::async(f));
+			v.push_back(boost::make_ready_future(f()));
 		}
 
 		return boost::when_any(v.begin(), v.end());
@@ -200,46 +200,27 @@ struct RecursiveCombinatorType<T, 0>
 };
 
 using TYPE = int;
-const int VECTOR_SIZE = 10;
+const int VECTOR_SIZE = 2;
+constexpr int TREE_LEVELS = 20;
 
-BENCHMARK(FollyCollectAll1)
+BENCHMARK(FollyCollectAll)
 {
-	RecursiveCombinatorType<TYPE, 1>::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
-BENCHMARK(FollyCollectAll5)
+BENCHMARK(FollyCollectAny)
 {
-	RecursiveCombinatorType<TYPE, 5>::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
-BENCHMARK(FollyCollectAny1)
+BENCHMARK(BoostWhenAll)
 {
-	RecursiveCombinatorType<TYPE, 1>::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::whenAllBoost(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
-BENCHMARK(FollyCollectAny5)
+BENCHMARK(BoostWhenAny)
 {
-	RecursiveCombinatorType<TYPE, 5>::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
-}
-
-BENCHMARK(BoostWhenAll1)
-{
-	RecursiveCombinatorType<TYPE, 1>::whenAllBoost(VECTOR_SIZE, [] () { return 3; }).wait();
-}
-
-BENCHMARK(BoostWhenAll5)
-{
-	RecursiveCombinatorType<TYPE, 5>::whenAllBoost(VECTOR_SIZE, [] () { return 3; }).wait();
-}
-
-BENCHMARK(BoostWhenAny1)
-{
-	RecursiveCombinatorType<TYPE, 1>::whenAnyBoost(VECTOR_SIZE, [] () { return 3; }).wait();
-}
-
-BENCHMARK(BoostWhenAny5)
-{
-	RecursiveCombinatorType<TYPE, 5>::whenAnyBoost(VECTOR_SIZE, [] () { return 3; }).wait();
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::whenAnyBoost(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 int main(int argc, char *argv[])

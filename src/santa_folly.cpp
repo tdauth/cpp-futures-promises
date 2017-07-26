@@ -50,14 +50,8 @@ std::vector<folly::Future<Type>> createElves()
 
 using CollectionType = std::vector<std::pair<size_t, folly::Try<Type>>>;
 
-inline CollectionType collectOneTypeFromN(std::vector<folly::Future<Type>> collection, int n)
+inline void decideFolly(CollectionType matches)
 {
-	return folly::collectN(collection, n).get();
-}
-
-inline void decideFolly(std::pair<std::size_t, folly::Try<CollectionType>> p)
-{
-	CollectionType matches = p.second.value();
 	decide(matches[0].second.value());
 
 	std::cout << "With members: ";
@@ -83,15 +77,31 @@ int main(int argc, char **argv)
 
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
-		auto reindeer = folly::via(&executor, createReindeer).then(std::bind(collectOneTypeFromN, std::placeholders::_1, REINDEER_MATCH_NUMBER));
-		auto elves = folly::via(&executor, createElves).then(std::bind(collectOneTypeFromN, std::placeholders::_1, ELF_MATCH_NUMBER));
-		std::vector<folly::Future<CollectionType>> futures;
-		futures.push_back(std::move(reindeer));
-		futures.push_back(std::move(elves));
-		auto group = folly::collectAny(futures.begin(), futures.end()); // TODO prefer reindeer if both have enough ready
+		auto reindeer = folly::via(&executor, createReindeer).then([]
+			(std::vector<folly::Future<Type>> collection)
+			{
+				return folly::collectN(collection, REINDEER_MATCH_NUMBER).get();
+			}
+		);
+		auto elves = folly::via(&executor, createElves).then([]
+			(std::vector<folly::Future<Type>> collection)
+			{
+				return folly::collectN(collection, ELF_MATCH_NUMBER).get();
+			}
+		);
+
+		// TEST priority of reindeer (worked!!!):
+		/*
+		reindeer.wait();
+		elves.wait();
+		reindeer = folly::makeFuture(reindeer.get());
+		elves = folly::makeFuture(elves.get());
+		*/
+
+		auto group = firstOnlySucc(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideFolly);
 		x.wait();
-		santa_does_work();
+		santaDoesWork();
 	}
 
 	std::cout << "Reindeer matches: " << reindeerMatches << std::endl;
