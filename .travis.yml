@@ -11,5 +11,7 @@ addons:
       - libgflags2
       - libgoogle-glog-dev
       - valgrind
+      - chrpath
+      - patchelf
     sources:
       - kalakris-cmake
