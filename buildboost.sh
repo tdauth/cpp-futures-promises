@@ -6,9 +6,3 @@ echo "Changing rpaths of Boost libraries:"
 cd "$2"
 echo "Listing all files:"
 ls -lha
-for filename in "$2"/*.so; do
-	echo "Current rpath of Boost Library $filename:"
-	chrpath -l "$filename"
-	echo "Changing rpath of Boost Library $filename to \"$2\"."
-	patchelf --set-rpath "$2" "$filename"
-done
