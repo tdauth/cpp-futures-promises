@@ -88,8 +88,7 @@ int main()
 	 */
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
-		auto reindeer = boost::async(boost::launch::async, createReindeer);
-		auto reindeerGroup = reindeer.then([]
+		auto reindeer = boost::async(boost::launch::async, createReindeer).then([]
 			(boost::future<std::vector<boost::future<Type>>> collection)
 			{
 				auto c = collection.get();
@@ -97,8 +96,7 @@ int main()
 				return whenN(c.begin(), c.end(), REINDEER_MATCH_NUMBER).get();
 			}
 		);
-		auto elves = boost::async(createElves);
-		auto elvesGroup = elves.then([]
+		auto elves = boost::async(createElves).then([]
 			(boost::future<std::vector<boost::future<Type>>> collection)
 			{
 				auto c = collection.get();
@@ -111,7 +109,7 @@ int main()
 		//reindeerGroup.wait();
 		//elvesGroup.wait();
 
-		auto group = firstOnlySucc(std::move(reindeerGroup), std::move(elvesGroup));
+		auto group = firstOnlySucc(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideBoost);
 		x.wait();
 		santaDoesWork();
