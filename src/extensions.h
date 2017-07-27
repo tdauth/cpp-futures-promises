@@ -557,7 +557,8 @@ folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	struct FirstSuccContext
 	{
-		FirstSuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		FirstSuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2)
+			: f1(std::move(f1)), f2(std::move(f2))
 		{
 		}
 
@@ -567,7 +568,11 @@ folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 
 	auto ctx = std::make_shared<FirstSuccContext>(std::move(f1), std::move(f2));
 
-	return first(orElseWithoutMove(ctx->f1, ctx->f2), orElseWithoutMove(ctx->f2, ctx->f1)).ensure([ctx] () { });
+	return first(
+		orElseWithoutMove(ctx->f1, ctx->f2),
+		orElseWithoutMove(ctx->f2, ctx->f1))
+		.ensure([ctx] () { }
+	);
 }
 
 template<typename T>
@@ -575,7 +580,8 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	struct FirstSucc2Context
 	{
-		FirstSucc2Context(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		FirstSucc2Context(folly::Future<T> &&f1, folly::Future<T> &&f2)
+			: f1(std::move(f1)), f2(std::move(f2))
 		{
 		}
 
