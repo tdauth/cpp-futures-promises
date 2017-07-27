@@ -107,15 +107,15 @@ struct RecursiveCombinatorType
 		return folly::collectN(v.begin(), v.end(), n);
 	}
 
-	using previous_pair_type = typename previous::pair_type;
-	using previous_future_pair_type = typename previous::future_pair_type;
-	using pair_type = std::pair<size_t, folly::Try<previous_pair_type>>;
-	using future_pair_type = folly::Future<pair_type>;
+	using folly_collect_any_previous_pair_type = typename previous::folly_collect_any_pair_type;
+	using folly_collect_any_previous_future_pair_type = typename previous::folly_collect_any_future_pair_type;
+	using folly_collect_any_pair_type = std::pair<size_t, folly::Try<folly_collect_any_previous_pair_type>>;
+	using folly_collect_any_future_pair_type = folly::Future<folly_collect_any_pair_type>;
 
 	template<typename Func>
-	static future_pair_type collectAnyFolly(std::size_t size, Func &&f)
+	static folly_collect_any_future_pair_type collectAnyFolly(std::size_t size, Func &&f)
 	{
-		std::vector<previous_future_pair_type> v;
+		std::vector<folly_collect_any_previous_future_pair_type> v;
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
@@ -123,6 +123,24 @@ struct RecursiveCombinatorType
 		}
 
 		return folly::collectAny(v.begin(), v.end());
+	}
+
+	using folly_collect_any_without_exception_previous_future_pair_type = typename previous::folly_collect_any_without_exception_future_pair_type;
+
+	using folly_collect_any_without_exception_pair_type = std::pair<size_t, typename folly_collect_any_without_exception_previous_future_pair_type::value_type>;
+	using folly_collect_any_without_exception_future_pair_type = folly::Future<folly_collect_any_without_exception_pair_type>;
+
+	template<typename Func>
+	static folly_collect_any_without_exception_future_pair_type collectAnyWithoutExceptionFolly(std::size_t size, Func &&f)
+	{
+		std::vector<folly_collect_any_without_exception_previous_future_pair_type> v;
+
+		for (std::size_t i = 0; i < size; ++i)
+		{
+			v.push_back(previous::collectAnyWithoutExceptionFolly(size, std::move(f)));
+		}
+
+		return folly::collectAnyWithoutException(v.begin(), v.end());
 	}
 
 	using previous_future_type_boost = typename previous::future_type_boost;
@@ -217,11 +235,11 @@ struct RecursiveCombinatorType<T, 1>
 		return folly::collectN(v.begin(), v.end(), n);
 	}
 
-	using pair_type = std::pair<size_t, folly::Try<T>>;
-	using future_pair_type = folly::Future<pair_type>;
+	using folly_collect_any_pair_type = std::pair<size_t, folly::Try<T>>;
+	using folly_collect_any_future_pair_type = folly::Future<folly_collect_any_pair_type>;
 
 	template<typename Func>
-	static future_pair_type collectAnyFolly(std::size_t size, Func &&f)
+	static folly_collect_any_future_pair_type collectAnyFolly(std::size_t size, Func &&f)
 	{
 		std::vector<future_type> v;
 
@@ -231,6 +249,22 @@ struct RecursiveCombinatorType<T, 1>
 		}
 
 		return folly::collectAny(v.begin(), v.end());
+	}
+
+	using folly_collect_any_without_exception_pair_type = std::pair<size_t, T>;
+	using folly_collect_any_without_exception_future_pair_type = folly::Future<folly_collect_any_without_exception_pair_type>;
+
+	template<typename Func>
+	static folly_collect_any_without_exception_future_pair_type collectAnyWithoutExceptionFolly(std::size_t size, Func &&f)
+	{
+		std::vector<future_type> v;
+
+		for (std::size_t i = 0; i < size; ++i)
+		{
+			v.push_back(folly::makeFuture(f()));
+		}
+
+		return folly::collectAnyWithoutException(v.begin(), v.end());
 	}
 
 	using future_type_boost = boost::future<T>;
@@ -291,6 +325,11 @@ BENCHMARK(FollyCollectN)
 BENCHMARK(FollyCollectAny)
 {
 	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAnyWithoutException)
+{
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAnyWithoutExceptionFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(BoostWhenAll)
