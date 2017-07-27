@@ -65,7 +65,8 @@ This use case shows the limitations of the libraries.
 
 ### Santa Claus
 Santa Claus sleeps and is woken up either by a group of reindeer or a group of elves.
-If both groups arrive at the same time, reindeer are preferred.
+In our variant he prefers to wait for the reindeer first and only if they could not make it he waits for the elves.
+This is realiezd with the usage of orElse.
 Depending on which group wakes up Santa, he either delivers toys or constructs them.
 
 [Original Paper](http://dl.acm.org/citation.cfm?id=187391)

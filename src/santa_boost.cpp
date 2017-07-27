@@ -109,7 +109,7 @@ int main()
 		//reindeerGroup.wait();
 		//elvesGroup.wait();
 
-		auto group = firstOnlySucc(std::move(reindeer), std::move(elves));
+		auto group = orElse(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideBoost);
 		x.wait();
 		santaDoesWork();

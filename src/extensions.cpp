@@ -309,13 +309,16 @@ BOOST_AUTO_TEST_CASE(FirstOnlySuccFirstFailed)
 	BOOST_CHECK_EQUAL(11, f.get());
 }
 
+/**
+ * Since both fail, the program will starve if no timeout is used.
+ */
 BOOST_AUTO_TEST_CASE(FirstOnlySuccBothFailed)
 {
 	folly::Future<int> f1 = folly::makeFuture<int>(std::runtime_error("Failure 0"));
 	folly::Future<int> f2 = folly::makeFuture<int>(std::runtime_error("Failure 1"));
-	folly::Future<int> f = firstOnlySucc(std::move(f1), std::move(f2));
+	folly::Future<int> f = firstOnlySucc(std::move(f1), std::move(f2)).within(std::chrono::seconds(1));
 
-	BOOST_CHECK_THROW(f.get(), folly::BrokenPromise);
+	BOOST_CHECK_THROW(f.get(), folly::TimedOut);
 }
 
 BOOST_AUTO_TEST_CASE(FirstOnlySuccRandom)

@@ -78,6 +78,13 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 	return ctx->p.getFuture();
 }
 
+template <class Collection>
+folly::Future<std::vector<std::pair<size_t, typename Collection::value_type::value_type>>>
+collectNWithoutException(Collection &&c, size_t n)
+{
+	return collectNWithoutException(c.begin(), c.end(), n);
+}
+
 template<typename T>
 folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 {
@@ -439,7 +446,8 @@ folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	struct FirstContext
 	{
-		FirstContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		FirstContext(folly::Future<T> &&f1, folly::Future<T> &&f2)
+			: f1(std::move(f1)), f2(std::move(f2))
 		{
 		}
 
@@ -451,20 +459,10 @@ folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstContext>(std::move(f1), std::move(f2));
 	folly::Future<T> future = ctx->p.getFuture();
 
-	// TODO check if the callback is executed atomically before the other callback, otherwise the priority does not always work!
-	// tryCompleteWith() + release of the shared context:
-	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
-		{
-			tryComplete(ctx->p, std::move(t));
-		}
-	);
-	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
-		{
-			tryComplete(ctx->p, std::move(t));
-		}
-	);
+	tryCompleteWith(ctx->p, ctx->f1);
+	tryCompleteWith(ctx->p, ctx->f2);
 
-	return future;
+	return future.ensure([ctx] () { });;
 }
 
 /**
@@ -486,15 +484,15 @@ folly::Future<T> firstRandom(folly::Future<T> &&f1, folly::Future<T> &&f2)
 
 /**
  * The same as folly::collect() but ignores any exceptions of the futures and only completes the result with the successful results.
- * If none of the two futures is successful it will fail with an exception of the type folly::BrokenPromise. This prevents the starvation
- * of the program.
+ * If none of the two futures is successful, the program will starve.
  */
 template<typename T>
 folly::Future<T> firstOnlySucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	struct FirstOnlySuccContext
 	{
-		FirstOnlySuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
+		FirstOnlySuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2)
+			: f1(std::move(f1)), f2(std::move(f2))
 		{
 		}
 
@@ -506,62 +504,10 @@ folly::Future<T> firstOnlySucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstOnlySuccContext>(std::move(f1), std::move(f2));
 	folly::Future<T> future = ctx->p.getFuture();
 
-	// TODO check if the callback is executed atomically before the other callback, otherwise the priority does not always work!
-	// tryCompleteWithSuccess() + release of the shared context (only then() allows passing the direct value):
-	ctx->f1.then([ctx] (T t)
-		{
-			tryCompleteSuccess(ctx->p, std::move(t));
-		}
-	);
-	ctx->f2.then([ctx] (T t)
-		{
-			tryCompleteSuccess(ctx->p, std::move(t));
-		}
-	);
+	tryCompleteSuccessWith(ctx->p, ctx->f1);
+	tryCompleteSuccessWith(ctx->p, ctx->f2);
 
-	return future;
-}
-
-/**
- * The same as \ref firstOnlySucc() but for Boost.
- */
-template<typename T>
-boost::future<T> firstOnlySucc(boost::future<T> &&f1, boost::future<T> &&f2)
-{
-	struct FirstOnlySuccContext
-	{
-		FirstOnlySuccContext(boost::future<T> &&f1, boost::future<T> &&f2) : f1(std::move(f1)), f2(std::move(f2))
-		{
-		}
-
-		boost::future<T> f1;
-		boost::future<T> f2;
-		boost::promise<T> p;
-	};
-
-	auto ctx = std::make_shared<FirstOnlySuccContext>(std::move(f1), std::move(f2));
-	boost::future<T> future = ctx->p.get_future();
-
-	// TODO check if the callback is executed atomically before the other callback, otherwise the priority does not always work!
-	// tryCompleteWithSuccess() + release of the shared context (only then() allows passing the direct value):
-	ctx->f1.then([ctx] (boost::future<T> f)
-		{
-			if (f.has_value())
-			{
-				tryCompleteSuccess(ctx->p, std::move(f.get()));
-			}
-		}
-	);
-	ctx->f2.then([ctx] (boost::future<T> f)
-		{
-			if (f.has_value())
-			{
-				tryCompleteSuccess(ctx->p, std::move(f.get()));
-			}
-		}
-	);
-
-	return future;
+	return future.ensure([ctx] () { });
 }
 
 /**
@@ -621,14 +567,7 @@ folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 
 	auto ctx = std::make_shared<FirstSuccContext>(std::move(f1), std::move(f2));
 
-	return first(orElseWithoutMove(ctx->f1, ctx->f2), orElseWithoutMove(ctx->f2, ctx->f1))
-		.then([ctx] (folly::Try<T> t)
-			{
-				t.throwIfFailed();
-
-				return t.value();
-			}
-		);
+	return first(orElseWithoutMove(ctx->f1, ctx->f2), orElseWithoutMove(ctx->f2, ctx->f1)).ensure([ctx] () { });
 }
 
 template<typename T>

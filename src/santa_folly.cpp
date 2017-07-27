@@ -48,11 +48,11 @@ std::vector<folly::Future<Type>> createElves()
 	return elves;
 }
 
-using CollectionType = std::vector<std::pair<size_t, folly::Try<Type>>>;
+using CollectionType = std::vector<std::pair<size_t, Type>>;
 
 inline void decideFolly(CollectionType matches)
 {
-	decide(matches[0].second.value());
+	decide(matches[0].second);
 
 	std::cout << "With members: ";
 
@@ -80,13 +80,13 @@ int main(int argc, char **argv)
 		auto reindeer = folly::via(&executor, createReindeer).then([]
 			(std::vector<folly::Future<Type>> collection)
 			{
-				return folly::collectN(collection, REINDEER_MATCH_NUMBER).get();
+				return collectNWithoutException(std::move(collection), REINDEER_MATCH_NUMBER).get();
 			}
 		);
 		auto elves = folly::via(&executor, createElves).then([]
 			(std::vector<folly::Future<Type>> collection)
 			{
-				return folly::collectN(collection, ELF_MATCH_NUMBER).get();
+				return collectNWithoutException(std::move(collection), ELF_MATCH_NUMBER).get();
 			}
 		);
 
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 		elves = folly::makeFuture(elves.get());
 		*/
 
-		auto group = firstOnlySucc(std::move(reindeer), std::move(elves));
+		auto group = orElse(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideFolly);
 		x.wait();
 		santaDoesWork();
