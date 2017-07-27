@@ -70,6 +70,24 @@ struct RecursiveCombinatorType
 		return folly::collectAll(v.begin(), v.end());
 	}
 
+	using previous_folly_collect_type = typename previous::folly_collect_type;
+
+	using folly_collect_vector_type = std::vector<typename previous_folly_collect_type::value_type>;
+	using folly_collect_type = folly::Future<folly_collect_vector_type>;
+
+	template<typename Func>
+	static folly_collect_type collectFolly(std::size_t size, Func &&f)
+	{
+		std::vector<previous_folly_collect_type> v;
+
+		for (std::size_t i = 0; i < size; ++i)
+		{
+			v.push_back(previous::collectFolly(size, std::move(f)));
+		}
+
+		return folly::collect(v.begin(), v.end());
+	}
+
 	using previous_pair_type = typename previous::pair_type;
 	using previous_future_pair_type = typename previous::future_pair_type;
 	using pair_type = std::pair<size_t, folly::Try<previous_pair_type>>;
@@ -147,6 +165,22 @@ struct RecursiveCombinatorType<T, 1>
 		return folly::collectAll(v.begin(), v.end());
 	}
 
+	using folly_collect_vector_type = std::vector<T>;
+	using folly_collect_type = folly::Future<folly_collect_vector_type>;
+
+	template<typename Func>
+	static folly_collect_type collectFolly(std::size_t size, Func &&f)
+	{
+		std::vector<future_type> v;
+
+		for (std::size_t i = 0; i < size; ++i)
+		{
+			v.push_back(folly::makeFuture(f()));
+		}
+
+		return folly::collect(v.begin(), v.end());
+	}
+
 	using pair_type = std::pair<size_t, folly::Try<T>>;
 	using future_pair_type = folly::Future<pair_type>;
 
@@ -206,6 +240,11 @@ constexpr int TREE_LEVELS = 10;
 BENCHMARK(FollyCollectAll)
 {
 	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect)
+{
+	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(FollyCollectAny)
