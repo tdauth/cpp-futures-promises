@@ -201,7 +201,7 @@ struct RecursiveCombinatorType<T, 0>
 
 using TYPE = int;
 const int VECTOR_SIZE = 2;
-constexpr int TREE_LEVELS = 20;
+constexpr int TREE_LEVELS = 10;
 
 BENCHMARK(FollyCollectAll)
 {
