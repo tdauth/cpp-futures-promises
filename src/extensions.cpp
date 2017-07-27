@@ -311,6 +311,7 @@ BOOST_AUTO_TEST_CASE(FirstOnlySuccFirstFailed)
 
 /**
  * Since both fail, the program will starve if no timeout is used.
+ * TODO memory leak?
  */
 BOOST_AUTO_TEST_CASE(FirstOnlySuccBothFailed)
 {

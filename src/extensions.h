@@ -159,6 +159,7 @@ void logBacktrace()
  * Registers a callback to the future \p f and returns the same future.
  * The callback should not return anything, it is simply called when the future has been completed.
  * This combinator can be used to order calls after the future's completion.
+ * Similar to Folly's ensure but does the error reporting.
  * \param f A future for which the callback is registered.
  * \p func The callback which gets folly::Try as parameter.
  * \return Returns the a new future with the same result as the passed future.
@@ -285,6 +286,9 @@ whenAny(InputIterator first, InputIterator last)
 /**
  * Extensions for promises based on the Scala library for futures and promises.
  * These combinators allow to complete a promise without a failure if it has already been completed.
+ *
+ * \note Make sure that the passed promises and futures are not deleted in the meantime since they are only passed via reference.
+ *
  * \{
  */
 template<typename T>
@@ -459,10 +463,19 @@ folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstContext>(std::move(f1), std::move(f2));
 	folly::Future<T> future = ctx->p.getFuture();
 
-	tryCompleteWith(ctx->p, ctx->f1);
-	tryCompleteWith(ctx->p, ctx->f2);
+	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
 
-	return future.ensure([ctx] () { });;
+	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
+		{
+			tryComplete(ctx->p, std::move(t));
+		}
+	);
+
+	return future;
 }
 
 /**
@@ -504,8 +517,23 @@ folly::Future<T> firstOnlySucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstOnlySuccContext>(std::move(f1), std::move(f2));
 	folly::Future<T> future = ctx->p.getFuture();
 
-	tryCompleteSuccessWith(ctx->p, ctx->f1);
-	tryCompleteSuccessWith(ctx->p, ctx->f2);
+	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
+		{
+			if (t.hasValue())
+			{
+				tryCompleteSuccess(ctx->p, std::move(t.value()));
+			}
+		}
+	);
+
+	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
+		{
+			if (t.hasValue())
+			{
+				tryCompleteSuccess(ctx->p, std::move(t.value()));
+			}
+		}
+	);
 
 	return future.ensure([ctx] () { });
 }
@@ -594,15 +622,14 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstSucc2Context>(std::move(f1), std::move(f2));
 	folly::Future<T> future = ctx->p.getFuture();
 
-	// tryCompleteWithSuccess() + release of the shared context (only then() allows passing the direct value):
-	auto next1 = ctx->f1.then([ctx] (T t)
+	auto next1 = ctx->f1.then([ctx] (T v)
 		{
-			tryCompleteSuccess(ctx->p, std::move(t));
+			tryCompleteSuccess(ctx->p, std::move(v));
 		}
 	);
-	auto next2 = ctx->f2.then([ctx] (T t)
+	auto next2 = ctx->f2.then([ctx] (T v)
 		{
-			tryCompleteSuccess(ctx->p, std::move(t));
+			tryCompleteSuccess(ctx->p, std::move(v));
 		}
 	);
 

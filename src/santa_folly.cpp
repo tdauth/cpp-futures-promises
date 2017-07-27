@@ -90,14 +90,6 @@ int main(int argc, char **argv)
 			}
 		);
 
-		// TEST priority of reindeer (worked!!!):
-		/*
-		reindeer.wait();
-		elves.wait();
-		reindeer = folly::makeFuture(reindeer.get());
-		elves = folly::makeFuture(elves.get());
-		*/
-
 		auto group = orElse(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideFolly);
 		x.wait();
