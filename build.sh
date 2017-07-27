@@ -26,6 +26,7 @@ fi
 # Delete all unit test log files and run all unit tests:
 rm -r "./Testing" || true
 ctest -T test
+ctest -T memcheck
 
 # Create a package:
 cpack -G "RPM" .
