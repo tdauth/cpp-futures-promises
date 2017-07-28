@@ -115,3 +115,5 @@ add_executable(santa_folly santa_folly.cpp)
 add_dependencies(santa_folly boost folly wangle)
 target_link_libraries(santa_folly ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES})
 add_test(SantaFolly santa_folly)
+
+install(FILES extensions.h random.h DESTINATION include/cpp-futures-promises)
