@@ -2,7 +2,7 @@
 
 # cpp-futures-promises
 Examples and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
-The extensions are mainly based on the Scala library for futures and promises: http://docs.scala-lang.org/overviews/core/futures.html
+The extensions are mainly based on the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html).
 
 ## Compile
 To compile the project run the following script on Linux:
@@ -23,13 +23,14 @@ The versions of the libraries are specified in the CMakeLists.txt file in the to
 
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
-* orElse for Folly and Boost.Thread
+* orElse for Folly and Boost.Thread which is like fallbackTo in Scala.
 * first
 * firstOnlySucc
 * firstSucc
 * firstSucc2
 * collectNWithoutException for Folly.
-* whenN for Boost.Thread
+* whenN for Boost.Thread which is like folly::collectN.
+* whenNSucc for Boost.Thread which is like collectNWithoutException.
 * whenAny for Boost Thread which returns a pair of the completed future and its index.
 
 ### Promise extensions

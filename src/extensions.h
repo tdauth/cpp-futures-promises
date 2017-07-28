@@ -14,6 +14,12 @@
 
 #include "random.h"
 
+/**
+ * Similar to folly::collectAnyWithoutException but the version of folly::collectN.
+ * Collects \p n futures which completed without exceptions.
+ * If too many futures failed, it fails with the last thrown exception.
+ *
+ */
 template <class InputIterator>
 folly::Future<std::vector<std::pair<size_t, typename std::iterator_traits<InputIterator>::value_type::value_type>>>
 collectNWithoutException(InputIterator first, InputIterator last, size_t n)
@@ -223,6 +229,7 @@ boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_t
 whenN(InputIterator first, InputIterator last, std::size_t n)
 {
 	typedef typename InputIterator::value_type future_type;
+	typedef typename future_type::value_type future_value_type;
 	typedef typename std::pair<std::size_t, future_type> value_type;
 	typedef std::vector<value_type> result_type;
 	const std::size_t size = std::distance(first, last);
@@ -243,7 +250,7 @@ whenN(InputIterator first, InputIterator last, std::size_t n)
 
 	auto ctx = std::make_shared<CollectNContext>();
 
-	mapSetCallbackBoost<typename future_type::value_type>(first, last, [ctx, n] (std::size_t i, future_type f)
+	mapSetCallbackBoost<future_value_type>(first, last, [ctx, n] (std::size_t i, future_type f)
 		{
 			auto c = ++ctx->completed;
 
@@ -259,6 +266,79 @@ whenN(InputIterator first, InputIterator last, std::size_t n)
 			}
 		}
 	);
+
+	return ctx->p.get_future();
+}
+
+/**
+ * Like \ref collectNWithoutException but for Boost.Thread.
+ *
+ * \param first The iterator which points at the first element of the collection.
+ * \param last The iterator which points at the last element of the collection.
+ * \param n The number of successful futures which are collected from the collection.
+ * \return Returns a future of the type boost::future<std::vector<std::pair<std::size_t, T>>> which contains all result values and indices of the n successfully completed futures or is completed with the last exception of an input future if too many failed.
+ */
+template<typename InputIterator>
+boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type::value_type>>>
+whenNSucc(InputIterator first, InputIterator last, std::size_t n)
+{
+	typedef typename InputIterator::value_type future_type;
+	typedef typename future_type::value_type future_value_type;
+	typedef typename std::pair<std::size_t, future_value_type> value_type;
+	typedef std::vector<value_type> result_type;
+
+	struct CollectNContext
+	{
+		result_type v;
+		std::atomic<size_t> completed = {0};
+		std::atomic<size_t> failed = {0};
+		boost::promise<result_type> p;
+		std::atomic<bool> done = {false};
+	};
+
+	auto ctx = std::make_shared<CollectNContext>();
+	const size_t total = std::distance(first, last);
+
+	if (total < n)
+	{
+		ctx->p.set_exception(std::runtime_error("Not enough futures"));
+	}
+	else
+	{
+		mapSetCallbackBoost<future_value_type>(first, last, [ctx, n, total] (std::size_t i, future_type f)
+			{
+				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
+				if (f.has_exception())
+				{
+					if (!ctx->done)
+					{
+						auto c = ++ctx->failed;
+
+						if (total - c < n)
+						{
+							ctx->p.set_exception(f.get_exceptio_ptr());
+						}
+					}
+				}
+				else if (!ctx->p.isFulfilled())
+				{
+					auto c = ++ctx->completed;
+
+					if (c <= n)
+					{
+						assert(ctx->v.size() < n);
+						ctx->v.emplace_back(i, std::move(f.get()));
+
+						if (c == n)
+						{
+							ctx->p.set_value(std::move(ctx->v));
+							ctx->p.done = true;
+						}
+					}
+				}
+			}
+		);
+	}
 
 	return ctx->p.get_future();
 }
