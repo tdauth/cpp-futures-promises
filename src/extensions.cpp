@@ -105,6 +105,7 @@ BOOST_AUTO_TEST_CASE(WhenNWithExceptions)
 	futures.push_back(boost::make_exceptional_future<int>(std::runtime_error("Failure 2")));
 
 	boost::future<std::vector<std::pair<std::size_t, boost::future<int>>>> results = whenN(futures.begin(), futures.end(), 2);
+	std::vector<std::pair<std::size_t, boost::future<int>>> v = results.get();
 
 	BOOST_REQUIRE_EQUAL((std::size_t)2, v.size());
 	/*
@@ -122,14 +123,13 @@ BOOST_AUTO_TEST_CASE(WhenNSucc)
 	futures.push_back(boost::make_ready_future(2));
 
 	boost::future<std::vector<std::pair<std::size_t, int>>> results = whenNSucc(futures.begin(), futures.end(), 2);
+	results.wait();
+
+	BOOST_REQUIRE(results.has_value());
+
 	std::vector<std::pair<std::size_t, int>> v = results.get();
 
 	BOOST_REQUIRE_EQUAL((std::size_t)2, v.size());
-	/*
-	 * The order is not guaranteed (look at the atomic operations in the callback):
-	 */
-	BOOST_CHECK_NO_THROW(v[0].second.get());
-	BOOST_CHECK_NO_THROW(v[1].second.get());
 }
 
 BOOST_AUTO_TEST_CASE(WhenNSuccFailureNotEnough)
@@ -149,14 +149,13 @@ BOOST_AUTO_TEST_CASE(WhenNSuccOneFails)
 	futures.push_back(boost::make_ready_future(2));
 
 	boost::future<std::vector<std::pair<std::size_t, int>>> results = whenNSucc(futures.begin(), futures.end(), 2);
+	results.wait();
+
+	BOOST_REQUIRE(results.has_value());
+
 	std::vector<std::pair<std::size_t, int>> v = results.get();
 
 	BOOST_REQUIRE_EQUAL((std::size_t)2, v.size());
-	/*
-	 * The order is not guaranteed (look at the atomic operations in the callback):
-	 */
-	BOOST_CHECK_NO_THROW(v[0].second.get());
-	BOOST_CHECK_NO_THROW(v[1].second.get());
 }
 
 BOOST_AUTO_TEST_CASE(WhenNSuccTwoFail)

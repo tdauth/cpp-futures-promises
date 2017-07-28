@@ -7,7 +7,7 @@
 
 folly::Future<folly::Unit> sleep(int min, int max)
 {
-	auto duration = folly::Duration(random_number(min, max) * 10);
+	auto duration = folly::Duration(randomNumber(min, max) * 10);
 
 	return folly::futures::sleep(duration);
 }

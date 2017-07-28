@@ -27,7 +27,7 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 	typedef typename std::iterator_traits<InputIterator>::value_type::value_type T;
 	typedef std::vector<std::pair<size_t, T>> V;
 
-	struct CollectNContext
+	struct CollectNWithoutExceptionContext
 	{
 		V v;
 		std::atomic<size_t> completed = {0};
@@ -35,7 +35,7 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 		folly::Promise<V> p;
 	};
 
-	auto ctx = std::make_shared<CollectNContext>();
+	auto ctx = std::make_shared<CollectNWithoutExceptionContext>();
 	const size_t total = std::distance(first, last);
 
 	if (total < n)
@@ -136,6 +136,10 @@ boost::future<T> orElse(boost::future<T> &&first, boost::future<T> &&second)
 namespace
 {
 
+/**
+ * Prints the current backtrace to the error output.
+ * TODO When Boost 1.65.0 can be used use this: https://github.com/boostorg/stacktrace
+ */
 void logBacktrace()
 {
 	const int maxSize = 50;
@@ -241,17 +245,20 @@ whenN(InputIterator first, InputIterator last, std::size_t n)
 		);
 	}
 
-	struct CollectNContext
+	struct WhenNContext
 	{
+		std::mutex m;
 		result_type v;
-		std::atomic<size_t> completed = {0};
+		size_t completed = {0};
 		boost::promise<result_type> p;
 	};
 
-	auto ctx = std::make_shared<CollectNContext>();
+	auto ctx = std::make_shared<WhenNContext>();
 
 	mapSetCallbackBoost<future_value_type>(first, last, [ctx, n] (std::size_t i, future_type f)
 		{
+			std::unique_lock<std::mutex> l(ctx->m);
+
 			auto c = ++ctx->completed;
 
 			if (c <= n)
@@ -287,16 +294,17 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 	typedef typename std::pair<std::size_t, future_value_type> value_type;
 	typedef std::vector<value_type> result_type;
 
-	struct CollectNContext
+	struct WhenNSuccContext
 	{
+		std::mutex m;
 		result_type v;
-		std::atomic<size_t> completed = {0};
-		std::atomic<size_t> failed = {0};
+		size_t completed = {0};
+		size_t failed = {0};
 		boost::promise<result_type> p;
-		std::atomic<bool> done = {false};
+		bool done = {false};
 	};
 
-	auto ctx = std::make_shared<CollectNContext>();
+	auto ctx = std::make_shared<WhenNSuccContext>();
 	const size_t total = std::distance(first, last);
 
 	if (total < n)
@@ -307,6 +315,8 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 	{
 		mapSetCallbackBoost<future_value_type>(first, last, [ctx, n, total] (std::size_t i, future_type f)
 			{
+				std::unique_lock<std::mutex> l(ctx->m);
+
 				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
 				if (f.has_exception())
 				{
@@ -316,11 +326,12 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 
 						if (total - c < n)
 						{
-							ctx->p.set_exception(f.get_exceptio_ptr());
+							ctx->done = true;
+							ctx->p.set_exception(f.get_exception_ptr());
 						}
 					}
 				}
-				else if (!ctx->p.isFulfilled())
+				else if (!ctx->done)
 				{
 					auto c = ++ctx->completed;
 
@@ -331,8 +342,8 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 
 						if (c == n)
 						{
+							ctx->done = true;
 							ctx->p.set_value(std::move(ctx->v));
-							ctx->p.done = true;
 						}
 					}
 				}
@@ -570,7 +581,7 @@ folly::Future<T> firstRandom(folly::Future<T> &&f1, folly::Future<T> &&f2)
 		std::move(f2)
 	};
 
-	const int selection = select();
+	const int selection = randomNumber(0, 1);
 
 	return first(std::move(futures[selection]), std::move(futures[1- selection]));
 }
@@ -630,7 +641,7 @@ folly::Future<T> firstOnlySuccRandom(folly::Future<T> &&f1, folly::Future<T> &&f
 		std::move(f2)
 	};
 
-	const int selection = select();
+	const int selection = randomNumber(0, 1);
 
 	return firstOnlySucc(std::move(futures[selection]), std::move(futures[1- selection]));
 }

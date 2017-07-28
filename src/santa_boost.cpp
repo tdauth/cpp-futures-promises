@@ -4,7 +4,7 @@
 
 boost::chrono::milliseconds sleep(int min, int max)
 {
-	return boost::chrono::milliseconds(random_number(min, max) * 10);
+	return boost::chrono::milliseconds(randomNumber(min, max) * 10);
 }
 
 void setReindeer(boost::promise<Type> &&p)

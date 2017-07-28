@@ -4,18 +4,12 @@
 #include <random>
 
 /**
- * Chooses a random number between 0 and 1.
+ * Calculates a random number between \p min and \p max (inclusive boundaries).
+ * \param min The lower inclusive bound.
+ * \param max The upper inclusive bound.
+ * \return Returns the calculated random number.
  */
-int select()
-{
-	static std::random_device rand;
-	static std::default_random_engine e(rand());
-	std::uniform_int_distribution<int> uniform_dist(0, 1);
-
-	return uniform_dist(e);
-}
-
-int random_number(int min, int max)
+int randomNumber(int min, int max)
 {
 	static std::random_device rand;
 	static std::default_random_engine e(rand());
