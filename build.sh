@@ -18,7 +18,9 @@ make -j1 # Use one job to improve error detection and exit early.
 
 # Show some build logs for TravisCI:
 if [ "$?" -ne 0 ] ; then
+	ls -lha ./build/boost-prefix/src/boost-stamp/
 	cat ./build/boost-prefix/src/boost-stamp/boost-build-*.log
+	ls -lha ./build/boostrelease-prefix/src/boostrelease-stamp/
 	cat ./build/boostrelease-prefix/src/boostrelease-stamp/boostrelease-build-*.log
 	exit 1
 fi
