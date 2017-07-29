@@ -398,16 +398,40 @@ bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
 	return false;
 }
 
-template<typename T>
-folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &f)
+/**
+ * Tries to complete the promise \p p with the result of the future \p f as soon as the future is completed.
+ * If the promise is already completed at that point in time, nothing happens.
+ * To make sure that the future is not deleted in the meantime, it is passed by move reference.
+ * However, the promise must be kept alive until the future is completed. Otherwise, it will access an invalid reference.
+ * It is not passed by a move reference since it is returned and shouldd be accessable for further try operations.
+ * \param p The promise for which it is tried to complete it.
+ * \param f The future of which the result is used to try to complete the promise.
+ * \param ensureFunc This function is called when the future is completed and can add additional clean ups of memory.
+ * \return Returns the passed promise.
+ */
+template<typename T, typename Func>
+folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	f.setCallback_([&p] (folly::Try<T> t)
+	struct TryCompleteWithContext
+	{
+		folly::Future<folly::Unit> f;
+	};
+
+	auto ctx = std::make_shared<TryCompleteWithContext>();
+
+	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
 		{
 			tryComplete(p, std::move(t));
 		}
-	);
+	).ensure([ensureFunc, ctx] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
 
 	return p;
+}
+
+template<typename T>
+folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f)
+{
+	return tryCompleteWith(p, std::move(f), [] () {});
 }
 
 template<typename T>
@@ -442,19 +466,32 @@ bool tryCompleteSuccess(boost::promise<T> &p, T &&v)
 	return false;
 }
 
-template<typename T>
-folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &f)
+template<typename T, typename Func>
+folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	f.setCallback_([&p] (folly::Try<T> t)
+	struct TryCompleteSuccessWithContext
+	{
+		folly::Future<folly::Unit> f;
+	};
+
+	auto ctx = std::make_shared<TryCompleteSuccessWithContext>();
+
+	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
 		{
 			if (t.hasValue())
 			{
 				tryCompleteSuccess(p, std::move(t.value()));
 			}
 		}
-	);
+	).ensure([ctx, ensureFunc] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
 
 	return p;
+}
+
+template<typename T>
+folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &&f)
+{
+	return tryCompleteSuccessWith(p, std::move(f), [] () { });
 }
 
 template<typename T, typename Exception>
@@ -473,28 +510,44 @@ bool tryCompleteFailure(folly::Promise<T> &p, Exception &&e)
 	return false;
 }
 
-template<typename T>
-folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &f)
+template<typename T, typename Func>
+folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	f.setCallback_([&p] (folly::Try<T> t)
+	struct TryCompleteFailureWithContext
+	{
+		folly::Future<folly::Unit> f;
+	};
+
+	auto ctx = std::make_shared<TryCompleteFailureWithContext>();
+
+	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
 		{
-			try
+			if (t.hasException())
 			{
-				p.setException(t.exception());
-			}
-			catch (const folly::PromiseAlreadySatisfied &e)
-			{
+				try
+				{
+					p.setException(t.exception());
+				}
+				catch (const folly::PromiseAlreadySatisfied &e)
+				{
+				}
 			}
 		}
-	);
+	).ensure([ctx, ensureFunc] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
 
 	return p;
 }
 
 template<typename T>
-folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &f)
+folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &&f)
 {
-	tryCompleteWith(p, f);
+	return tryCompleteFailureWith(p, std::move(f), [] () {});
+}
+
+template<typename T>
+folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &&f)
+{
+	tryCompleteWith(p, std::move(f));
 
 	return p;
 }
@@ -539,32 +592,11 @@ folly::Promise<T> successful(T &&t)
 template<typename T>
 folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
-	struct FirstContext
-	{
-		FirstContext(folly::Future<T> &&f1, folly::Future<T> &&f2)
-			: f1(std::move(f1)), f2(std::move(f2))
-		{
-		}
+	auto p = std::make_shared<folly::Promise<T>>();
+	folly::Future<T> future = p->getFuture();
 
-		folly::Future<T> f1;
-		folly::Future<T> f2;
-		folly::Promise<T> p;
-	};
-
-	auto ctx = std::make_shared<FirstContext>(std::move(f1), std::move(f2));
-	folly::Future<T> future = ctx->p.getFuture();
-
-	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
-		{
-			tryComplete(ctx->p, std::move(t));
-		}
-	);
-
-	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
-		{
-			tryComplete(ctx->p, std::move(t));
-		}
-	);
+	tryCompleteWith(*p, std::move(f1), [p] () { });
+	tryCompleteWith(*p, std::move(f2), [p] () { });
 
 	return future;
 }
@@ -589,44 +621,18 @@ folly::Future<T> firstRandom(folly::Future<T> &&f1, folly::Future<T> &&f2)
 /**
  * The same as folly::collect() but ignores any exceptions of the futures and only completes the result with the successful results.
  * If none of the two futures is successful, the program will starve.
+ * It will also lead to a memory leak since the passed futures and the generated promise will never be deleted by the ensure() call.
  */
 template<typename T>
 folly::Future<T> firstOnlySucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
-	struct FirstOnlySuccContext
-	{
-		FirstOnlySuccContext(folly::Future<T> &&f1, folly::Future<T> &&f2)
-			: f1(std::move(f1)), f2(std::move(f2))
-		{
-		}
+	auto p = std::make_shared<folly::Promise<T>>();
+	folly::Future<T> future = p->getFuture().ensure([p] () { });
 
-		folly::Future<T> f1;
-		folly::Future<T> f2;
-		folly::Promise<T> p;
-	};
+	tryCompleteSuccessWith(*p, std::move(f1), [p] () { });
+	tryCompleteSuccessWith(*p, std::move(f2), [p] () { });
 
-	auto ctx = std::make_shared<FirstOnlySuccContext>(std::move(f1), std::move(f2));
-	folly::Future<T> future = ctx->p.getFuture();
-
-	ctx->f1.setCallback_([ctx] (folly::Try<T> t)
-		{
-			if (t.hasValue())
-			{
-				tryCompleteSuccess(ctx->p, std::move(t.value()));
-			}
-		}
-	);
-
-	ctx->f2.setCallback_([ctx] (folly::Try<T> t)
-		{
-			if (t.hasValue())
-			{
-				tryCompleteSuccess(ctx->p, std::move(t.value()));
-			}
-		}
-	);
-
-	return future.ensure([ctx] () { });
+	return future;
 }
 
 /**

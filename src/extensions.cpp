@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(TryCompleteWith)
 	folly::Promise<int> p;
 	folly::Future<int> f = p.getFuture();
 
-	tryCompleteWith(p, future);
+	tryCompleteWith(p, std::move(future));
 
 	BOOST_CHECK_EQUAL(10, f.get());
 }
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(TryCompleteSuccessWith)
 	folly::Promise<int> p;
 	folly::Future<int> f = p.getFuture();
 
-	tryCompleteSuccessWith(p, future);
+	tryCompleteSuccessWith(p, std::move(future));
 
 	BOOST_CHECK_EQUAL(10, f.get());
 }
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(TryCompleteFailureWith)
 	folly::Promise<int> p;
 	folly::Future<int> f = p.getFuture();
 
-	tryCompleteFailureWith<int>(p, future);
+	tryCompleteFailureWith<int>(p, std::move(future));
 
 	BOOST_CHECK_THROW(f.get(), std::runtime_error);
 }
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(CompleteWith)
 	folly::Promise<int> p;
 	folly::Future<int> f = p.getFuture();
 
-	completeWith(p, future);
+	completeWith(p, std::move(future));
 
 	BOOST_CHECK_EQUAL(10, f.get());
 }
