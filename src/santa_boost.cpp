@@ -58,12 +58,12 @@ std::vector<boost::future<Type>> createElves()
 	return elves;
 }
 
-using CollectionType = std::vector<std::pair<std::size_t, boost::future<Type>>>;
+using CollectionType = std::vector<std::pair<std::size_t, Type>>;
 
 inline void decideBoost(boost::future<CollectionType> f)
 {
 	CollectionType matches = f.get();
-	decide(matches[0].second.get());
+	decide(matches[0].second);
 
 	std::cout << "With members: ";
 
@@ -93,7 +93,7 @@ int main()
 			{
 				auto c = collection.get();
 
-				return whenN(c.begin(), c.end(), REINDEER_MATCH_NUMBER).get();
+				return whenNSucc(c.begin(), c.end(), REINDEER_MATCH_NUMBER).get();
 			}
 		);
 		auto elves = boost::async(createElves).then([]
@@ -101,7 +101,7 @@ int main()
 			{
 				auto c = collection.get();
 
-				return whenN(c.begin(), c.end(), ELF_MATCH_NUMBER).get();
+				return whenNSucc(c.begin(), c.end(), ELF_MATCH_NUMBER).get();
 			}
 		);
 
