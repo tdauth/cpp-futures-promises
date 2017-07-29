@@ -27,6 +27,9 @@ if [ "$?" -ne 0 ] ; then
 	cat ./build/boost-prefix/src/boost-stamp/boost-build-*.log
 	ls -lha ./build/boostrelease-prefix/src/boostrelease-stamp/
 	cat ./build/boostrelease-prefix/src/boostrelease-stamp/boostrelease-build-*.log
+
+	cat ./build/folly-prefix/src/folly/folly/config.log
+
 	exit 1
 fi
 
