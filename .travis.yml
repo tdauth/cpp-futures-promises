@@ -11,5 +11,6 @@ addons:
       - libgflags2
       - libgoogle-glog-dev
       - valgrind
+      - clang
     sources:
       - kalakris-cmake

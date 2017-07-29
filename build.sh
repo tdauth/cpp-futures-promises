@@ -4,6 +4,11 @@ if [ ! -d "./build" ] ; then
 	mkdir ./build
 fi
 
+echo "CC is set to $CC"
+echo "CXX is set to $CXX"
+echo "clang is at $(which clang)"
+echo "clang++ is at $(which clang++)"
+
 # Use the local CMake modules for TravisCI:
 CMAKE_MODULE_PATH="$(pwd)/cmake"
 echo "Using prefix path: $CMAKE_MODULE_PATH"
