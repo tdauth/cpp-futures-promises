@@ -191,19 +191,16 @@ set(wangle_RELEASE_LIBRARIES "${wangle_RELEASE_LIB_DIR}/libwangle.so")
 # The file compile_commands.json is require by clang-check and has to be exported.
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=1)
 
-find_program(VALGRIND_PATH valgrind)
-
-if (NOT VALGRIND_PATH)
-	message(FATAL_ERROR "valgrind not found.")
-endif ()
-
-find_program(GPROF_PATH gprof)
-
-if (NOT GPROF_PATH)
-	message(FATAL_ERROR "gprof not found.")
-endif ()
-
 add_subdirectory(src)
+
+# memcheck
+find_program(VALGRIND_COMMAND valgrind)
+if (NOT VALGRIND_COMMAND)
+	message(FATAL_ERROR "Did not find valgrind.")
+endif ()
+set(CTEST_MEMORYCHECK_COMMAND "${VALGRIND_COMMAND} --tool=memcheck")
+set(CTEST_MEMORYCHECK_COMMAND_OPTIONS "--trace-children=yes --leak-check=full") # --xml=yes --fullpath-after=${CMAKE_BINARY_DIR}
+set(CTEST_MEMORYCHECK_SUPPRESSIONS_FILE "${CMAKE_SOURCE_DIR}/valgrind_suppress.txt")
 
 set(futures_URL "https://github.com/tdauth/cpp-futures-promises")
 set(futures_VERSION_MAJOR "1")

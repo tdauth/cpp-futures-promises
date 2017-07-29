@@ -392,7 +392,6 @@ BOOST_AUTO_TEST_CASE(FirstOnlySuccFirstFailed)
 
 /**
  * Since both fail, the program will starve if no timeout is used.
- * TODO memory leak?
  */
 BOOST_AUTO_TEST_CASE(FirstOnlySuccBothFailed)
 {
@@ -401,6 +400,11 @@ BOOST_AUTO_TEST_CASE(FirstOnlySuccBothFailed)
 	folly::Future<int> f = firstOnlySucc(std::move(f1), std::move(f2)).within(std::chrono::seconds(1));
 
 	BOOST_CHECK_THROW(f.get(), folly::TimedOut);
+
+	/*
+	 * Memory leak because the resulting future of firstOnlySucc is never completed and ensure is never called which holds the final copy of the shared pointer.
+	 */
+	// TODO Call the ensure of f manually from outside if it is possible.
 }
 
 BOOST_AUTO_TEST_CASE(FirstOnlySuccRandom)
