@@ -35,8 +35,9 @@ fi
 
 # Delete all unit test log files and run all unit tests:
 rm -r "./Testing" || true
-ctest -T test
-ctest -T memcheck
+# Pass longer timeouts since the shared test may take longer especially with a memcheck:
+ctest -T test --timeout 5000
+ctest -T memcheck --timeout 5000
 
 # Create a package:
 cpack -G "RPM" .
