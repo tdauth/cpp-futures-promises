@@ -468,7 +468,7 @@ struct RecursiveCombinatorType<T, 0>
 
 using TYPE = int;
 constexpr int VECTOR_SIZE = 2;
-constexpr int TREE_LEVELS = 15;
+constexpr int TREE_LEVELS = 12;
 static_assert(VECTOR_SIZE == 2, "The custom combinators only support passing two futures.");
 
 using Tree = RecursiveCombinatorType<TYPE, TREE_LEVELS>;
