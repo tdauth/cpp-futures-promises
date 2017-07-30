@@ -88,7 +88,7 @@ int main()
 	 */
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
-		auto reindeer = boost::async(boost::launch::async, createReindeer).then([]
+		auto reindeer = boost::async(createReindeer).then([]
 			(boost::future<std::vector<boost::future<Type>>> collection)
 			{
 				auto c = collection.get();
