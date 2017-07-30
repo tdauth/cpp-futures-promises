@@ -113,6 +113,9 @@ folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 	);
 }
 
+/**
+ * Same as orElse with two futures for Folly but for Boost.Thread.
+ */
 template<typename T>
 boost::future<T> orElse(boost::future<T> &&first, boost::future<T> &&second)
 {
@@ -544,12 +547,18 @@ folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T>
 	return tryCompleteFailureWith(p, std::move(f), [] () {});
 }
 
+template<typename T, typename Func>
+folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
+{
+	tryCompleteWith(p, std::move(f), std::move(ensureFunc));
+
+	return p;
+}
+
 template<typename T>
 folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &&f)
 {
-	tryCompleteWith(p, std::move(f));
-
-	return p;
+	return completeWith(p, std::move(f), [] () {});
 }
 
 template<typename T>
@@ -593,7 +602,7 @@ template<typename T>
 folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	auto p = std::make_shared<folly::Promise<T>>();
-	folly::Future<T> future = p->getFuture();
+	auto future = p->getFuture();
 
 	tryCompleteWith(*p, std::move(f1), [p] () { });
 	tryCompleteWith(*p, std::move(f2), [p] () { });
@@ -627,10 +636,10 @@ template<typename T>
 folly::Future<T> firstOnlySucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
 	auto p = std::make_shared<folly::Promise<T>>();
-	folly::Future<T> future = p->getFuture().ensure([p] () { });
+	auto future = p->getFuture().ensure([p] () { });
 
-	tryCompleteSuccessWith(*p, std::move(f1), [p] () { });
-	tryCompleteSuccessWith(*p, std::move(f2), [p] () { });
+	tryCompleteSuccessWith(*p, std::move(f1));
+	tryCompleteSuccessWith(*p, std::move(f2));
 
 	return future;
 }
@@ -717,7 +726,7 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	};
 
 	auto ctx = std::make_shared<FirstSucc2Context>(std::move(f1), std::move(f2));
-	folly::Future<T> future = ctx->p.getFuture();
+	auto future = ctx->p.getFuture();
 
 	auto next1 = ctx->f1.then([ctx] (T v)
 		{
