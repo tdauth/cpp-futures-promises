@@ -26,7 +26,6 @@ int main()
 		}
 	);
 
-
 	boost::future<void> print = purchase
 		.then([] (boost::future<double> f)
 		{
