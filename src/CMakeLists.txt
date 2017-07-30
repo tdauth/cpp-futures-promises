@@ -92,16 +92,16 @@ add_test(Extensions extensions)
 
 # Performance tests:
 add_executable(performance_combinators performance_combinators.cpp)
-add_dependencies(performance_combinators boostrelease follyrelease)
-target_link_libraries(performance_combinators ${Boost_RELEASE_LIBRARIES} ${folly_RELEASE_LIBRARIES} pthread)
+add_dependencies(performance_combinators boost folly)
+target_link_libraries(performance_combinators ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)
 add_test(PerformanceCombinators performance_combinators)
 get_target_property(PERFORMANCE_COMBINATORS_FLAGS performance_combinators LINK_LIBRARIES)
 message(STATUS "Link libraries of performance test combinators (should be the release versions): ${PERFORMANCE_COMBINATORS_FLAGS}")
 
 # Don't optimize this test since the libraries might get different optimizations and some libraries might get better results for empty promises and futures!
 add_executable(performance_shared performance_shared.cpp)
-add_dependencies(performance_shared boostrelease follyrelease)
-target_link_libraries(performance_shared ${Boost_RELEASE_LIBRARIES} ${folly_RELEASE_LIBRARIES} pthread)
+add_dependencies(performance_shared boost folly)
+target_link_libraries(performance_shared ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)
 add_test(PerformanceShared performance_shared)
 get_target_property(PERFORMANCE_SHARED_FLAGS performance_shared LINK_LIBRARIES)
 message(STATUS "Link libraries of performance test shared (should be the release versions): ${PERFORMANCE_SHARED_FLAGS}")
