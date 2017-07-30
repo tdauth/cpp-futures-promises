@@ -75,29 +75,6 @@ link_directories("${BOOST_LIB_DIR}")
 
 set(Boost_LIBRARIES "${BOOST_LIB_DIR}/libboost_thread.so" "${BOOST_LIB_DIR}/libboost_system.so" "${BOOST_LIB_DIR}/libboost_chrono.so" "${BOOST_LIB_DIR}/libboost_unit_test_framework.so")
 
-# Boost Release (for performance tests)
-set(BOOST_RELEASE_DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostrelease-prefix/src/boostrelease/")
-set(BOOST_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boostrelease_install")
-set(BOOST_RELEASE_INCLUDE_DIR "${BOOST_RELEASE_INSTALL_DIR}/include")
-set(BOOST_RELEASE_LIB_DIR "${BOOST_RELEASE_INSTALL_DIR}/lib")
-
-ExternalProject_Add(
-	boostrelease
-	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
-	INSTALL_COMMAND "" # Disable install step
-	UPDATE_COMMAND "" # Doesn't change often
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost_release.sh" "${BOOST_RELEASE_DOWNLOAD_DIR}" "${BOOST_RELEASE_LIB_DIR}"
-	LOG_DOWNLOAD ON
-	LOG_CONFIGURE ON
-	LOG_BUILD ON
-)
-
-ExternalProject_Add_StepDependencies(boostrelease configure "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh")
-ExternalProject_Add_StepDependencies(boostrelease build "${CMAKE_CURRENT_SOURCE_DIR}/buildboost_release.sh")
-
-set(Boost_RELEASE_LIBRARIES "${BOOST_RELEASE_LIB_DIR}/libboost_thread.so" "${BOOST_RELEASE_LIB_DIR}/libboost_system.so" "${BOOST_RELEASE_LIB_DIR}/libboost_chrono.so")
-
 # Folly
 
 # See https://github.com/facebook/folly/blob/master/README.md for all dependencies which have to be installed on Fedora as well.
@@ -132,28 +109,6 @@ ExternalProject_Add(folly
 include_directories("${folly_INCLUDE_DIR}")
 link_directories("${folly_LIB_DIR}")
 
-# Folly Release
-set(folly_RELEASE_DIR "${CMAKE_CURRENT_BINARY_DIR}/follyrelease-prefix/src/follyrelease/folly")
-set(folly_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/follyrelease_install")
-set(folly_RELEASE_INCLUDE_DIR "${folly_RELEASE_INSTALL_DIR}/include")
-set(folly_RELEASE_LIB_DIR "${folly_RELEASE_INSTALL_DIR}/lib")
-
-set(folly_RELEASE_LIBRARIES
-	"${folly_RELEASE_LIB_DIR}/libfolly.so"
-	"${folly_RELEASE_LIB_DIR}/libfollybenchmark.so"
-	"${folly_RELEASE_LIB_DIR}/libfollyinit.so"
-	"${folly_RELEASE_LIB_DIR}/libfollylogging.so"
-	${GLOG_LIBRARY}
-)
-
-ExternalProject_Add(follyrelease
-	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly_release.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so" "${BOOST_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_RELEASE_DIR}" "${folly_RELEASE_INSTALL_DIR}" "${folly_RELEASE_LIB_DIR}/libfolly.so"
-	DEPENDS boostrelease
-)
-
 # Wangle is required for the Thread Pool Executors which work with Folly
 set(wangle_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wangle_install")
 set(wangle_BUILD_DIR "${CMAKE_BINARY_DIR}/wangle-prefix/src/wangle-build")
@@ -171,22 +126,6 @@ set(wangle_LIB_DIR "${wangle_INSTALL_DIR}/lib/")
 set(wangle_LIBRARIES "${wangle_LIB_DIR}/libwangle.so")
 
 include_directories("${wangle_INCLUDE_DIR}")
-
-# Wangle Release:
-set(wangle_RELEASE_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wanglerelease_install")
-set(wangle_RELEASE_BUILD_DIR "${CMAKE_BINARY_DIR}/wanglerelease-prefix/src/wangle-build")
-
-ExternalProject_Add(wanglerelease
-	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
-	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle_release.sh" "${folly_RELEASE_LIB_DIR}" "${folly_RELEASE_INCLUDE_DIR}" "${BOOST_RELEASE_INSTALL_DIR}" "${wangle_RELEASE_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_RELEASE_BUILD_DIR}"
-	DEPENDS follyrelease boostrelease
-)
-
-set(wangle_RELEASE_INCLUDE_DIR "${wangle_RELEASE_INSTALL_DIR}/include/")
-set(wangle_RELEASE_LIB_DIR "${wangle_RELEASE_INSTALL_DIR}/lib/")
-set(wangle_RELEASE_LIBRARIES "${wangle_RELEASE_LIB_DIR}/libwangle.so")
 
 # The file compile_commands.json is require by clang-check and has to be exported.
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=1)
