@@ -180,10 +180,7 @@ struct RecursiveCombinatorType
 	template<typename Func>
 	static folly::Future<T> orElseCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::orElseCustom(size, f);
-		folly::Future<T> f2 = previous::orElseCustom(size, f);
-
-		return orElse(std::move(f1), std::move(f2));
+		return orElse(previous::orElseCustom(size, f), previous::orElseCustom(size, f));
 	}
 
 	using previous_custom_collect_n_without_exception_type = typename previous::custom_collect_n_without_exception_type;
@@ -208,55 +205,37 @@ struct RecursiveCombinatorType
 	template<typename Func>
 	static folly::Future<T> firstCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstCustom(size, f);
-		folly::Future<T> f2 = previous::firstCustom(size, f);
-
-		return first(std::move(f1), std::move(f2));
+		return first(previous::firstCustom(size, f), previous::firstCustom(size, f));
 	}
 
 	template<typename Func>
 	static folly::Future<T> firstRandomCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstRandomCustom(size, f);
-		folly::Future<T> f2 = previous::firstRandomCustom(size, f);
-
-		return firstRandom(std::move(f1), std::move(f2));
+		return firstRandom(previous::firstRandomCustom(size, f), previous::firstRandomCustom(size, f));
 	}
 
 	template<typename Func>
 	static folly::Future<T> firstOnlySuccCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstOnlySuccCustom(size, f);
-		folly::Future<T> f2 = previous::firstOnlySuccCustom(size, f);
-
-		return firstOnlySucc(std::move(f1), std::move(f2));
+		return firstOnlySucc(previous::firstOnlySuccCustom(size, f), previous::firstOnlySuccCustom(size, f));
 	}
 
 	template<typename Func>
 	static folly::Future<T> firstOnlySuccRandomCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstOnlySuccRandomCustom(size, f);
-		folly::Future<T> f2 = previous::firstOnlySuccRandomCustom(size, f);
-
-		return firstOnlySuccRandom(std::move(f1), std::move(f2));
+		return firstOnlySuccRandom(previous::firstOnlySuccRandomCustom(size, f), previous::firstOnlySuccRandomCustom(size, f));
 	}
 
 	template<typename Func>
 	static folly::Future<T> firstSuccCustom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstSuccCustom(size, f);
-		folly::Future<T> f2 = previous::firstSuccCustom(size, f);
-
-		return firstSucc(std::move(f1), std::move(f2));
+		return firstSucc(previous::firstSuccCustom(size, f), previous::firstSuccCustom(size, f));
 	}
 
 	template<typename Func>
 	static folly::Future<T> firstSucc2Custom(std::size_t size, Func f)
 	{
-		folly::Future<T> f1 = previous::firstSucc2Custom(size, f);
-		folly::Future<T> f2 = previous::firstSucc2Custom(size, f);
-
-		return firstSucc2(std::move(f1), std::move(f2));
+		return firstSucc2(previous::firstSucc2Custom(size, f), previous::firstSucc2Custom(size, f));
 	}
 };
 
@@ -383,10 +362,7 @@ struct RecursiveCombinatorType<T, 1>
 	template<typename Func>
 	static future_type orElseCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return orElse(std::move(f1), std::move(f2));
+		return orElse(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	using custom_collect_n_without_exception_vector_value_type = std::pair<std::size_t, T>;
@@ -409,55 +385,37 @@ struct RecursiveCombinatorType<T, 1>
 	template<typename Func>
 	static future_type firstCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return first(std::move(f1), std::move(f2));
+		return first(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	template<typename Func>
 	static future_type firstRandomCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return firstRandom(std::move(f1), std::move(f2));
+		return firstRandom(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	template<typename Func>
 	static future_type firstOnlySuccCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return firstOnlySucc(std::move(f1), std::move(f2));
+		return firstOnlySucc(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	template<typename Func>
 	static future_type firstOnlySuccRandomCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return firstOnlySuccRandom(std::move(f1), std::move(f2));
+		return firstOnlySuccRandom(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	template<typename Func>
 	static future_type firstSuccCustom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return firstSucc(std::move(f1), std::move(f2));
+		return firstSucc(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 
 	template<typename Func>
 	static future_type firstSucc2Custom(std::size_t size, Func f)
 	{
-		future_type f1 = folly::makeFuture(f());
-		future_type f2 = folly::makeFuture(f());
-
-		return firstSucc2(std::move(f1), std::move(f2));
+		return firstSucc2(folly::makeFuture(f()), folly::makeFuture(f()));
 	}
 };
 
