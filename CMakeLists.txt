@@ -3,8 +3,8 @@ project(cpp-futures-promises)
 
 set(boost_VERSION "1.64.0")
 set(boost_VERSION_UNDERSCORE "1_64_0")
-set(folly_VERSION "v2017.07.03.00")
-set(wangle_VERSION "v2017.07.03.00")
+set(folly_VERSION "v2017.07.24.00")
+set(wangle_VERSION "v2017.07.24.00")
 
 message(STATUS "Module path: ${CMAKE_MODULE_PATH}")
 
