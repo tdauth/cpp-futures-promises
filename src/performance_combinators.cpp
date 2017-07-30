@@ -468,82 +468,84 @@ struct RecursiveCombinatorType<T, 0>
 
 using TYPE = int;
 constexpr int VECTOR_SIZE = 2;
-constexpr int TREE_LEVELS = 10;
+constexpr int TREE_LEVELS = 15;
 static_assert(VECTOR_SIZE == 2, "The custom combinators only support passing two futures.");
+
+using Tree = RecursiveCombinatorType<TYPE, TREE_LEVELS>;
 
 BENCHMARK(FollyCollectAll)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(FollyCollect)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(FollyCollectN)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectNFolly(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
+	Tree::collectNFolly(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
 }
 
 BENCHMARK(FollyCollectAny)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::collectAnyFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(FollyCollectAnyWithoutException)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectAnyWithoutExceptionFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::collectAnyWithoutExceptionFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(BoostWhenAll)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::whenAllBoost(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::whenAllBoost(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(BoostWhenAny)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::whenAnyBoost(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::whenAnyBoost(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomOrElse)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::orElseCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::orElseCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomCollectNWithoutException)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::collectNWithoutExceptionCustom(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
+	Tree::collectNWithoutExceptionCustom(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
 }
 
 BENCHMARK(CustomFirst)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomFirstRandom)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstRandomCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstRandomCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomFirstOnlySucc)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstOnlySuccCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstOnlySuccCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomFirstOnlySuccRandom)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstOnlySuccRandomCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstOnlySuccRandomCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomFirstSucc)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstSuccCustom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstSuccCustom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 BENCHMARK(CustomFirstSucc2)
 {
-	RecursiveCombinatorType<TYPE, TREE_LEVELS>::firstSucc2Custom(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree::firstSucc2Custom(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
 int main(int argc, char *argv[])
