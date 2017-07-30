@@ -98,6 +98,7 @@ add_test(PerformanceCombinators performance_combinators)
 get_target_property(PERFORMANCE_COMBINATORS_FLAGS performance_combinators LINK_LIBRARIES)
 message(STATUS "Link libraries of performance test combinators (should be the release versions): ${PERFORMANCE_COMBINATORS_FLAGS}")
 
+# Don't optimize this test since the libraries might get different optimizations and some libraries might get better results for empty promises and futures!
 add_executable(performance_shared performance_shared.cpp)
 add_dependencies(performance_shared boostrelease follyrelease)
 target_link_libraries(performance_shared ${Boost_RELEASE_LIBRARIES} ${folly_RELEASE_LIBRARIES} pthread)
