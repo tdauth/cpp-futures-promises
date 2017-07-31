@@ -114,3 +114,5 @@ target_link_libraries(santa_folly ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle
 add_test(SantaFolly santa_folly)
 
 install(FILES extensions.h random.h DESTINATION include/cpp-futures-promises)
+
+add_subdirectory(wrapper)
