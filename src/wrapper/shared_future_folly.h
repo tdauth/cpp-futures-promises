@@ -28,12 +28,6 @@ class SharedFuture
 			tryCompleteWith(*ctx, std::move(x._f), [ctx] () {});
 		}
 
-		SharedFuture(folly::Future<T> &&x) : me(new folly::SharedPromise<T>())
-		{
-			auto ctx = this->me;
-			tryCompleteWith(*ctx, std::move(x), [ctx] () {});
-		}
-
 		SharedFuture(const SharedFuture<T> &other) : me(other.me)
 		{
 		}
