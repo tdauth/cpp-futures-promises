@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	xtn::Future<std::string> uniqueF(folly::makeFuture("My test value"));
+	xtn::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
 	xtn::SharedFuture<std::string> f(std::move(uniqueF));
 
 	std::thread t0([f] () mutable {
