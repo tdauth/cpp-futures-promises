@@ -4,6 +4,7 @@
 #include <folly/futures/SharedPromise.h>
 
 #include "extensions.h"
+#include "future_folly.h"
 
 namespace xtn
 {
@@ -21,20 +22,25 @@ template<typename T>
 class SharedFuture
 {
 	public:
-		SharedFuture(folly::Future<T> &&x) : me(new folly::SharedPromise<T>()), f(me->getFuture())
+		SharedFuture(Future<T> &&x) : me(new folly::SharedPromise<T>())
+		{
+			auto ctx = this->me;
+			tryCompleteWith(*ctx, std::move(x._f), [ctx] () {});
+		}
+
+		SharedFuture(folly::Future<T> &&x) : me(new folly::SharedPromise<T>())
 		{
 			auto ctx = this->me;
 			tryCompleteWith(*ctx, std::move(x), [ctx] () {});
 		}
 
-		SharedFuture(const SharedFuture<T> &other) : me(other.me), f(me->getFuture())
+		SharedFuture(const SharedFuture<T> &other) : me(other.me)
 		{
 		}
 
 		SharedFuture<T>& operator=(const SharedFuture<T> &other)
 		{
 			me = other.me;
-			f = me->getFuture();
 
 			return *this;
 		}
@@ -46,17 +52,97 @@ class SharedFuture
 		 */
 		const T& get()
 		{
-			this->f.wait();
+			folly::Future<T> f = this->me->getFuture();
+			f.wait();
 
-			this->f.getTry().throwIfFailed();
+			f.getTry().throwIfFailed();
 
-			return this->f.value();
+			return f.value();
+		}
+
+		SharedFuture<T> orElse(SharedFuture<T> other)
+		{
+			return SharedFuture<T>(Future<T>(this->me->getFuture()).orElse(Future<T>(other.me->getFuture()))._f);
+		}
+
+		SharedFuture<T> first(SharedFuture<T> other)
+		{
+			return SharedFuture<T>(Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture()))._f);
 		}
 
 	private:
 		std::shared_ptr<folly::SharedPromise<T>> me;
-		folly::Future<T> f;
+
+		template<typename U>
+		friend SharedFuture<std::vector<std::pair<std::size_t, SharedFuture<U>>>> firstN(std::vector<SharedFuture<U>> &&c, std::size_t n);
+
+		template<typename U>
+		friend SharedFuture<std::vector<std::pair<std::size_t, U>>> firstNSucc(std::vector<SharedFuture<U>> &&c, std::size_t n);
 };
+
+template<typename T>
+SharedFuture<std::vector<std::pair<std::size_t, SharedFuture<T>>>> firstN(std::vector<SharedFuture<T>> &&c, std::size_t n)
+{
+	std::vector<Future<T>> mapped;
+
+	for (auto it = c.begin(); it != c.end(); ++it)
+	{
+		mapped.push_back(it->me->getFuture());
+	}
+
+	using VectorType = std::vector<std::pair<std::size_t, SharedFuture<T>>>;
+
+	SharedFuture<VectorType> f(
+			firstN(std::move(mapped), n)
+			.then([] (Try<std::vector<std::pair<std::size_t, Future<T>>>> t)
+			{
+				std::vector<std::pair<std::size_t, Future<T>>> vector = t.get(); // will rethrow the exception
+				VectorType mapped;
+
+				for (auto it = vector.begin(); it != vector.end(); ++it)
+				{
+					mapped.push_back(std::make_pair(it->first, SharedFuture<T>(std::move(it->second))));
+				}
+
+				return mapped;
+			}
+		)
+	);
+
+	return f;
+}
+
+template<typename T>
+SharedFuture<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<SharedFuture<T>> &&c, std::size_t n)
+{
+	std::vector<Future<T>> mapped;
+
+	for (auto it = c.begin(); it != c.end(); ++it)
+	{
+		mapped.push_back(it->me->getFuture());
+	}
+
+	using VectorType = std::vector<std::pair<std::size_t, T>>;
+
+	SharedFuture<VectorType> f(
+			firstNSucc(std::move(mapped), n)
+			.then([] (Try<std::vector<std::pair<std::size_t, T>>> t)
+			{
+				std::vector<std::pair<std::size_t, T>> vector = t.get(); // will rethrow the exception
+				VectorType mapped;
+
+				for (auto it = vector.begin(); it != vector.end(); ++it)
+				{
+					mapped.push_back(std::make_pair(it->first, std::move(it->second)));
+				}
+
+				return mapped;
+			}
+		)
+	);
+
+	return f;
+}
 
 }
 

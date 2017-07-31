@@ -193,6 +193,9 @@ class Future
 		template<typename S>
 		friend class Promise;
 
+		template<typename S>
+		friend class SharedFuture;
+
 		folly::Future<T> _f;
 };
 
@@ -267,11 +270,6 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 
 	return r;
 }
-
-template<typename T>
-class SharedFuture
-{
-};
 
 }
 
