@@ -29,8 +29,12 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 
 	struct CollectNWithoutExceptionContext
 	{
+		/**
+		 * This mutex protects the vector on emplacing operations.
+		 */
+		std::mutex m;
 		V v;
-		std::atomic<size_t> completed = {0};
+		std::atomic<size_t> succeeded = {0};
 		std::atomic<size_t> failed = {0};
 		folly::Promise<V> p;
 	};
@@ -49,31 +53,40 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 		// vector
 		folly::mapSetCallback<T>(first, last, [ctx, n, total] (size_t i, folly::Try<T>&& t)
 			{
-				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
-				if (t.hasException())
+				if (!ctx->p.isFulfilled())
 				{
-					if (!ctx->p.isFulfilled())
+					// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
+					if (t.hasException())
 					{
 						auto c = ++ctx->failed;
 
-						if (total - c < n)
+						/*
+						 * Since the local variable can never have the counter incremented by more than one,
+						 * we can check for the exact final value and do only one setException call.
+						 */
+						if (total - c == n - 1)
 						{
 							ctx->p.setException(t.exception());
 						}
 					}
-				}
-				else if (!ctx->p.isFulfilled())
-				{
-					auto c = ++ctx->completed;
-
-					if (c <= n)
+					else
 					{
-						assert(ctx->v.size() < n);
-						ctx->v.emplace_back(i, std::move(t.value()));
+						auto c = ++ctx->succeeded;
 
-						if (c == n)
+						if (c <= n)
 						{
-							ctx->p.setValue(std::move(ctx->v));
+							/*
+							 * Although Folly uses simply emplace_back, it is not thread-safe and therefore should not be used without a lock.
+							 */
+							{
+								std::unique_lock<std::mutex> l(ctx->m);
+								ctx->v.emplace_back(i, std::move(t.value()));
+							}
+
+							if (c == n)
+							{
+								ctx->p.setValue(std::move(ctx->v));
+							}
 						}
 					}
 				}
