@@ -258,7 +258,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return folly::collectAll(v.begin(), v.end());
@@ -274,7 +274,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return folly::collect(v.begin(), v.end());
@@ -291,7 +291,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return folly::collectN(v.begin(), v.end(), n);
@@ -307,7 +307,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return folly::collectAny(v.begin(), v.end());
@@ -323,7 +323,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return folly::collectAnyWithoutException(v.begin(), v.end());
@@ -340,7 +340,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(boost::make_ready_future(f()));
+			v.push_back(boost::async(f));
 		}
 
 		return boost::when_all(v.begin(), v.end());
@@ -353,7 +353,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(boost::make_ready_future(f()));
+			v.push_back(boost::async(f));
 		}
 
 		return boost::when_any(v.begin(), v.end());
@@ -362,7 +362,7 @@ struct RecursiveCombinatorType<T, 1>
 	template<typename Func>
 	static future_type orElseCustom(std::size_t size, Func f)
 	{
-		return orElse(folly::makeFuture(f()), folly::makeFuture(f()));
+		return orElse(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	using custom_collect_n_without_exception_vector_value_type = std::pair<std::size_t, T>;
@@ -376,7 +376,7 @@ struct RecursiveCombinatorType<T, 1>
 
 		for (std::size_t i = 0; i < size; ++i)
 		{
-			v.push_back(folly::makeFuture(f()));
+			v.push_back(folly::makeFutureWith(f));
 		}
 
 		return collectNWithoutException(v.begin(), v.end(), n);
@@ -385,37 +385,37 @@ struct RecursiveCombinatorType<T, 1>
 	template<typename Func>
 	static future_type firstCustom(std::size_t size, Func f)
 	{
-		return first(folly::makeFuture(f()), folly::makeFuture(f()));
+		return first(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	template<typename Func>
 	static future_type firstRandomCustom(std::size_t size, Func f)
 	{
-		return firstRandom(folly::makeFuture(f()), folly::makeFuture(f()));
+		return firstRandom(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	template<typename Func>
 	static future_type firstOnlySuccCustom(std::size_t size, Func f)
 	{
-		return firstOnlySucc(folly::makeFuture(f()), folly::makeFuture(f()));
+		return firstOnlySucc(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	template<typename Func>
 	static future_type firstOnlySuccRandomCustom(std::size_t size, Func f)
 	{
-		return firstOnlySuccRandom(folly::makeFuture(f()), folly::makeFuture(f()));
+		return firstOnlySuccRandom(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	template<typename Func>
 	static future_type firstSuccCustom(std::size_t size, Func f)
 	{
-		return firstSucc(folly::makeFuture(f()), folly::makeFuture(f()));
+		return firstSucc(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 
 	template<typename Func>
 	static future_type firstSucc2Custom(std::size_t size, Func f)
 	{
-		return firstSucc2(folly::makeFuture(f()), folly::makeFuture(f()));
+		return firstSucc2(folly::makeFutureWith(f), folly::makeFutureWith(f));
 	}
 };
 
@@ -429,21 +429,124 @@ constexpr int VECTOR_SIZE = 2;
 constexpr int TREE_LEVELS = 12;
 static_assert(VECTOR_SIZE == 2, "The custom combinators only support passing two futures.");
 
+using Tree4 = RecursiveCombinatorType<TYPE, 4>;
+using Tree6 = RecursiveCombinatorType<TYPE, 6>;
+using Tree12 = RecursiveCombinatorType<TYPE, 12>;
 using Tree = RecursiveCombinatorType<TYPE, TREE_LEVELS>;
 
-BENCHMARK(FollyCollectAll)
+void randomThrow()
 {
-	Tree::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	const int selection = randomNumber(0, 1);
+
+	if (selection == 0)
+	{
+		throw std::runtime_error("Exception!");
+	}
 }
 
-BENCHMARK(FollyCollect)
+BENCHMARK(FollyCollectAll4Succ)
 {
-	Tree::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+	Tree4::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
 }
 
-BENCHMARK(FollyCollectN)
+BENCHMARK(FollyCollectAll4Fail)
 {
-	Tree::collectNFolly(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
+	Tree4::collectAllFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll4Random)
+{
+	Tree4::collectAllFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll6Succ)
+{
+	Tree6::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll6Fail)
+{
+	Tree6::collectAllFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll6Random)
+{
+	Tree6::collectAllFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll12Succ)
+{
+	Tree12::collectAllFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll12Fail)
+{
+	Tree12::collectAllFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectAll12Random)
+{
+	Tree12::collectAllFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect4Succ)
+{
+	Tree4::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect4Fail)
+{
+	Tree4::collectFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect4Random)
+{
+	Tree4::collectFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect6Succ)
+{
+	Tree6::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect6Fail)
+{
+	Tree6::collectFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect6Random)
+{
+	Tree6::collectFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect12Succ)
+{
+	Tree12::collectFolly(VECTOR_SIZE, [] () { return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect12Fail)
+{
+	Tree12::collectFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollect12Random)
+{
+	Tree12::collectFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }).wait();
+}
+
+BENCHMARK(FollyCollectN4Succ)
+{
+	Tree4::collectNFolly(VECTOR_SIZE, [] () { return 3; }, VECTOR_SIZE).wait();
+}
+
+BENCHMARK(FollyCollectN4Fail)
+{
+	Tree4::collectNFolly(VECTOR_SIZE, [] () { throw std::runtime_error("Exception!"); return 3; }, VECTOR_SIZE).wait();
+}
+
+BENCHMARK(FollyCollectN4Random)
+{
+	Tree4::collectNFolly(VECTOR_SIZE, [] () { randomThrow(); return 3; }, VECTOR_SIZE).wait();
 }
 
 BENCHMARK(FollyCollectAny)
