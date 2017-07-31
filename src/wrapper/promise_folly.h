@@ -3,7 +3,7 @@
 
 #include "future_folly.h"
 
-namespace wish
+namespace xtn
 {
 
 template<typename T>

@@ -7,9 +7,34 @@
 #include "future_folly.h"
 #include "promise_folly.h"
 
-void testGuard(wish::Executor *ex)
+void testOnComplete(xtn::Executor *ex)
 {
-	wish::Future<int> f2 = wish::async(ex, [] ()
+	xtn::Future<int> f0 = xtn::async(ex, [] ()
+		{
+			return 10;
+		}
+	);
+	f0.onComplete([] (xtn::Try<int> t)
+		{
+			std::cout << "Result: " << t.get() << std::endl;
+		}
+	);
+}
+
+void testGetAndIsReady(xtn::Executor *ex)
+{
+	xtn::Future<int> f1 = xtn::async(ex, [] ()
+		{
+			return 10;
+		}
+	);
+	std::cout << "is ready: " << f1.isReady() << std::endl;
+	std::cout << f1.get() << std::endl;
+}
+
+void testGuard(xtn::Executor *ex)
+{
+	xtn::Future<int> f2 = xtn::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -18,13 +43,13 @@ void testGuard(wish::Executor *ex)
 	std::cout << "Result guard: " << f2.get() << std::endl;
 }
 
-void testThen(wish::Executor *ex)
+void testThen(xtn::Executor *ex)
 {
-	wish::Future<std::string> f3 = wish::async(ex, [] ()
+	xtn::Future<std::string> f3 = xtn::async(ex, [] ()
 		{
 			return 10;
 		}
-	).then([] (wish::Try<int> t)
+	).then([] (xtn::Try<int> t)
 		{
 			if (t.hasValue())
 			{
@@ -38,40 +63,40 @@ void testThen(wish::Executor *ex)
 	std::cout << "Result then: " << f3.get() << std::endl;
 }
 
-void testOrElse(wish::Executor *ex)
+void testOrElse(xtn::Executor *ex)
 {
-	wish::Future<int> f0 = wish::async(ex, [] () { return 10; });
-	wish::Future<int> f1 = wish::async(ex, [] () { return 11; });
+	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
+	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
 	auto f2 = f0.orElse(std::move(f1));
 	std::cout << "Result orElse: " << f2.get() << std::endl;
 }
 
-void testFirst(wish::Executor *ex)
+void testFirst(xtn::Executor *ex)
 {
-	wish::Future<int> f0 = wish::async(ex, [] () { return 10; });
-	wish::Future<int> f1 = wish::async(ex, [] () { return 11; });
+	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
+	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
 	std::cout << "Result first: " << f2.get() << std::endl;
 }
 
-void testFirstSucc(wish::Executor *ex)
+void testFirstSucc(xtn::Executor *ex)
 {
-	wish::Future<int> f0 = wish::async(ex, [] () { return 10; });
-	wish::Future<int> f1 = wish::async(ex, [] () { return 11; });
+	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
+	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
 	std::cout << "Result firstSucc: " << f2.get() << std::endl;
 }
 
-void testFirstN(wish::Executor *ex)
+void testFirstN(xtn::Executor *ex)
 {
-	std::vector<wish::Future<int>> futures;
-	futures.push_back(wish::async(ex, [] () { return 10; }));
-	futures.push_back(wish::async(ex, [] () { return 11; }));
-	futures.push_back(wish::async(ex, [] () { return 12; }));
-	futures.push_back(wish::async(ex, [] () { return 13; }));
+	std::vector<xtn::Future<int>> futures;
+	futures.push_back(xtn::async(ex, [] () { return 10; }));
+	futures.push_back(xtn::async(ex, [] () { return 11; }));
+	futures.push_back(xtn::async(ex, [] () { return 12; }));
+	futures.push_back(xtn::async(ex, [] () { return 13; }));
 
-	wish::Future<std::vector<std::pair<std::size_t, wish::Future<int>>>> f = wish::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, wish::Future<int>>> v = f.get();
+	xtn::Future<std::vector<std::pair<std::size_t, xtn::Future<int>>>> f = xtn::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, xtn::Future<int>>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
@@ -79,15 +104,15 @@ void testFirstN(wish::Executor *ex)
 	}
 }
 
-void testFirstNSucc(wish::Executor *ex)
+void testFirstNSucc(xtn::Executor *ex)
 {
-	std::vector<wish::Future<int>> futures;
-	futures.push_back(wish::async(ex, [] () { return 10; }));
-	futures.push_back(wish::async(ex, [] () { return 11; }));
-	futures.push_back(wish::async(ex, [] () { return 12; }));
-	futures.push_back(wish::async(ex, [] () { return 13; }));
+	std::vector<xtn::Future<int>> futures;
+	futures.push_back(xtn::async(ex, [] () { return 10; }));
+	futures.push_back(xtn::async(ex, [] () { return 11; }));
+	futures.push_back(xtn::async(ex, [] () { return 12; }));
+	futures.push_back(xtn::async(ex, [] () { return 13; }));
 
-	wish::Future<std::vector<std::pair<std::size_t, int>>> f = wish::firstNSucc(std::move(futures), 3);
+	xtn::Future<std::vector<std::pair<std::size_t, int>>> f = xtn::firstNSucc(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, int>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
@@ -96,21 +121,21 @@ void testFirstNSucc(wish::Executor *ex)
 	}
 }
 
-void testTryComplete(wish::Executor *ex)
+void testTryComplete(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
 
-	bool result = p.tryComplete(wish::Try<int>(10));
+	bool result = p.tryComplete(xtn::Try<int>(10));
 
 	std::cout << "Result tryComplete: " << result << std::endl;
 	std::cout << "Future result tryComplete: " << f.get() << std::endl;
 }
 
-void testTrySuccess(wish::Executor *ex)
+void testTrySuccess(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
 
 	bool result = p.trySuccess(10);
 
@@ -118,10 +143,10 @@ void testTrySuccess(wish::Executor *ex)
 	std::cout << "Future result trySuccess: " << f.get() << std::endl;
 }
 
-void testTryFailure(wish::Executor *ex)
+void testTryFailure(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
 
 	bool result = p.tryFailure(std::runtime_error("Failure!"));
 
@@ -137,33 +162,33 @@ void testTryFailure(wish::Executor *ex)
 	}
 }
 
-void testTryCompleteWith(wish::Executor *ex)
+void testTryCompleteWith(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
-	wish::Future<int> completingFuture = wish::async(ex, [] () { return 10; });
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
+	xtn::Future<int> completingFuture = xtn::async(ex, [] () { return 10; });
 
 	p.tryCompleteWith(std::move(completingFuture));
 
 	std::cout << "Future result tryCompleteWith: " << f.get() << std::endl;
 }
 
-void testTrySuccessWith(wish::Executor *ex)
+void testTrySuccessWith(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
-	wish::Future<int> completingFuture = wish::async(ex, [] () { return 10; });
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
+	xtn::Future<int> completingFuture = xtn::async(ex, [] () { return 10; });
 
 	p.trySuccessWith(std::move(completingFuture));
 
 	std::cout << "Future result trySuccessWith: " << f.get() << std::endl;
 }
 
-void testTryFailureWith(wish::Executor *ex)
+void testTryFailureWith(xtn::Executor *ex)
 {
-	wish::Promise<int> p;
-	wish::Future<int> f = p.future();
-	wish::Future<int> completingFuture = wish::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	xtn::Promise<int> p;
+	xtn::Future<int> f = p.future();
+	xtn::Future<int> completingFuture = xtn::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
 
 	p.tryFailureWith(std::move(completingFuture));
 
@@ -181,25 +206,11 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	wish::Executor ex(wangle::getCPUExecutor().get());
-	wish::Future<int> f0 = wish::async(&ex, [] ()
-		{
-			return 10;
-		}
-	);
-	f0.onComplete([] (wish::Try<int> t)
-		{
-			std::cout << "Result: " << t.get() << std::endl;
-		}
-	);
+	xtn::Executor ex(wangle::getCPUExecutor().get());
 
-	wish::Future<int> f1 = wish::async(&ex, [] ()
-		{
-			return 10;
-		}
-	);
-	std::cout << "is ready: " << f1.isReady() << std::endl;
-	std::cout << f1.get() << std::endl;
+	testOnComplete(&ex);
+
+	testGetAndIsReady(&ex);
 
 	testGuard(&ex);
 

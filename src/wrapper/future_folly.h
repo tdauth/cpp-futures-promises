@@ -1,11 +1,13 @@
 #ifndef FUTUREFOLLY_H
 #define FUTUREFOLLY_H
 
+#include <type_traits>
+
 #include <folly/futures/Future.h>
 
 #include "extensions.h"
 
-namespace wish
+namespace xtn
 {
 
 template<typename T>
@@ -17,7 +19,6 @@ class Try
 			_t.throwIfFailed();
 
 			return std::move(_t.value());
-
 		}
 
 		bool hasValue()
@@ -75,6 +76,10 @@ class Executor
 		folly::Executor *_e;
 };
 
+/**
+ * Match our defined extended future.
+ * Only use custom extensions of Folly if really necessary!
+ */
 template<typename T>
 class Future
 {
@@ -136,15 +141,37 @@ class Future
 
 		Future<T> first(Future<T> &&other)
 		{
-			return self(::first(std::move(this->_f), std::move(other._f)));
+			std::vector<folly::Future<T>> futures;
+			futures.push_back(std::move(this->_f));
+			futures.push_back(std::move(other._f));
+
+			return self(folly::collectAny(futures.begin(), futures.end())
+				.then([] (std::pair<std::size_t, folly::Try<T>> t)
+				{
+					t.second.throwIfFailed();
+
+					return t.second.value();
+				}
+			));
 		}
 
 		Future<T> firstSucc(Future<T> &&other)
 		{
-			return self(::firstSucc(std::move(this->_f), std::move(other._f)));
+			std::vector<folly::Future<T>> futures;
+			futures.push_back(std::move(this->_f));
+			futures.push_back(std::move(other._f));
+
+			return self(folly::collectAnyWithoutException(futures.begin(), futures.end())
+				.then([] (std::pair<std::size_t, T> t)
+				{
+					return t.second;
+				}
+			));
 		}
 
-		Future();
+		Future()
+		{
+		}
 
 		Future(Future<T> &&other) : _f(std::move(other._f))
 		{
@@ -193,7 +220,7 @@ Future<std::vector<std::pair<std::size_t, Future<T>>>> firstN(std::vector<Future
 
 	using PairType = std::pair<std::size_t, Future<T>>;
 
-	wish::Future<std::vector<PairType>> r = results.then([] (VectorType v)
+	Future<std::vector<PairType>> r = results.then([] (VectorType v)
 		{
 			std::vector<PairType> r;
 
@@ -225,7 +252,7 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 
 	using PairType = std::pair<std::size_t, T>;
 
-	wish::Future<std::vector<PairType>> r = results.then([] (VectorType v)
+	Future<std::vector<PairType>> r = results.then([] (VectorType v)
 		{
 			std::vector<PairType> r;
 

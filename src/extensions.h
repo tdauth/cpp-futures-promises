@@ -7,6 +7,7 @@
 #include <boost/thread.hpp>
 
 #include <folly/futures/Future.h>
+#include <folly/futures/SharedPromise.h>
 
 #include <glog/logging.h>
 
@@ -414,6 +415,22 @@ bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
 	return false;
 }
 
+template<typename T>
+bool tryComplete(folly::SharedPromise<T> &p, folly::Try<T> &&t)
+{
+	try
+	{
+		p.setTry(std::move(t));
+
+		return true;
+	}
+	catch (const folly::PromiseAlreadySatisfied &e)
+	{
+	}
+
+	return false;
+}
+
 /**
  * Tries to complete the promise \p p with the result of the future \p f as soon as the future is completed.
  * If the promise is already completed at that point in time, nothing happens.
@@ -427,6 +444,25 @@ bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
  */
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
+{
+	struct TryCompleteWithContext
+	{
+		folly::Future<folly::Unit> f;
+	};
+
+	auto ctx = std::make_shared<TryCompleteWithContext>();
+
+	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
+		{
+			tryComplete(p, std::move(t));
+		}
+	).ensure([ensureFunc, ctx] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
+
+	return p;
+}
+
+template<typename T, typename Func>
+folly::SharedPromise<T>& tryCompleteWith(folly::SharedPromise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
 	struct TryCompleteWithContext
 	{

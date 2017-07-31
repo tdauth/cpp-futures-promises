@@ -6,4 +6,9 @@ add_dependencies(future boost folly wangle)
 target_link_libraries(future ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES})
 add_test(Future future)
 
-install(FILES future.h promise.h future_folly.h extensions.h random.h DESTINATION include/cpp-futures-promises)
+add_executable(shared_future shared_future.cpp)
+add_dependencies(shared_future boost folly wangle)
+target_link_libraries(shared_future ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES} pthread)
+add_test(SharedFuture shared_future)
+
+install(FILES future.h future_folly.h promise.h promise_folly.h shared_future_folly.h DESTINATION include/cpp-futures-promises)

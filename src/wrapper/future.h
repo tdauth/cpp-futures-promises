@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 
-namespace wish
+namespace xtn
 {
 
 template<typename T>
