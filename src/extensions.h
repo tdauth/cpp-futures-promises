@@ -407,14 +407,13 @@ bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
 	try
 	{
 		p.setTry(std::move(t));
-
-		return true;
 	}
 	catch (const folly::PromiseAlreadySatisfied &e)
 	{
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 template<typename T>
@@ -423,14 +422,13 @@ bool tryComplete(folly::SharedPromise<T> &p, folly::Try<T> &&t)
 	try
 	{
 		p.setTry(std::move(t));
-
-		return true;
 	}
 	catch (const folly::PromiseAlreadySatisfied &e)
 	{
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 /**
@@ -458,7 +456,7 @@ folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, F
 		{
 			tryComplete(p, std::move(t));
 		}
-	).ensure([ensureFunc, ctx] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
+	).ensure([ensureFunc, ctx] () { ensureFunc(); });
 
 	return p;
 }
@@ -477,7 +475,7 @@ folly::SharedPromise<T>& tryCompleteWith(folly::SharedPromise<T> &p, folly::Futu
 		{
 			tryComplete(p, std::move(t));
 		}
-	).ensure([ensureFunc, ctx] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
+	).ensure([ensureFunc, ctx] () { ensureFunc(); });
 
 	return p;
 }
@@ -494,14 +492,13 @@ bool tryCompleteSuccess(folly::Promise<T> &p, T &&v)
 	try
 	{
 		p.setValue(std::move(v));
-
-		return true;
 	}
 	catch (const folly::PromiseAlreadySatisfied &e)
 	{
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 template<typename T>
@@ -510,14 +507,13 @@ bool tryCompleteSuccess(boost::promise<T> &p, T &&v)
 	try
 	{
 		p.set_value(std::move(v));
-
-		return true;
 	}
 	catch (const boost::promise_already_satisfied &e)
 	{
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 template<typename T, typename Func>
@@ -554,14 +550,13 @@ bool tryCompleteFailure(folly::Promise<T> &p, Exception &&e)
 	try
 	{
 		p.setException(folly::make_exception_wrapper<Exception>(std::move(e)));
-
-		return true;
 	}
 	catch (const folly::PromiseAlreadySatisfied &e)
 	{
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 template<typename T, typename Func>
