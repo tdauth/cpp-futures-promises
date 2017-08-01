@@ -46,6 +46,18 @@ Besides, extensions for promises are provided which do exist in Scala:
 * failed
 * successful
 
+## Advanced Futures
+The project provides advanced futures which are implemented for Folly only at the moment.
+The advanced futures are declared in the namespace `adv` and provide the a basic functionality with extensions
+which are missing from Folly and Scala.
+* adv::Future<T>
+* adv::Promise<T>
+
+### Shared Futures for Folly
+The advanced futures provide the shared future class template `adv::SharedFuture<T>` for Folly. It allows copying the future around and
+multiple read semantics with `get` by default.
+It is realized with the help of `folly::SharedPromise<T>`.
+
 ### Unit Tests
 To test the functionality, several unit tests are provided for the extensions.
 Bear in mind that concurrent programs can behavior differently every time due to scheduling.

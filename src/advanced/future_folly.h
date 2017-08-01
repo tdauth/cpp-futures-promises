@@ -153,6 +153,8 @@ class Future
 					return t.second.value();
 				}
 			));
+
+			// This can also use our extension first()!
 		}
 
 		Future<T> firstSucc(Future<T> &&other)
@@ -167,6 +169,8 @@ class Future
 					return t.second;
 				}
 			));
+
+			// This can also use our extension firstSucc()!
 		}
 
 		Future()

@@ -1,0 +1,14 @@
+# Wrapper
+include_directories("${CMAKE_SOURCE_DIR}/src")
+
+add_executable(advanced_future future.cpp)
+add_dependencies(advanced_future boost folly wangle)
+target_link_libraries(advanced_future ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_test(AdvancedFuture advanced_future)
+
+add_executable(advanced_shared_future shared_future.cpp)
+add_dependencies(advanced_shared_future boost folly wangle)
+target_link_libraries(advanced_shared_future ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES} pthread)
+add_test(AdvancedSharedFuture advanced_shared_future)
+
+install(FILES future.h future_folly.h promise.h promise_folly.h shared_future_folly.h DESTINATION include/cpp-futures-promises/advanced)

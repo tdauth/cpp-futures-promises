@@ -115,4 +115,4 @@ add_test(SantaFolly santa_folly)
 
 install(FILES extensions.h random.h DESTINATION include/cpp-futures-promises)
 
-add_subdirectory(wrapper)
+add_subdirectory(advanced)

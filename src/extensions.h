@@ -68,7 +68,7 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 						 * Since the local variable can never have the counter incremented by more than one,
 						 * we can check for the exact final value and do only one setException call.
 						 */
-						if (total - c == n - 1)
+						if (total - c + 1 == n)
 						{
 							ctx->p.setException(t.exception());
 						}
