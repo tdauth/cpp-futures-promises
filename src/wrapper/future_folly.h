@@ -185,7 +185,7 @@ class Future
 		}
 	private:
 		template<typename S>
-		friend Future<std::vector<std::pair<std::size_t, Future<S>>>> firstN(std::vector<Future<S>> &&c, std::size_t n);
+		friend Future<std::vector<std::pair<std::size_t, Try<S>>>> firstN(std::vector<Future<S>> &&c, std::size_t n);
 
 		template<typename S>
 		friend Future<std::vector<std::pair<std::size_t, S>>> firstNSucc(std::vector<Future<S>> &&c, std::size_t n);
@@ -208,7 +208,7 @@ Future<typename std::result_of<Func()>::type> async(Executor *ex, Func &&f)
 }
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, Future<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n)
+Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n)
 {
 	std::vector<folly::Future<T>> futures;
 
@@ -221,15 +221,16 @@ Future<std::vector<std::pair<std::size_t, Future<T>>>> firstN(std::vector<Future
 
 	folly::Future<VectorType> results = folly::collectN(futures.begin(), futures.end(), n);
 
-	using PairType = std::pair<std::size_t, Future<T>>;
+	using ResultPairType = std::pair<std::size_t, Try<T>>;
+	using ResultVectorType = std::vector<ResultPairType>;
 
-	Future<std::vector<PairType>> r = results.then([] (VectorType v)
+	Future<ResultVectorType> r = results.then([] (VectorType v)
 		{
-			std::vector<PairType> r;
+			ResultVectorType r;
 
 			for (auto it = v.begin(); it != v.end(); ++it)
 			{
-				r.push_back(std::make_pair(it->first, Future<T>(folly::Future<T>(it->second))));
+				r.emplace_back(it->first, Try<T>(std::move(it->second)));
 			}
 
 			return r;
@@ -261,7 +262,7 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 
 			for (auto it = v.begin(); it != v.end(); ++it)
 			{
-				r.push_back(std::make_pair(it->first, std::move(it->second)));
+				r.emplace_back(it->first, std::move(it->second));
 			}
 
 			return r;

@@ -31,8 +31,8 @@ void testFirstN(xtn::Executor *ex)
 		futures.push_back(xtn::SharedFuture<int>(xtn::async(ex, [] () { return 10; })));
 	}
 
-	xtn::SharedFuture<std::vector<std::pair<std::size_t, xtn::SharedFuture<int>>>> f = xtn::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, xtn::SharedFuture<int>>> v = f.get();
+	xtn::SharedFuture<std::vector<std::pair<std::size_t, xtn::Try<int>>>> f = xtn::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, xtn::Try<int>>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{

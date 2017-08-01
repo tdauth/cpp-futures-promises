@@ -68,14 +68,14 @@ class SharedFuture
 		std::shared_ptr<folly::SharedPromise<T>> me;
 
 		template<typename U>
-		friend SharedFuture<std::vector<std::pair<std::size_t, SharedFuture<U>>>> firstN(std::vector<SharedFuture<U>> &&c, std::size_t n);
+		friend SharedFuture<std::vector<std::pair<std::size_t, Try<U>>>> firstN(std::vector<SharedFuture<U>> &&c, std::size_t n);
 
 		template<typename U>
 		friend SharedFuture<std::vector<std::pair<std::size_t, U>>> firstNSucc(std::vector<SharedFuture<U>> &&c, std::size_t n);
 };
 
 template<typename T>
-SharedFuture<std::vector<std::pair<std::size_t, SharedFuture<T>>>> firstN(std::vector<SharedFuture<T>> &&c, std::size_t n)
+SharedFuture<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<SharedFuture<T>> &&c, std::size_t n)
 {
 	std::vector<Future<T>> mapped;
 
@@ -84,26 +84,9 @@ SharedFuture<std::vector<std::pair<std::size_t, SharedFuture<T>>>> firstN(std::v
 		mapped.push_back(it->me->getFuture());
 	}
 
-	using VectorType = std::vector<std::pair<std::size_t, SharedFuture<T>>>;
+	using VectorType = std::vector<std::pair<std::size_t, Try<T>>>;
 
-	SharedFuture<VectorType> f(
-			firstN(std::move(mapped), n)
-			.then([] (Try<std::vector<std::pair<std::size_t, Future<T>>>> t)
-			{
-				std::vector<std::pair<std::size_t, Future<T>>> vector = t.get(); // will rethrow the exception
-				VectorType mapped;
-
-				for (auto it = vector.begin(); it != vector.end(); ++it)
-				{
-					mapped.push_back(std::make_pair(it->first, SharedFuture<T>(std::move(it->second))));
-				}
-
-				return mapped;
-			}
-		)
-	);
-
-	return f;
+	return SharedFuture<VectorType>(firstN(std::move(mapped), n));
 }
 
 template<typename T>

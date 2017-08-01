@@ -95,8 +95,8 @@ void testFirstN(xtn::Executor *ex)
 	futures.push_back(xtn::async(ex, [] () { return 12; }));
 	futures.push_back(xtn::async(ex, [] () { return 13; }));
 
-	xtn::Future<std::vector<std::pair<std::size_t, xtn::Future<int>>>> f = xtn::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, xtn::Future<int>>> v = f.get();
+	xtn::Future<std::vector<std::pair<std::size_t, xtn::Try<int>>>> f = xtn::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, xtn::Try<int>>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{

@@ -27,6 +27,9 @@ class Executor
 		void submit(Func &&f);
 };
 
+/**
+ * \brief Provides a unique future which can only be moved around and has read once semantics.
+ */
 template<typename T>
 class Future
 {
@@ -60,14 +63,18 @@ template<typename Func, typename T>
 Future<T> async(Executor *ex, Func &&f);
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, Future<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n);
+Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n);
 
 template<typename T>
 Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n);
 
+/**
+ * \brief Provides a shared future which can be copied around and has multiple read semantics.
+ */
 template<typename T>
 class SharedFuture
 {
+	// Provides the same functions and lifts them to unique futures if possible to avoid redundant code.
 };
 
 }
