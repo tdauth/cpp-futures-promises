@@ -30,17 +30,23 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 
 	struct CollectNWithoutExceptionContext
 	{
-		/**
-		 * This mutex protects the vector on emplacing operations.
+		/*
+		 * Reserve enough space for the vector, so emplace_back won't modify the whole vector and stays thread-safe.
+		 * Folly doesn't do this for folly::collectN which should lead to data races when the vector has a capacity smaller than n.
+		 * See the following link (section Data races): http://www.cplusplus.com/reference/vector/vector/emplace_back/
 		 */
-		std::mutex m;
+		CollectNWithoutExceptionContext(size_t n)
+		{
+			v.reserve(n);
+		}
+
 		V v;
 		std::atomic<size_t> succeeded = {0};
 		std::atomic<size_t> failed = {0};
 		folly::Promise<V> p;
 	};
 
-	auto ctx = std::make_shared<CollectNWithoutExceptionContext>();
+	auto ctx = std::make_shared<CollectNWithoutExceptionContext>(n);
 	const size_t total = std::distance(first, last);
 
 	if (total < n)
@@ -49,9 +55,6 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 	}
 	else
 	{
-		// for each completed Future, increase count and add to vector, until we
-		// have n completed futures at which point we fulfil our Promise with the
-		// vector
 		folly::mapSetCallback<T>(first, last, [ctx, n, total] (size_t i, folly::Try<T>&& t)
 			{
 				if (!ctx->p.isFulfilled())
@@ -77,12 +80,11 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 						if (c <= n)
 						{
 							/*
-							 * Although Folly uses simply emplace_back, it is not thread-safe and therefore should not be used without a lock.
+							 * This is only thread-safe if it does not reallocate the whole vector.
+							 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
+							 * to protect it from data races.
 							 */
-							{
-								std::unique_lock<std::mutex> l(ctx->m);
-								ctx->v.emplace_back(i, std::move(t.value()));
-							}
+							ctx->v.emplace_back(i, std::move(t.value()));
 
 							if (c == n)
 							{
