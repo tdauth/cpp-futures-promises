@@ -1,16 +1,25 @@
+sudo: required
 language: cpp
 compiler: clang
 os: linux
-script:
-  - bash ./build.sh
-addons:
-  apt:
-    packages:
-      - cmake
-      - libgflags-dev
-      - libgflags2
-      - libgoogle-glog-dev
-      - valgrind
-      - clang
-    sources:
-      - kalakris-cmake
+services:
+  - docker
+# Fedora supports the libraries.
+before_install:
+  - docker pull fedora:latest
+  - docker ps -a
+  - docker run fedora:latest /bin/sh -c "cd /root; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; mdkdir ./build; cd ./build; cmake ../; make"
+
+#script:
+#  - bash ./build.sh
+#addons:
+#  apt:
+#    packages:
+#      - cmake
+#      - libgflags-dev
+#      - libgflags2
+#      - libgoogle-glog-dev
+#      - valgrind
+#      - clang
+#    sources:
+#      - kalakris-cmake
