@@ -63,6 +63,8 @@ Therefore, every library which implements the advanced futures and promises has 
 
 ### Folly Implementation
 The advanced futures and promises are only implemented for the library Folly at the moment since it provides the most extended interface for futures and promises in C++.
+To use them you have to include the file `advanced/advanced_futures_folly.h`.
+The classes wrap objects of Folly classes.
 
 ### Shared Futures for Folly
 The advanced futures provide the shared future class template `adv::SharedFuture<T>` for Folly. It allows copying the future around and
