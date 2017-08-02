@@ -28,11 +28,22 @@ The versions of the libraries are specified in the CMakeLists.txt file in the to
 Furthermore, it requires the following packages on Fedora:
 * cmake
 * clang
+
+Folly dependencies:
 * glog-devel
 * gflags-devel
 * valgrind
 * autoconf
 * automake
+* autoconf
+* automake
+* libtool
+* zlib-devel
+* lzma-devel
+* snappy-devel
+* double-conversion-devel
+* openssl-devel
+* libevent-devel
 
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
