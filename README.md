@@ -31,6 +31,8 @@ Furthermore, it requires the following packages on Fedora:
 * glog-devel
 * gflags-devel
 * valgrind
+* autoconf
+* automake
 
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
