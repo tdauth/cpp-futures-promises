@@ -4,7 +4,7 @@
 Examples and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
 The extensions are mainly based on the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
 This project provides an advanced futures and promises API which adds missing functions of C++ futures and promises.
-The API is implemented with the help of some basic functions. The API has a reference implementation with Folly.
+The API is implemented with the help of only a few basic functions. The API has a reference implementation with Folly.
 
 It is based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 
