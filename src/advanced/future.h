@@ -1,10 +1,10 @@
-#ifndef FUTURE_H
-#define FUTURE_H
+#ifndef ADV_FUTURE_H
+#define ADV_FUTURE_H
 
 #include <vector>
 #include <utility>
 
-namespace xtn
+namespace adv
 {
 
 template<typename T>

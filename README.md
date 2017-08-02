@@ -2,7 +2,11 @@
 
 # cpp-futures-promises
 Examples and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
-The extensions are mainly based on the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html).
+The extensions are mainly based on the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
+This project provides an advanced futures and promises API which adds missing functions of C++ futures and promises.
+The API is implemented with the help of some basic functions. The API has a reference implementation with Folly.
+
+It is based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 
 ## Compile
 To compile the project run the following script on Linux:
@@ -46,27 +50,34 @@ Besides, extensions for promises are provided which do exist in Scala:
 * failed
 * successful
 
-## Advanced Futures
-The project provides advanced futures which are implemented for Folly only at the moment.
-The advanced futures are declared in the namespace `adv` and provide the a basic functionality with extensions
+## Advanced Futures and Promises
+The project provides advanced futures and promises which are implemented for Folly only at the moment.
+The advanced futures and promises are declared in the namespace `adv` and provide the a basic functionality with extensions
 which are missing from Folly and Scala.
-* adv::Future<T>
-* adv::Promise<T>
+The following classes are provided:
+* adv::Future<T> - Non-sharable template class for futures. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
+* adv::Promise<T> - Non-sharable template class for promises. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
+
+With the help of only three basic functions (get, then, isReady and tryComplete) all other functions can be implemented.
+Therefore, every library which implements the advanced futures and promises has only to support these basic functions.
+
+### Folly Implementation
+The advanced futures and promises are only implemented for the library Folly at the moment since it provides the most extended interface for futures and promises in C++.
 
 ### Shared Futures for Folly
 The advanced futures provide the shared future class template `adv::SharedFuture<T>` for Folly. It allows copying the future around and
-multiple read semantics with `get` by default.
+multiple read semantics with `get` by default. It does also allow registering more than one callback.
 It is realized with the help of `folly::SharedPromise<T>`.
 
-### Unit Tests
+## Unit Tests
 To test the functionality, several unit tests are provided for the extensions.
 Bear in mind that concurrent programs can behavior differently every time due to scheduling.
 Therefore, simple unit tests won't proof that there are no bugs.
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:
-* Shared vs unique future and promise creation
-* Recursive non-blocking combinator calls
+* Shared vs unique future and promise creation - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
+* Recursive non-blocking combinator calls - A binary tree with a fixed height is created. Every node is the call of a combinator.
 
 ## Use Cases
 The project provides several use cases of futures and promises.

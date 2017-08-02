@@ -1,7 +1,7 @@
-#ifndef PROMISE_H
-#define PROMISE_H
+#ifndef ADV_PROMISE_H
+#define ADV_PROMISE_H
 
-namespace wish
+namespace adv
 {
 
 template<typename T>

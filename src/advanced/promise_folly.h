@@ -1,9 +1,9 @@
-#ifndef PROMISEFOLLY_H
-#define PROMISEFOLLY_H
+#ifndef ADV_PROMISEFOLLY_H
+#define ADV_PROMISEFOLLY_H
 
 #include "future_folly.h"
 
-namespace xtn
+namespace adv
 {
 
 template<typename T>
@@ -22,28 +22,52 @@ class Promise
 
 		bool trySuccess(T &&v)
 		{
-			return ::tryCompleteSuccess(this->_p, std::move(v));
+			return tryComplete(Try<T>(std::move(v)));
 		}
 
 		template<typename Exception>
-		bool tryFailure(Exception &&e)
+		bool tryFailure(Exception e)
 		{
-			return ::tryCompleteFailure(this->_p, std::move(e));
+			return tryComplete(Try<T>(std::make_exception_ptr(std::move(e))));
 		}
 
 		void tryCompleteWith(Future<T> &&f)
 		{
-			::tryCompleteWith(this->_p, std::move(f._f));
+			auto ctx = std::make_shared<Future<T>>(std::move(f));
+
+			ctx->onComplete([this, ctx] (Try<T> t)
+				{
+					this->tryComplete(std::move(t));
+				}
+			);
 		}
 
 		void trySuccessWith(Future<T> &&f)
 		{
-			::tryCompleteSuccessWith(this->_p, std::move(f._f));
+			auto ctx = std::make_shared<Future<T>>(std::move(f));
+
+			ctx->onComplete([this, ctx] (Try<T> t)
+				{
+					if (t.hasValue())
+					{
+						this->tryComplete(std::move(t));
+					}
+				}
+			);
 		}
 
 		void tryFailureWith(Future<T> &&f)
 		{
-			::tryCompleteFailureWith(this->_p, std::move(f._f));
+			auto ctx = std::make_shared<Future<T>>(std::move(f));
+
+			ctx->onComplete([this, ctx] (Try<T> t)
+				{
+					if (t.hasException())
+					{
+						this->tryComplete(std::move(t));
+					}
+				}
+			);
 		}
 
 		Promise()

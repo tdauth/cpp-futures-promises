@@ -4,35 +4,35 @@
 
 #include <wangle/concurrent/GlobalExecutor.h>
 
-#include "shared_future_folly.h"
+#include "advanced_futures_folly.h"
 
-void testOrElse(xtn::Executor *ex)
+void testOrElse(adv::Executor *ex)
 {
-	xtn::SharedFuture<int> f0(folly::makeFuture(10));
-	xtn::SharedFuture<int> f1(folly::makeFuture(10));
+	adv::SharedFuture<int> f0(folly::makeFuture(10));
+	adv::SharedFuture<int> f1(folly::makeFuture(10));
 	auto f2 = f0.orElse(std::move(f1));
 	std::cout << "Result orElse: " << f2.get() << std::endl;
 }
 
-void testFirst(xtn::Executor *ex)
+void testFirst(adv::Executor *ex)
 {
-	xtn::SharedFuture<int> f0(folly::makeFuture(10));
-	xtn::SharedFuture<int> f1(folly::makeFuture(10));
+	adv::SharedFuture<int> f0(folly::makeFuture(10));
+	adv::SharedFuture<int> f1(folly::makeFuture(10));
 	auto f2 = f0.first(std::move(f1));
 	std::cout << "Result first: " << f2.get() << std::endl;
 }
 
-void testFirstN(xtn::Executor *ex)
+void testFirstN(adv::Executor *ex)
 {
-	std::vector<xtn::SharedFuture<int>> futures;
+	std::vector<adv::SharedFuture<int>> futures;
 
 	for (int i = 0; i < 10; ++i)
 	{
-		futures.push_back(xtn::SharedFuture<int>(xtn::async(ex, [] () { return 10; })));
+		futures.push_back(adv::SharedFuture<int>(adv::async(ex, [] () { return 10; })));
 	}
 
-	xtn::SharedFuture<std::vector<std::pair<std::size_t, xtn::Try<int>>>> f = xtn::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, xtn::Try<int>>> v = f.get();
+	adv::SharedFuture<std::vector<std::pair<std::size_t, adv::Try<int>>>> f = adv::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, adv::Try<int>>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
@@ -40,16 +40,16 @@ void testFirstN(xtn::Executor *ex)
 	}
 }
 
-void testFirstNSucc(xtn::Executor *ex)
+void testFirstNSucc(adv::Executor *ex)
 {
-	std::vector<xtn::SharedFuture<int>> futures;
+	std::vector<adv::SharedFuture<int>> futures;
 
 	for (int i = 0; i < 10; ++i)
 	{
-		futures.push_back(xtn::SharedFuture<int>(xtn::async(ex, [] () { return 10; })));
+		futures.push_back(adv::SharedFuture<int>(adv::async(ex, [] () { return 10; })));
 	}
 
-	xtn::SharedFuture<std::vector<std::pair<std::size_t, int>>> f = xtn::firstNSucc(std::move(futures), 3);
+	adv::SharedFuture<std::vector<std::pair<std::size_t, int>>> f = adv::firstNSucc(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, int>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	xtn::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
-	xtn::SharedFuture<std::string> f(std::move(uniqueF));
+	adv::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
+	adv::SharedFuture<std::string> f(std::move(uniqueF));
 
 	std::thread t0([f] () mutable {
 		std::cerr << "Result 0: " << f.get() << std::endl;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 	std::cerr << "Result 0: " << f.get() << std::endl;
 	std::cerr << "Result 1: " << f.get() << std::endl;
 
-	xtn::Executor ex(wangle::getCPUExecutor().get());
+	adv::Executor ex(wangle::getCPUExecutor().get());
 
 	testOrElse(&ex);
 	testFirst(&ex);

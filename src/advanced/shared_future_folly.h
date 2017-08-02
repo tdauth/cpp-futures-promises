@@ -1,12 +1,11 @@
-#ifndef SHAREDFUTURE_H
-#define SHAREDFUTURE_H
+#ifndef ADV_SHAREDFUTURE_H
+#define ADV_SHAREDFUTURE_H
 
 #include <folly/futures/SharedPromise.h>
 
-#include "extensions.h"
 #include "future_folly.h"
 
-namespace xtn
+namespace adv
 {
 
 /**
@@ -16,16 +15,40 @@ namespace xtn
  * This allows to treat it as separate future sharing the same result.
  *
  * Besides a get() call does not invalidate the future. Therefore, get() has multiple read semantics by default.
+ * It does also allow registering multiple callbacks instead of only one per future.
  * This is not the same for folly::Future (only when value is used).
  */
 template<typename T>
 class SharedFuture
 {
 	public:
+		typedef std::shared_ptr<folly::SharedPromise<T>> SharedPtr;
+
 		SharedFuture(Future<T> &&x) : me(new folly::SharedPromise<T>())
 		{
-			auto ctx = this->me;
-			tryCompleteWith(*ctx, std::move(x._f), [ctx] () {});
+			struct SharedContext
+			{
+				SharedContext(SharedPtr ptr, Future<T> &&f) : ptr(ptr), f(std::move(f))
+				{}
+
+				SharedPtr ptr;
+				Future<T> f;
+			};
+
+
+			auto ctx = std::make_shared<SharedContext>(this->me, std::move(x));
+
+			ctx->f.onComplete([ctx] (Try<T> t)
+			{
+				try
+				{
+					ctx->ptr->setValue(t.get());
+				}
+				catch (...)
+				{
+					ctx->ptr->setException(folly::exception_wrapper(std::current_exception()));
+				}
+			});
 		}
 
 		SharedFuture(const SharedFuture<T> &other) : me(other.me)
@@ -54,18 +77,20 @@ class SharedFuture
 			return f.value();
 		}
 
+		// TODO implement then() which allows registering multiple callbacks by returning a new non-shared future every time:
+
 		SharedFuture<T> orElse(SharedFuture<T> other)
 		{
-			return SharedFuture<T>(Future<T>(this->me->getFuture()).orElse(Future<T>(other.me->getFuture()))._f);
+			return SharedFuture<T>(Future<T>(this->me->getFuture()).orElse(Future<T>(other.me->getFuture())));
 		}
 
 		SharedFuture<T> first(SharedFuture<T> other)
 		{
-			return SharedFuture<T>(Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture()))._f);
+			return SharedFuture<T>(Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture())));
 		}
 
 	private:
-		std::shared_ptr<folly::SharedPromise<T>> me;
+		SharedPtr me;
 
 		template<typename U>
 		friend SharedFuture<std::vector<std::pair<std::size_t, Try<U>>>> firstN(std::vector<SharedFuture<U>> &&c, std::size_t n);
@@ -101,24 +126,7 @@ SharedFuture<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Shar
 
 	using VectorType = std::vector<std::pair<std::size_t, T>>;
 
-	SharedFuture<VectorType> f(
-			firstNSucc(std::move(mapped), n)
-			.then([] (Try<std::vector<std::pair<std::size_t, T>>> t)
-			{
-				std::vector<std::pair<std::size_t, T>> vector = t.get(); // will rethrow the exception
-				VectorType mapped;
-
-				for (auto it = vector.begin(); it != vector.end(); ++it)
-				{
-					mapped.push_back(std::make_pair(it->first, std::move(it->second)));
-				}
-
-				return mapped;
-			}
-		)
-	);
-
-	return f;
+	return SharedFuture<VectorType>(firstNSucc(std::move(mapped), n));
 }
 
 }

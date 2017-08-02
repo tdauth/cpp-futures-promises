@@ -1,5 +1,5 @@
-#ifndef FUTUREFOLLY_H
-#define FUTUREFOLLY_H
+#ifndef ADV_FUTUREFOLLY_H
+#define ADV_FUTUREFOLLY_H
 
 #include <type_traits>
 
@@ -7,7 +7,7 @@
 
 #include "extensions.h"
 
-namespace xtn
+namespace adv
 {
 
 template<typename T>
@@ -76,17 +76,14 @@ class Executor
 		folly::Executor *_e;
 };
 
-/**
- * Match our defined extended future.
- * Only use custom extensions of Folly if really necessary!
- */
+class PredicateNotFulfilled : public std::exception
+{
+};
+
 template<typename T>
 class Future
 {
 	public:
-		typedef Future<T> self;
-		typedef Try<T> try_type;
-
 		T get()
 		{
 			return std::move(_f.get());
@@ -95,10 +92,11 @@ class Future
 		template<typename Func>
 		void onComplete(Func &&f)
 		{
-			_f.setCallback_([f = std::move(f)] (folly::Try<T> t) mutable
+			this->then([f = std::move(f)] (Try<T> t) mutable
 				{
-					try_type myTry(std::move(t));
-					f(std::move(myTry));
+					f(t);
+
+					return folly::unit; // workaround to not provide a future with void
 				}
 			);
 		}
@@ -111,13 +109,17 @@ class Future
 		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
-			folly::Future<T> r = _f.filter([f = std::move(f)] (T v)
-				{
-					return f(v);
-				}
-			);
+			return this->then([f = std::move(f)] (Try<T> t) mutable
+			{
+				auto x = t.get();
 
-			return self(std::move(r));
+				if (!f(x))
+				{
+					throw PredicateNotFulfilled();
+				}
+
+				return x;
+			});
 		}
 
 		template<typename Func>
@@ -127,7 +129,7 @@ class Future
 
 			folly::Future<S> r = _f.then([f = std::move(f)] (folly::Try<T> t) mutable
 				{
-					return S(f(try_type(std::move(t))));
+					return S(f(std::move(t)));
 				}
 			);
 
@@ -136,44 +138,29 @@ class Future
 
 		Future<T> orElse(Future<T> &&other)
 		{
-			return self(::orElse(std::move(this->_f), std::move(other._f)));
-		}
-
-		Future<T> first(Future<T> &&other)
-		{
-			std::vector<folly::Future<T>> futures;
-			futures.push_back(std::move(this->_f));
-			futures.push_back(std::move(other._f));
-
-			return self(folly::collectAny(futures.begin(), futures.end())
-				.then([] (std::pair<std::size_t, folly::Try<T>> t)
+			return this->then([other = std::move(other)] (Try<T> t) mutable
 				{
-					t.second.throwIfFailed();
+					if (t.hasException())
+					{
+						try
+						{
+							return other.get();
+						}
+						catch (...)
+						{
+						}
+					}
 
-					return t.second.value();
+					return t.get(); // will rethrow if failed
 				}
-			));
-
-			// This can also use our extension first()!
+			);
 		}
 
-		Future<T> firstSucc(Future<T> &&other)
-		{
-			std::vector<folly::Future<T>> futures;
-			futures.push_back(std::move(this->_f));
-			futures.push_back(std::move(other._f));
+		Future<T> first(Future<T> &&other);
 
-			return self(folly::collectAnyWithoutException(futures.begin(), futures.end())
-				.then([] (std::pair<std::size_t, T> t)
-				{
-					return t.second;
-				}
-			));
+		Future<T> firstSucc(Future<T> &&other);
 
-			// This can also use our extension firstSucc()!
-		}
-
-		Future()
+		Future() : _f(folly::Future<T>::makeEmpty())
 		{
 		}
 
@@ -187,19 +174,8 @@ class Future
 		Future(folly::Future<T> &&f) : _f(std::move(f))
 		{
 		}
+
 	private:
-		template<typename S>
-		friend Future<std::vector<std::pair<std::size_t, Try<S>>>> firstN(std::vector<Future<S>> &&c, std::size_t n);
-
-		template<typename S>
-		friend Future<std::vector<std::pair<std::size_t, S>>> firstNSucc(std::vector<Future<S>> &&c, std::size_t n);
-
-		template<typename S>
-		friend class Promise;
-
-		template<typename S>
-		friend class SharedFuture;
-
 		folly::Future<T> _f;
 };
 
@@ -212,69 +188,10 @@ Future<typename std::result_of<Func()>::type> async(Executor *ex, Func &&f)
 }
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n)
-{
-	std::vector<folly::Future<T>> futures;
-
-	for (auto it = c.begin(); it != c.end(); ++it)
-	{
-		futures.push_back(std::move(it->_f));
-	}
-
-	using VectorType = std::vector<std::pair<std::size_t, folly::Try<T>>>;
-
-	folly::Future<VectorType> results = folly::collectN(futures.begin(), futures.end(), n);
-
-	using ResultPairType = std::pair<std::size_t, Try<T>>;
-	using ResultVectorType = std::vector<ResultPairType>;
-
-	Future<ResultVectorType> r = results.then([] (VectorType v)
-		{
-			ResultVectorType r;
-
-			for (auto it = v.begin(); it != v.end(); ++it)
-			{
-				r.emplace_back(it->first, Try<T>(std::move(it->second)));
-			}
-
-			return r;
-		}
-	);
-
-	return r;
-}
+Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n);
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n)
-{
-	std::vector<folly::Future<T>> futures;
-
-	for (auto it = c.begin(); it != c.end(); ++it)
-	{
-		futures.push_back(std::move(it->_f));
-	}
-
-	using VectorType = std::vector<std::pair<std::size_t, T>>;
-
-	folly::Future<VectorType> results = collectNWithoutException(futures.begin(), futures.end(), n);
-
-	using PairType = std::pair<std::size_t, T>;
-
-	Future<std::vector<PairType>> r = results.then([] (VectorType v)
-		{
-			std::vector<PairType> r;
-
-			for (auto it = v.begin(); it != v.end(); ++it)
-			{
-				r.emplace_back(it->first, std::move(it->second));
-			}
-
-			return r;
-		}
-	);
-
-	return r;
-}
+Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n);
 
 }
 

@@ -4,26 +4,25 @@
 
 #include <wangle/concurrent/GlobalExecutor.h>
 
-#include "future_folly.h"
-#include "promise_folly.h"
+#include "advanced_futures_folly.h"
 
-void testOnComplete(xtn::Executor *ex)
+void testOnComplete(adv::Executor *ex)
 {
-	xtn::Future<int> f0 = xtn::async(ex, [] ()
+	adv::Future<int> f0 = adv::async(ex, [] ()
 		{
 			return 10;
 		}
 	);
-	f0.onComplete([] (xtn::Try<int> t)
+	f0.onComplete([] (adv::Try<int> t)
 		{
 			std::cout << "Result: " << t.get() << std::endl;
 		}
 	);
 }
 
-void testGetAndIsReady(xtn::Executor *ex)
+void testGetAndIsReady(adv::Executor *ex)
 {
-	xtn::Future<int> f1 = xtn::async(ex, [] ()
+	adv::Future<int> f1 = adv::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -32,9 +31,9 @@ void testGetAndIsReady(xtn::Executor *ex)
 	std::cout << f1.get() << std::endl;
 }
 
-void testGuard(xtn::Executor *ex)
+void testGuard(adv::Executor *ex)
 {
-	xtn::Future<int> f2 = xtn::async(ex, [] ()
+	adv::Future<int> f2 = adv::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -43,13 +42,13 @@ void testGuard(xtn::Executor *ex)
 	std::cout << "Result guard: " << f2.get() << std::endl;
 }
 
-void testThen(xtn::Executor *ex)
+void testThen(adv::Executor *ex)
 {
-	xtn::Future<std::string> f3 = xtn::async(ex, [] ()
+	adv::Future<std::string> f3 = adv::async(ex, [] ()
 		{
 			return 10;
 		}
-	).then([] (xtn::Try<int> t)
+	).then([] (adv::Try<int> t)
 		{
 			if (t.hasValue())
 			{
@@ -63,40 +62,40 @@ void testThen(xtn::Executor *ex)
 	std::cout << "Result then: " << f3.get() << std::endl;
 }
 
-void testOrElse(xtn::Executor *ex)
+void testOrElse(adv::Executor *ex)
 {
-	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
-	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
+	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
+	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.orElse(std::move(f1));
 	std::cout << "Result orElse: " << f2.get() << std::endl;
 }
 
-void testFirst(xtn::Executor *ex)
+void testFirst(adv::Executor *ex)
 {
-	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
-	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
+	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
+	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
 	std::cout << "Result first: " << f2.get() << std::endl;
 }
 
-void testFirstSucc(xtn::Executor *ex)
+void testFirstSucc(adv::Executor *ex)
 {
-	xtn::Future<int> f0 = xtn::async(ex, [] () { return 10; });
-	xtn::Future<int> f1 = xtn::async(ex, [] () { return 11; });
+	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
+	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
 	std::cout << "Result firstSucc: " << f2.get() << std::endl;
 }
 
-void testFirstN(xtn::Executor *ex)
+void testFirstN(adv::Executor *ex)
 {
-	std::vector<xtn::Future<int>> futures;
-	futures.push_back(xtn::async(ex, [] () { return 10; }));
-	futures.push_back(xtn::async(ex, [] () { return 11; }));
-	futures.push_back(xtn::async(ex, [] () { return 12; }));
-	futures.push_back(xtn::async(ex, [] () { return 13; }));
+	std::vector<adv::Future<int>> futures;
+	futures.push_back(adv::async(ex, [] () { return 10; }));
+	futures.push_back(adv::async(ex, [] () { return 11; }));
+	futures.push_back(adv::async(ex, [] () { return 12; }));
+	futures.push_back(adv::async(ex, [] () { return 13; }));
 
-	xtn::Future<std::vector<std::pair<std::size_t, xtn::Try<int>>>> f = xtn::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, xtn::Try<int>>> v = f.get();
+	adv::Future<std::vector<std::pair<std::size_t, adv::Try<int>>>> f = adv::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, adv::Try<int>>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
@@ -104,15 +103,15 @@ void testFirstN(xtn::Executor *ex)
 	}
 }
 
-void testFirstNSucc(xtn::Executor *ex)
+void testFirstNSucc(adv::Executor *ex)
 {
-	std::vector<xtn::Future<int>> futures;
-	futures.push_back(xtn::async(ex, [] () { return 10; }));
-	futures.push_back(xtn::async(ex, [] () { return 11; }));
-	futures.push_back(xtn::async(ex, [] () { return 12; }));
-	futures.push_back(xtn::async(ex, [] () { return 13; }));
+	std::vector<adv::Future<int>> futures;
+	futures.push_back(adv::async(ex, [] () { return 1; }));
+	futures.push_back(adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 2; }));
+	futures.push_back(adv::async(ex, [] () { return 3; }));
+	futures.push_back(adv::async(ex, [] () { return 4; }));
 
-	xtn::Future<std::vector<std::pair<std::size_t, int>>> f = xtn::firstNSucc(std::move(futures), 3);
+	adv::Future<std::vector<std::pair<std::size_t, int>>> f = adv::firstNSucc(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, int>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
@@ -121,21 +120,21 @@ void testFirstNSucc(xtn::Executor *ex)
 	}
 }
 
-void testTryComplete(xtn::Executor *ex)
+void testTryComplete(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
 
-	bool result = p.tryComplete(xtn::Try<int>(10));
+	bool result = p.tryComplete(adv::Try<int>(10));
 
 	std::cout << "Result tryComplete: " << result << std::endl;
 	std::cout << "Future result tryComplete: " << f.get() << std::endl;
 }
 
-void testTrySuccess(xtn::Executor *ex)
+void testTrySuccess(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
 
 	bool result = p.trySuccess(10);
 
@@ -143,10 +142,10 @@ void testTrySuccess(xtn::Executor *ex)
 	std::cout << "Future result trySuccess: " << f.get() << std::endl;
 }
 
-void testTryFailure(xtn::Executor *ex)
+void testTryFailure(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
 
 	bool result = p.tryFailure(std::runtime_error("Failure!"));
 
@@ -162,33 +161,33 @@ void testTryFailure(xtn::Executor *ex)
 	}
 }
 
-void testTryCompleteWith(xtn::Executor *ex)
+void testTryCompleteWith(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
-	xtn::Future<int> completingFuture = xtn::async(ex, [] () { return 10; });
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
+	adv::Future<int> completingFuture = adv::async(ex, [] () { return 10; });
 
 	p.tryCompleteWith(std::move(completingFuture));
 
 	std::cout << "Future result tryCompleteWith: " << f.get() << std::endl;
 }
 
-void testTrySuccessWith(xtn::Executor *ex)
+void testTrySuccessWith(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
-	xtn::Future<int> completingFuture = xtn::async(ex, [] () { return 10; });
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
+	adv::Future<int> completingFuture = adv::async(ex, [] () { return 10; });
 
 	p.trySuccessWith(std::move(completingFuture));
 
 	std::cout << "Future result trySuccessWith: " << f.get() << std::endl;
 }
 
-void testTryFailureWith(xtn::Executor *ex)
+void testTryFailureWith(adv::Executor *ex)
 {
-	xtn::Promise<int> p;
-	xtn::Future<int> f = p.future();
-	xtn::Future<int> completingFuture = xtn::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	adv::Promise<int> p;
+	adv::Future<int> f = p.future();
+	adv::Future<int> completingFuture = adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
 
 	p.tryFailureWith(std::move(completingFuture));
 
@@ -202,11 +201,40 @@ void testTryFailureWith(xtn::Executor *ex)
 	}
 }
 
+/*
+ * Idea since the collection is moved into collectAll but never stored, it should fail when we use delays!
+ */
+void testMoveCollectAll(folly::Executor *ex)
+{
+	std::vector<folly::Future<int>> futures;
+
+	for (int i = 0; i < 10; ++i)
+	{
+		futures.push_back(folly::makeFuture().delayed(std::chrono::seconds(2)).then([] {
+			return 10;
+		}));
+	}
+
+	auto all = folly::collect(std::move(futures)); // this moves the ownership of the futures into the function but they are not stored so they should be deleted inside of it which frees their shared state.
+
+	//std::cout << "Get " << futures[0].get() << std::endl; // set callback twice, apparently they are not moved in! Then std::vector's move constructo has no deep moving? Documentation states something different?
+
+	all.wait();
+
+	std::vector<int> v = all.get();
+	std::cout << "Results: " << std::endl;
+
+	for (int i = 0; i < v.size(); ++i)
+	{
+		std::cout << "Value: " << v[i] << std::endl;
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	xtn::Executor ex(wangle::getCPUExecutor().get());
+	adv::Executor ex(wangle::getCPUExecutor().get());
 
 	testOnComplete(&ex);
 
@@ -230,13 +258,18 @@ int main(int argc, char *argv[])
 
 	testTrySuccess(&ex);
 
+	// TODO fix constructor in folly Performance error: Please construct exception_wrapper with a reference to the std::exception along with the std::exception_ptr.
+
 	testTryFailure(&ex);
 
 	testTryCompleteWith(&ex);
 
 	testTrySuccessWith(&ex);
 
+	// TODO fix constructor in folly
 	testTryFailureWith(&ex);
+
+	testMoveCollectAll(wangle::getCPUExecutor().get());
 
 	return 0;
 }
