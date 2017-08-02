@@ -77,16 +77,25 @@ class SharedFuture
 			return f.value();
 		}
 
-		// TODO implement then() which allows registering multiple callbacks by returning a new non-shared future every time:
+		template<typename Func>
+		SharedFuture<typename std::result_of<Func(Try<T>)>::type> then(Func &&f)
+		{
+			return Future<T>(this->me->getFuture()).then(std::move(f));
+		}
 
 		SharedFuture<T> orElse(SharedFuture<T> other)
 		{
-			return SharedFuture<T>(Future<T>(this->me->getFuture()).orElse(Future<T>(other.me->getFuture())));
+			return Future<T>(this->me->getFuture()).orElse(Future<T>(other.me->getFuture()));
 		}
 
 		SharedFuture<T> first(SharedFuture<T> other)
 		{
-			return SharedFuture<T>(Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture())));
+			return Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture()));
+		}
+
+		SharedFuture() = delete;
+		SharedFuture(SharedFuture<T> &&other) : me(std::move(other.me))
+		{
 		}
 
 	private:

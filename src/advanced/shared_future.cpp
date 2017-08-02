@@ -6,6 +6,41 @@
 
 #include "advanced_futures_folly.h"
 
+void testThen(adv::Executor *ex)
+{
+	adv::SharedFuture<int> f = adv::SharedFuture<int>(adv::async(ex, [] ()
+		{
+			return 10;
+		}
+	));
+
+	/*
+	 * A share future allows multiple registrations of callbacks.
+	 */
+	std::vector<adv::SharedFuture<std::string>> futures;
+
+	for (int i = 0; i < 10; ++i)
+	{
+		futures.push_back(
+			f.then([] (adv::Try<int> t)
+				{
+					if (t.hasValue())
+					{
+						return std::to_string(t.get());
+					}
+
+					return std::string("Failure!");
+				}
+			)
+		);
+	}
+
+	for (int i = 0; i < futures.size(); ++i)
+	{
+		std::cout << "Result then " << i << ": " << futures[i].get() << std::endl;
+	}
+}
+
 void testOrElse(adv::Executor *ex)
 {
 	adv::SharedFuture<int> f0(folly::makeFuture(10));
@@ -63,8 +98,14 @@ int main(int argc, char *argv[])
 	folly::init(&argc, &argv);
 
 	adv::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
+	/*
+	 * A shared future can be created from a non-shared future.
+	 */
 	adv::SharedFuture<std::string> f(std::move(uniqueF));
 
+	/*
+	 * It can be copied around, for example to multiple threads.
+	 */
 	std::thread t0([f] () mutable {
 		std::cerr << "Result 0: " << f.get() << std::endl;
 	});
@@ -86,12 +127,16 @@ int main(int argc, char *argv[])
 	t2.join();
 	t3.join();
 
+	/*
+	 * It allows reading its value multiple times.
+	 */
 	std::cerr << "Multiple read semantics: " << std::endl;
 	std::cerr << "Result 0: " << f.get() << std::endl;
 	std::cerr << "Result 1: " << f.get() << std::endl;
 
 	adv::Executor ex(wangle::getCPUExecutor().get());
 
+	testThen(&ex);
 	testOrElse(&ex);
 	testFirst(&ex);
 	testFirstN(&ex);
