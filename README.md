@@ -25,6 +25,13 @@ The project requires the following libraries:
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the CMakeLists.txt file in the top level directory of the project.
 
+Furthermore, it requires the following packages on Fedora:
+* cmake
+* clang
+* glog-devel
+* gflags-devel
+* valgrind
+
 ## Extensions
 The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
 * orElse for Folly and Boost.Thread which is like fallbackTo in Scala.
