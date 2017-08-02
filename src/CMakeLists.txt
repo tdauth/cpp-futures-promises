@@ -78,6 +78,11 @@ add_dependencies(callback_folly folly)
 target_link_libraries(callback_folly ${folly_LIBRARIES})
 add_test(CallbackFolly callback_folly)
 
+add_executable(test_multiple_callbacks test_multiple_callbacks.cpp)
+add_dependencies(test_multiple_callbacks folly boost)
+target_link_libraries(test_multiple_callbacks ${folly_LIBRARIES} ${Boost_LIBRARIES})
+add_test(TestMultipleCallbacks test_multiple_callbacks)
+
 add_executable(combinators_boost combinators_boost.cpp)
 add_dependencies(combinators_boost boost)
 target_link_libraries(combinators_boost ${Boost_LIBRARIES} pthread)
