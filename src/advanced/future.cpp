@@ -237,38 +237,22 @@ int main(int argc, char *argv[])
 	adv::Executor ex(wangle::getCPUExecutor().get());
 
 	testOnComplete(&ex);
-
 	testGetAndIsReady(&ex);
-
 	testGuard(&ex);
-
 	testThen(&ex);
-
 	testOrElse(&ex);
-
 	testFirst(&ex);
-
 	testFirstSucc(&ex);
-
 	testFirstN(&ex);
-
 	testFirstNSucc(&ex);
-
 	testTryComplete(&ex);
-
 	testTrySuccess(&ex);
-
 	// TODO fix constructor in folly Performance error: Please construct exception_wrapper with a reference to the std::exception along with the std::exception_ptr.
-
 	testTryFailure(&ex);
-
 	testTryCompleteWith(&ex);
-
 	testTrySuccessWith(&ex);
-
 	// TODO fix constructor in folly
 	testTryFailureWith(&ex);
-
 	testMoveCollectAll(wangle::getCPUExecutor().get());
 
 	return 0;

@@ -6,6 +6,50 @@
 
 #include "advanced_futures_folly.h"
 
+void testOnComplete(adv::Executor *ex)
+{
+	adv::SharedFuture<int> f0 = adv::async(ex, [] ()
+		{
+			return 10;
+		}
+	).share();
+
+	/*
+	 * Shared futures allow multiple calls:
+	 */
+	for (int i = 0; i < 10; ++i)
+	{
+		f0.onComplete([] (adv::Try<int> t)
+			{
+				std::cout << "Result onComplete: " << t.get() << std::endl;
+			}
+		);
+	}
+}
+
+void testGetAndIsReady(adv::Executor *ex)
+{
+	adv::SharedFuture<int> f1 = adv::async(ex, [] ()
+		{
+			return 10;
+		}
+	).share();
+	std::cout << "is ready: " << f1.isReady() << std::endl;
+	std::cout << f1.get() << std::endl;
+	std::cout << f1.get() << std::endl;
+}
+
+void testGuard(adv::Executor *ex)
+{
+	adv::SharedFuture<int> f2 = adv::async(ex, [] ()
+		{
+			return 10;
+		}
+	).share().guard([] (const int &v) { return v == 10; });
+
+	std::cout << "Result guard: " << f2.get() << std::endl;
+}
+
 void testThen(adv::Executor *ex)
 {
 	adv::SharedFuture<int> f = adv::SharedFuture<int>(adv::async(ex, [] ()
@@ -136,6 +180,9 @@ int main(int argc, char *argv[])
 
 	adv::Executor ex(wangle::getCPUExecutor().get());
 
+	testOnComplete(&ex);
+	testGetAndIsReady(&ex);
+	testGuard(&ex);
 	testThen(&ex);
 	testOrElse(&ex);
 	testFirst(&ex);

@@ -57,6 +57,8 @@ class Future
 		Future(Future<T> &&other);
 		Future(const Future<T> &other) = delete;
 		Future<T>& operator=(const Future<T> &other) = delete;
+
+		SharedFuture<T> share();
 };
 
 template<typename Func, typename T>

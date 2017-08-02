@@ -59,6 +59,13 @@ Future<T> Future<T>::firstSucc(Future<T> &&other)
 }
 
 template<typename T>
+SharedFuture<T> Future<T>::share()
+{
+	return SharedFuture<T>(std::move(*this));
+}
+
+
+template<typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n)
 {
 	typedef std::vector<std::pair<size_t, Try<T>>> V;

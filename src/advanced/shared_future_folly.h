@@ -78,6 +78,27 @@ class SharedFuture
 		}
 
 		template<typename Func>
+		void onComplete(Func &&f)
+		{
+			auto ctx = std::make_shared<Future<T>>(Future<T>(this->me->getFuture()));
+			/*
+			 * The future deletes itself when it is completed.
+			 */
+			ctx->onComplete([f = std::move(f), ctx] (Try<T> t) { f(std::move(t)); });
+		}
+
+		bool isReady()
+		{
+			return Future<T>(this->me->getFuture()).isReady();
+		}
+
+		template<typename Func>
+		SharedFuture<T> guard(Func &&f)
+		{
+			return Future<T>(this->me->getFuture()).guard(std::move(f));
+		}
+
+		template<typename Func>
 		SharedFuture<typename std::result_of<Func(Try<T>)>::type> then(Func &&f)
 		{
 			return Future<T>(this->me->getFuture()).then(std::move(f));

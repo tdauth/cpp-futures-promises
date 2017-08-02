@@ -81,6 +81,9 @@ class PredicateNotFulfilled : public std::exception
 };
 
 template<typename T>
+class SharedFuture;
+
+template<typename T>
 class Future
 {
 	public:
@@ -174,6 +177,8 @@ class Future
 		Future(folly::Future<T> &&f) : _f(std::move(f))
 		{
 		}
+
+		SharedFuture<T> share();
 
 	private:
 		folly::Future<T> _f;

@@ -6,7 +6,7 @@
 
 #include "future_folly.h"
 #include "promise_folly.h"
-#include "future_folly_impl.h"
 #include "shared_future_folly.h"
+#include "future_folly_impl.h"
 
 #endif
