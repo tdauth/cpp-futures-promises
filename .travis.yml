@@ -8,7 +8,7 @@ services:
 before_install:
   - docker pull fedora:latest
   - docker ps -a
-  - docker run fedora:latest /bin/sh -c "cd /root; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; mdkdir ./build; cd ./build; cmake ../; make"
+  - docker run fedora:latest /bin/sh -c "cd /root; dnf install git cmake clang; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; mdkdir ./build; cd ./build; cmake ../; make"
 
 #script:
 #  - bash ./build.sh
