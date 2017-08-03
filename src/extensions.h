@@ -375,13 +375,14 @@ template<typename T, typename Func>
 folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
 
-	auto ctx = std::make_shared<folly::Future<folly::Unit>>();
+	auto ctx = std::make_shared<folly::Future<T>>(std::move(f));
 
-	ctx->setCallback_([&p, ctx] (folly::Try<T> t)
+	ctx->setCallback_([&p, ctx, ensureFunc = std::move(ensureFunc)] (folly::Try<T> t)
 		{
 			tryComplete(p, std::move(t));
-		}
-	).ensure([ensureFunc, ctx] () { ensureFunc(); });
+
+			ensureFunc();
+		});
 
 	return p;
 }
@@ -446,21 +447,17 @@ bool tryCompleteSuccess(boost::promise<T> &p, T &&v)
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	struct TryCompleteSuccessWithContext
-	{
-		folly::Future<folly::Unit> f;
-	};
+	auto ctx = std::make_shared<folly::Future<T>>(std::move(f));
 
-	auto ctx = std::make_shared<TryCompleteSuccessWithContext>();
-
-	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
+	ctx->setCallback_([&p, ctx, ensureFunc = std::move(ensureFunc)] (folly::Try<T> t)
 		{
 			if (t.hasValue())
 			{
 				tryCompleteSuccess(p, std::move(t.value()));
 			}
-		}
-	).ensure([ctx, ensureFunc] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
+
+			ensureFunc();
+		});
 
 	return p;
 }
@@ -489,17 +486,13 @@ bool tryCompleteFailure(folly::Promise<T> &p, Exception &&e)
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	struct TryCompleteFailureWithContext
-	{
-		folly::Future<folly::Unit> f;
-	};
+	auto ctx = std::make_shared<folly::Future<T>>(std::move(f));
 
-	auto ctx = std::make_shared<TryCompleteFailureWithContext>();
-
-	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
+	ctx->setCallback_([&p, ctx, ensureFunc = std::move(ensureFunc)] (folly::Try<T> t)
 		{
 			if (t.hasException())
 			{
+				// Don't use tryCompleteFailure since we cannot pass Folly's exception wrapper directly.
 				try
 				{
 					p.setException(t.exception());
@@ -508,8 +501,9 @@ folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T>
 				{
 				}
 			}
-		}
-	).ensure([ctx, ensureFunc] () { ensureFunc(); }); // TODO don't delete ctx before moving it there!
+
+			ensureFunc();
+		});
 
 	return p;
 }
