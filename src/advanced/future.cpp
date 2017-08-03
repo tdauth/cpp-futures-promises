@@ -201,35 +201,6 @@ void testTryFailureWith(adv::Executor *ex)
 	}
 }
 
-/*
- * Idea since the collection is moved into collectAll but never stored, it should fail when we use delays!
- */
-void testMoveCollectAll(folly::Executor *ex)
-{
-	std::vector<folly::Future<int>> futures;
-
-	for (int i = 0; i < 10; ++i)
-	{
-		futures.push_back(folly::makeFuture().delayed(std::chrono::seconds(2)).then([] {
-			return 10;
-		}));
-	}
-
-	auto all = folly::collect(std::move(futures)); // this moves the ownership of the futures into the function but they are not stored so they should be deleted inside of it which frees their shared state.
-
-	//std::cout << "Get " << futures[0].get() << std::endl; // set callback twice, apparently they are not moved in! Then std::vector's move constructo has no deep moving? Documentation states something different?
-
-	all.wait();
-
-	std::vector<int> v = all.get();
-	std::cout << "Results: " << std::endl;
-
-	for (int i = 0; i < v.size(); ++i)
-	{
-		std::cout << "Value: " << v[i] << std::endl;
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
@@ -247,13 +218,10 @@ int main(int argc, char *argv[])
 	testFirstNSucc(&ex);
 	testTryComplete(&ex);
 	testTrySuccess(&ex);
-	// TODO fix constructor in folly Performance error: Please construct exception_wrapper with a reference to the std::exception along with the std::exception_ptr.
 	testTryFailure(&ex);
 	testTryCompleteWith(&ex);
 	testTrySuccessWith(&ex);
-	// TODO fix constructor in folly
 	testTryFailureWith(&ex);
-	testMoveCollectAll(wangle::getCPUExecutor().get());
 
 	return 0;
 }
