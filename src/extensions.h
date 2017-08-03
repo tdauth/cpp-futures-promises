@@ -9,10 +9,6 @@
 #include <folly/futures/Future.h>
 #include <folly/futures/SharedPromise.h>
 
-#include <glog/logging.h>
-
-#include <execinfo.h>
-
 #include "random.h"
 
 /**
@@ -150,73 +146,6 @@ boost::future<T> orElse(boost::future<T> &&first, boost::future<T> &&second)
 			return f.get();
 		}
 	);
-}
-
-namespace
-{
-
-/**
- * Prints the current backtrace to the error output.
- * TODO When Boost 1.65.0 can be used use this: https://github.com/boostorg/stacktrace
- */
-void logBacktrace()
-{
-	const int maxSize = 50;
-	// http://man7.org/linux/man-pages/man3/backtrace.3.html
-	void *buffer[maxSize];
-	const int size = backtrace(buffer, maxSize);
-	char **text = backtrace_symbols(buffer, size);
-
-	if (text != NULL)
-	{
-		for (int i = 0; i < size; ++i)
-		{
-			LOG(ERROR) << text[i];
-		}
-
-		free(text);
-	}
-	else
-	{
-		LOG(ERROR) << "backtrace does not work!";
-	}
-}
-
-}
-
-/**
- * Registers a callback to the future \p f and returns the same future.
- * The callback should not return anything, it is simply called when the future has been completed.
- * This combinator can be used to order calls after the future's completion.
- * Similar to Folly's ensure but does the error reporting.
- * \param f A future for which the callback is registered.
- * \p func The callback which gets folly::Try as parameter.
- * \return Returns the a new future with the same result as the passed future.
- */
-template<typename T, typename Func>
-folly::Future<T> andThen(folly::Future<T> &&f, Func &&func)
-{
-	return f.then([func = std::move(func)] (folly::Try<T> t)
-	{
-		try
-		{
-			func(t);
-		}
-		catch (const std::exception &e)
-		{
-			LOG(ERROR) << "Exception: " << e.what();
-
-			logBacktrace();
-		}
-		catch (...)
-		{
-			LOG(ERROR) << "Unknown exception.";
-
-			logBacktrace();
-		}
-
-		return folly::Future<T>(t);
-	});
 }
 
 /**
@@ -445,14 +374,10 @@ bool tryComplete(folly::SharedPromise<T> &p, folly::Try<T> &&t)
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-	struct TryCompleteWithContext
-	{
-		folly::Future<folly::Unit> f;
-	};
 
-	auto ctx = std::make_shared<TryCompleteWithContext>();
+	auto ctx = std::make_shared<folly::Future<folly::Unit>>();
 
-	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
+	ctx->setCallback_([&p, ctx] (folly::Try<T> t)
 		{
 			tryComplete(p, std::move(t));
 		}
@@ -461,6 +386,7 @@ folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, F
 	return p;
 }
 
+/*
 template<typename T, typename Func>
 folly::SharedPromise<T>& tryCompleteWith(folly::SharedPromise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
@@ -479,6 +405,7 @@ folly::SharedPromise<T>& tryCompleteWith(folly::SharedPromise<T> &p, folly::Futu
 
 	return p;
 }
+*/
 
 template<typename T>
 folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f)

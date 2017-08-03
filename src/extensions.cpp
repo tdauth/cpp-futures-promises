@@ -58,16 +58,6 @@ BOOST_AUTO_TEST_CASE(OrElseBoostBothFailed)
 	BOOST_REQUIRE_THROW(f.get(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(AndThen)
-{
-	int v = 0;
-	folly::Future<int> f0 = folly::makeFuture(10);
-	folly::Future<int> f1 = andThen(std::move(f0), [&v] (folly::Try<int> t) { v = t.value(); });
-
-	BOOST_REQUIRE_EQUAL(10, f1.get());
-	BOOST_REQUIRE_EQUAL(10, v);
-}
-
 BOOST_AUTO_TEST_CASE(WhenN)
 {
 	std::vector<boost::future<int>> futures;
