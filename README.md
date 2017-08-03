@@ -26,6 +26,7 @@ The versions of the libraries are specified in the CMakeLists.txt file in the to
 Furthermore, it requires the following packages on Fedora 25:
 * cmake
 * gcc-c++
+* libatomic
 * bash
 * which
 
