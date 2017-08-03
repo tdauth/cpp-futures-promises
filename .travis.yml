@@ -8,7 +8,7 @@ services:
 before_install:
   - docker pull fedora:25
   - docker ps -a
-  - docker run fedora:25 /bin/sh -c "cd /root; dnf -y install git cmake clang which bash gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./build.sh"
+  - docker run fedora:25 /bin/sh -c "cd /root; dnf -y install git cmake gcc which bash gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./build.sh"
 
 #script:
 #  - bash ./build.sh

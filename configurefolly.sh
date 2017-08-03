@@ -11,6 +11,9 @@ if [ ! -d "$4" ]; then
 	exit 1
 fi
 
+CC="/usr/bin/gcc"
+CXX="/usr/bin/g++"
+
 cd "$1"
 export LDFLAGS="-L\"$4/lib/\" -Wl,-rpath=\"$4/lib/\" -Wl,-rpath-link=\"$4/lib/\""
 echo "LDFLAGS: $LDFLAGS"

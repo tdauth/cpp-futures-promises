@@ -6,5 +6,8 @@ if [ -e "$3" ] ; then
 	exit 0
 fi
 
+CC="/usr/bin/gcc"
+CXX="/usr/bin/g++"
+
 cd "$1"
 make -j4 prefix="$2" install
