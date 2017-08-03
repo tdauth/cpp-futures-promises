@@ -23,13 +23,13 @@ The project requires the following libraries:
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the CMakeLists.txt file in the top level directory of the project.
 
-Furthermore, it requires the following packages on Fedora:
+Furthermore, it requires the following packages on Fedora 25:
 * cmake
-* gcc
+* gcc-c++
 * bash
 * which
 
-Folly dependencies on Fedora:
+Folly dependencies on Fedora 25:
 * glog-devel
 * gflags-devel
 * valgrind
