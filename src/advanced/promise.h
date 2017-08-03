@@ -10,6 +10,9 @@ class Future;
 template<typename T>
 class Try;
 
+/**
+ * \brief A non-shared promise with write once semantics. It allows to get one corresponding non-shared future.
+ */
 template<typename T>
 class Promise
 {

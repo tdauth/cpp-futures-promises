@@ -28,7 +28,7 @@ class Executor
 };
 
 /**
- * \brief Provides a unique future which can only be moved around and has read once semantics.
+ * \brief A non-shared future which can only be moved around and has read once semantics. It can only get one callback.
  */
 template<typename T>
 class Future
