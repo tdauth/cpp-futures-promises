@@ -101,6 +101,14 @@ void testFirst(adv::Executor *ex)
 	std::cout << "Result first: " << f2.get() << std::endl;
 }
 
+void testFirstSucc(adv::Executor *ex)
+{
+	adv::SharedFuture<int> f0(folly::makeFuture(10));
+	adv::SharedFuture<int> f1(folly::makeFuture(10));
+	auto f2 = f0.firstSucc(std::move(f1));
+	std::cout << "Result firstSucc: " << f2.get() << std::endl;
+}
+
 void testFirstN(adv::Executor *ex)
 {
 	std::vector<adv::SharedFuture<int>> futures;
@@ -186,6 +194,7 @@ int main(int argc, char *argv[])
 	testThen(&ex);
 	testOrElse(&ex);
 	testFirst(&ex);
+	testFirstSucc(&ex);
 	testFirstN(&ex);
 	testFirstNSucc(&ex);
 

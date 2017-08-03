@@ -114,6 +114,11 @@ class SharedFuture
 			return Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture()));
 		}
 
+		SharedFuture<T> firstSucc(SharedFuture<T> other)
+		{
+			return Future<T>(this->me->getFuture()).firstSucc(Future<T>(other.me->getFuture()));
+		}
+
 		SharedFuture() = delete;
 		SharedFuture(SharedFuture<T> &&other) : me(std::move(other.me))
 		{
