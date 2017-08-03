@@ -387,27 +387,6 @@ folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, F
 	return p;
 }
 
-/*
-template<typename T, typename Func>
-folly::SharedPromise<T>& tryCompleteWith(folly::SharedPromise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
-{
-	struct TryCompleteWithContext
-	{
-		folly::Future<folly::Unit> f;
-	};
-
-	auto ctx = std::make_shared<TryCompleteWithContext>();
-
-	ctx->f = f.then([&p, ctx] (folly::Try<T> t)
-		{
-			tryComplete(p, std::move(t));
-		}
-	).ensure([ensureFunc, ctx] () { ensureFunc(); });
-
-	return p;
-}
-*/
-
 template<typename T>
 folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f)
 {
@@ -512,20 +491,6 @@ template<typename T>
 folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &&f)
 {
 	return tryCompleteFailureWith(p, std::move(f), [] () {});
-}
-
-template<typename T, typename Func>
-folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
-{
-	tryCompleteWith(p, std::move(f), std::move(ensureFunc));
-
-	return p;
-}
-
-template<typename T>
-folly::Promise<T>& completeWith(folly::Promise<T> &p, folly::Future<T> &&f)
-{
-	return completeWith(p, std::move(f), [] () {});
 }
 
 template<typename T>

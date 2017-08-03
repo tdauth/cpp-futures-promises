@@ -79,7 +79,7 @@ void testThen(adv::Executor *ex)
 		);
 	}
 
-	for (int i = 0; i < futures.size(); ++i)
+	for (std::size_t i = 0; i < futures.size(); ++i)
 	{
 		std::cout << "Result then " << i << ": " << futures[i].get() << std::endl;
 	}

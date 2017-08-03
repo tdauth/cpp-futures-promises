@@ -289,17 +289,6 @@ BOOST_AUTO_TEST_CASE(TryCompleteFailureWith)
 	BOOST_CHECK_THROW(f.get(), std::runtime_error);
 }
 
-BOOST_AUTO_TEST_CASE(CompleteWith)
-{
-	folly::Future<int> future = folly::makeFuture(10);
-	folly::Promise<int> p;
-	folly::Future<int> f = p.getFuture();
-
-	completeWith(p, std::move(future));
-
-	BOOST_CHECK_EQUAL(10, f.get());
-}
-
 BOOST_AUTO_TEST_CASE(FromTry)
 {
 	folly::Promise<int> p = fromTry(folly::Try<int>(10));

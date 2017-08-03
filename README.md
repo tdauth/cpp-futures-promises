@@ -47,30 +47,49 @@ Folly dependencies on Fedora:
 * openssl-devel
 * libevent-devel
 
-## Extensions
-The project provides a number of non-blocking combinators which are missing from Folly (for two futures only):
-* orElse for Folly and Boost.Thread which is like fallbackTo in Scala.
-* first
-* firstOnlySucc
-* firstSucc
-* firstSucc2
-* collectNWithoutException for Folly.
-* whenN for Boost.Thread which is like folly::collectN.
-* whenNSucc for Boost.Thread which is like collectNWithoutException.
-* whenAny for Boost Thread which returns a pair of the completed future and its index.
+## Motivation
+There is several C++ libraries for futures and promises: The C++17 thread support library (standard library), Boost.Thread and Folly.
+Qt provides futures support as well but no promises.
+All of these libraries are missing functions especially compared to Scala's futures and promises library.
+Folly seems to be the most advanced library by far but is also missing functions.
+Therefore, we need to provide a C++ library with all the missing combinators which calrifies the semantics of the different combinators
+and shared and non-shared futures and promises.
 
-### Promise extensions
-Besides, extensions for promises are provided which do exist in Scala:
-* tryComplete
-* tryCompleteWith
-* tryCompleteSuccess
-* tryCompleteSuccessWith
-* tryCompleteFailure
-* tryCompleteFailureWith
-* completeWith
-* fromTry
-* failed
-* successful
+## Extensions
+The project provides extensions for the libraries Folly and Boost.Thread.
+The use them include the header `extensions.h`.
+
+### Future extensions for Folly
+The project provides a number of non-blocking combinators which are missing from the existing C++ libraries:
+* orElse - The same as fallbackTo in Scala.
+* first - Returns the first completed future from two.
+* firstRandom - The same but with shuffling.
+* firstOnlySucc - Returns the first successfully completed future from two. If both fail, the program will starve.
+* firstOnlySuccRandom - The same but with shuffling.
+* firstSucc- Returns the first succesfully completed future from two. If both fail, the returned future will also fail. Implemented with the help of two orElse calls.
+* firstSuccRandom - The same but with shuffling.
+* firstSucc2 - The same semantics but implemented differently with orElse and onError.
+* firstSuccRandom - The same but with shuffling.
+* collectNWithoutException - Like folly::collectN but collects n futures which have been completed successfully. It ignores failed futures. The returned future fails if the collection is two small or too many futures failed.
+
+### Promise extensions for Folly
+The project provides extensions for promises which do exist in Scala but are missing from Folly:
+* tryComplete - Tries to complete a promise with a folly::Try object. Returns if the completion was successful.
+* tryCompleteWith - Tries to complete a promise with a folly::Future object in a non-blocking way. Returns the promise.
+* tryCompleteSuccess - Tries to complete a promise with a value. Returns if the completion was successful.
+* tryCompleteSuccessWith - Tries to complete a promise with a folly::Future object's successful result value in a non-blocking way. Returns the promise. If the future fails, the promise is not completed by it.
+* tryCompleteFailure - Tries to complete a promise with an exception. Returns if the completion was successful.
+* tryCompleteFailureWith - Tries to complete a promise with a folly::Future object's exception in a non-blocking way. Returns the promise. If the future succeeds, the promise is not completed by it.
+* fromTry - Creates a completed promise from a folly::Try object.
+* failed - Creates a failed promise from an exception.
+* successful - Creates a successful promise from a value.
+
+### Future extensions for Boost.Thread
+The project provides some of the extensions also for Boost.Thread:
+* orElse - The same as fallbackTo in Scala.
+* whenN - The same as folly::collectN but with boost::future instances in the resulting vector.
+* whenNSucc - The same as collectNWithoutException.
+* whenAny - Returns a future containing a pair of the completed future and its index similar to folly::collectAny. Boost.Thread's boost::when_any() returns a future with the whole collection of futures instead.
 
 ## Advanced Futures and Promises
 The project provides advanced futures and promises which are implemented for Folly only at the moment.

@@ -39,8 +39,23 @@ class Try
 		{
 		}
 
-		Try(std::exception_ptr &&e) : _t(std::move(e))
+		Try(std::exception_ptr &&e)
 		{
+			/*
+			 * Do this manually to avoid the deprecated warning.
+			 */
+			try
+			{
+				std::rethrow_exception(e);
+			}
+			catch (std::exception& e)
+			{
+				_t = folly::Try<T>(folly::exception_wrapper(std::current_exception(), e));
+			}
+			catch (...)
+			{
+				_t = folly::Try<T>(folly::exception_wrapper(std::current_exception()));
+			}
 		}
 
 		Try(folly::Try<T> &&other) : _t(std::move(other))

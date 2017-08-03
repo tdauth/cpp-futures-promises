@@ -1,0 +1,36 @@
+add_executable(currency_cpp17_sequential currency_cpp17_sequential.cpp)
+target_link_libraries(currency_cpp17_sequential pthread)
+add_test(CurrencyCpp17Sequential currency_cpp17_sequential)
+
+add_executable(currency_cpp17 currency_cpp17.cpp)
+target_link_libraries(currency_cpp17 pthread)
+add_test(CurrencyCpp17 currency_cpp17)
+
+add_executable(currency_boost currency_boost.cpp)
+add_dependencies(currency_boost boost)
+target_link_libraries(currency_boost ${Boost_LIBRARIES})
+add_test(CurrencyBoost currency_boost)
+
+add_executable(currency_folly currency_folly.cpp)
+add_dependencies(currency_folly folly wangle)
+target_link_libraries(currency_folly ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_test(CurrencyFolly currency_folly)
+
+add_executable(currency_guard_cpp17 currency_guard_cpp17.cpp)
+target_link_libraries(currency_guard_cpp17 pthread)
+add_test(CurrencyGuardCpp17 currency_guard_cpp17)
+
+add_executable(currency_guard_boost currency_guard_boost.cpp)
+add_dependencies(currency_guard_boost boost)
+target_link_libraries(currency_guard_boost ${Boost_LIBRARIES})
+add_test(CurrencyGuardBoost currency_guard_boost)
+
+add_executable(currency_guard_folly currency_guard_folly.cpp)
+add_dependencies(currency_guard_folly folly wangle)
+target_link_libraries(currency_guard_folly ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_test(CurrencyGuardFolly currency_guard_folly)
+
+add_executable(currency_guard_choice_folly currency_guard_choice_folly.cpp)
+add_dependencies(currency_guard_choice_folly folly wangle)
+target_link_libraries(currency_guard_choice_folly ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_test(CurrencyGuardChoiceFolly currency_guard_choice_folly)
