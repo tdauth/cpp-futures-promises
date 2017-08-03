@@ -1,4 +1,3 @@
-# The style of the code of the thesis.
 # https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 IndentWidth: 1
 ColumnLimit: 0
