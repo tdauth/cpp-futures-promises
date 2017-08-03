@@ -29,7 +29,7 @@ Furthermore, it requires the following packages on Fedora:
 * cmake
 * clang
 
-Folly dependencies:
+Folly dependencies on Fedora:
 * glog-devel
 * gflags-devel
 * valgrind
