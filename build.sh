@@ -4,6 +4,9 @@ if [ ! -d "./build" ] ; then
 	mkdir ./build
 fi
 
+CC="/usr/bin/clang"
+CXX="/usr/bin/clang++"
+
 echo "CC is set to $CC"
 echo "CXX is set to $CXX"
 echo "clang is at $(which clang)"
