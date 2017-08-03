@@ -28,6 +28,8 @@ The versions of the libraries are specified in the CMakeLists.txt file in the to
 Furthermore, it requires the following packages on Fedora:
 * cmake
 * clang
+* bash
+* which
 
 Folly dependencies on Fedora:
 * glog-devel
