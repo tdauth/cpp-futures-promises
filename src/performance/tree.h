@@ -18,14 +18,14 @@ struct get_power<A, 0>
 };
 
 using TREE_TYPE = int;
-constexpr int TREE_LEVELS = 12;
-constexpr int TREE_VECTOR_SIZE = 2;
-static_assert(TREE_VECTOR_SIZE == 2, "The custom combinators only support passing two futures.");
+constexpr int TREE_DEPTH = 12;
+constexpr int TREE_CHILDS = 2;
+static_assert(TREE_CHILDS == 2, "The custom combinators only support passing two futures.");
 /**
  * The number of future nodes in the tree started at this level.
  * Note that the root node is included.
  * TODO the formula is wrong for only 1 node per level?
  */
-constexpr int NODES = get_power<TREE_VECTOR_SIZE, TREE_LEVELS + 1>::value - 1;
+constexpr int NODES = get_power<TREE_CHILDS, TREE_DEPTH + 1>::value - 1;
 
 #endif

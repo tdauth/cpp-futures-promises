@@ -13,6 +13,11 @@ folly::Future<T> follyCollectAll(std::size_t treeHeight, std::size_t childNodes,
 {
 	std::vector<folly::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -35,6 +40,11 @@ template<typename T, typename Func>
 folly::Future<T> follyCollect(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<folly::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -59,6 +69,11 @@ folly::Future<T> follyCollectN(std::size_t treeHeight, std::size_t childNodes, F
 {
 	std::vector<folly::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -81,6 +96,11 @@ template<typename T, typename Func>
 folly::Future<T> follyCollectAny(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<folly::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -105,6 +125,11 @@ folly::Future<T> follyCollectAnyWithoutException(std::size_t treeHeight, std::si
 {
 	std::vector<folly::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -127,6 +152,11 @@ template<typename T, typename Func>
 boost::future<T> boostWhenAll(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<boost::future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -151,6 +181,11 @@ boost::future<T> boostWhenAny(std::size_t treeHeight, std::size_t childNodes, Fu
 {
 	std::vector<boost::future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -173,6 +208,11 @@ template<typename T, typename Func>
 folly::Future<T> customCollectNWithoutException(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<folly::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -197,6 +237,11 @@ adv::Future<T> customOrElse(std::size_t treeHeight, std::size_t childNodes, Func
 {
 	std::vector<adv::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -219,6 +264,11 @@ template<typename T, typename Func>
 adv::Future<T> customFirst(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -243,6 +293,11 @@ adv::Future<T> customFirstSucc(std::size_t treeHeight, std::size_t childNodes, F
 {
 	std::vector<adv::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -265,6 +320,11 @@ template<typename T, typename Func>
 adv::Future<T> customFirstN(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
 
 	if (treeHeight == 0)
 	{
@@ -289,6 +349,11 @@ adv::Future<T> customFirstNSucc(std::size_t treeHeight, std::size_t childNodes, 
 {
 	std::vector<adv::Future<T>> v;
 
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
 	if (treeHeight == 0)
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
@@ -307,69 +372,74 @@ adv::Future<T> customFirstNSucc(std::size_t treeHeight, std::size_t childNodes, 
 	return adv::firstNSucc(std::move(v), childNodes).then([] (adv::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
 }
 
+inline int initFuture()
+{
+	return 3;
+}
+
 BENCHMARK(FollyCollectAll)
 {
-	follyCollectAll<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	follyCollectAll<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).wait();
 }
 
 BENCHMARK(FollyCollect)
 {
-	follyCollect<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	follyCollect<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectN)
 {
-	follyCollectN<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	follyCollectN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectAny)
 {
-	follyCollectAny<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	follyCollectAny<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectAnyWithoutException)
 {
-	follyCollectAnyWithoutException<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	follyCollectAnyWithoutException<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).wait();
 }
 
 BENCHMARK(BoostWhenAll)
 {
-	boostWhenAll<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	boostWhenAll<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(BoostWhenAny)
 {
-	boostWhenAny<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	boostWhenAny<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(CustomCollectNWithoutException)
 {
-	customCollectNWithoutException<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customCollectNWithoutException<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(CustomOrElse)
 {
-	customOrElse<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customOrElse<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(CustomFirst)
 {
-	customFirst<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customFirst<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(CustomFirstSucc)
 {
-	customFirstSucc<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customFirstSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(CustomFirstN)
 {
-	customFirstN<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customFirstN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(CustomFirstNSucc)
 {
-	customFirstNSucc<TREE_TYPE>(TREE_LEVELS, TREE_VECTOR_SIZE,  [] () { return 3; });
+	customFirstNSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 int main(int argc, char *argv[])
