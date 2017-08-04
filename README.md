@@ -29,7 +29,7 @@ Furthermore, it requires the following packages on Fedora 25:
 * libatomic
 * bash
 * which
-* rpmbuild
+* rpm-build
 
 Folly dependencies on Fedora 25:
 * glog-devel
