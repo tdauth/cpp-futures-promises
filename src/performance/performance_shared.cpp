@@ -12,7 +12,7 @@
 #include <folly/futures/Promise.h>
 #include <folly/futures/Future.h>
 
-const unsigned long long CONTAINERS_NUMBER = 20;
+const unsigned long long CONTAINERS_NUMBER = 1;
 const unsigned long long FUTURES_NUMBER = 10000000;
 
 typedef void FUTURE_VALUE_TYPE;
