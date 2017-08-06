@@ -15,7 +15,6 @@
  * Similar to folly::collectAnyWithoutException but the version of folly::collectN.
  * Collects \p n futures which completed without exceptions.
  * If too many futures failed, it fails with the last thrown exception.
- *
  */
 template <class InputIterator>
 folly::Future<std::vector<std::pair<size_t, typename std::iterator_traits<InputIterator>::value_type::value_type>>>
@@ -272,7 +271,7 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 					{
 						auto c = ++ctx->failed;
 
-						if (total - c < n)
+						if (total - c + 1 == n)
 						{
 							ctx->done = true;
 							ctx->p.set_exception(f.get_exception_ptr());
@@ -316,6 +315,26 @@ whenAny(InputIterator first, InputIterator last)
 	using future_type = boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type>>>;
 
 	return whenN(first, last, 1).then([] (future_type future)
+		{
+			return std::move(future.get()[0]);
+		}
+	);
+}
+
+/**
+ * Since boost::when_any() does return the whole collection in a future, it is not possible to determine which
+ * future has been completed to complete the resulting future of boost::when_any().
+ * This version returns a future with a pair like folly::collectAnyWithoutException().
+ *
+ * \return Returns a future with a pair holding the index of the completed future and the completed future's result value.
+ */
+template<typename InputIterator>
+boost::future<std::pair<std::size_t, typename InputIterator::value_type::value_type>>
+whenAnySucc(InputIterator first, InputIterator last)
+{
+	using future_type = boost::future<std::vector<std::pair<std::size_t, typename InputIterator::value_type::value_type>>>;
+
+	return whenNSucc(first, last, 1).then([] (future_type future)
 		{
 			return std::move(future.get()[0]);
 		}

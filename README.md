@@ -112,7 +112,8 @@ The project provides some of the extensions also for Boost.Thread:
 * orElse - The same as fallbackTo in Scala.
 * whenN - The same as folly::collectN but with boost::future instances in the resulting vector.
 * whenNSucc - The same as collectNWithoutException.
-* whenAny - Returns a future containing a pair of the completed future and its index similar to folly::collectAny. Boost.Thread's boost::when_any() returns a future with the whole collection of futures instead.
+* whenAny - Returns a future containing a pair of the completed future and its index similar to folly::collectAny. Boost.Thread's boost::when_any returns a future with the whole collection of futures instead.
+* whenAnySucc - Returns a future containg a pair of the completed future's result value and its index similar to folly::collectAnyWithoutException.
 
 ## Unit Tests
 To test the functionality, several unit tests are provided for the extensions.
