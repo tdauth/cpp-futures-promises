@@ -2,11 +2,11 @@
 #define ADV_FUTUREBOOST_H
 
 #include <type_traits>
-#include <variant>
-#include <optional>
 #include <exception>
 
 #include <boost/thread.hpp>
+#include <boost/variant.hpp>
+#include <boost/optional.hpp>
 
 #include "extensions.h"
 
@@ -19,25 +19,25 @@ class Try
 	public:
 		T get()
 		{
-			if (!_v.has_value())
+			if (_v == boost::none)
 			{
 				// TODO replace type, Folly uses throwIfFailed().
 				throw;
 			}
 
-			if (std::holds_alternative<std::exception_ptr>(_v.value()))
+			if (_v.value().which() != 0)
 			{
-				std::rethrow_exception(std::get<std::exception_ptr>(_v.value()));
+				std::rethrow_exception(boost::get<std::exception_ptr>(_v.get()));
 			}
 
-			return std::move(std::get<T>(_v.value()));
+			return std::move(boost::get<T>(_v.value()));
 		}
 
 		bool hasValue()
 		{
-			if (_v.has_value())
+			if (_v  != boost::none)
 			{
-				return std::holds_alternative<T>(_v.value());
+				return _v.value().which() == 0;
 			}
 
 			return false;
@@ -45,9 +45,9 @@ class Try
 
 		bool hasException()
 		{
-			if (_v.has_value())
+			if (_v != boost::none)
 			{
-				return std::holds_alternative<std::exception_ptr>(_v.value());
+				return _v.value().which() == 1;
 			}
 
 			return false;
@@ -69,12 +69,13 @@ class Try
 		template<typename S>
 		friend class Promise;
 
-		std::optional<std::variant<T, std::exception_ptr>> _v;
+		boost::optional<boost::variant<T, std::exception_ptr>> _v;
 };
 
 template<typename T>
 class Future;
 
+// TODO No template argument please, only in the constructor if possible? Otherwise, it does not fulfill the defined interface.
 template<typename Ex>
 class Executor
 {
@@ -88,9 +89,11 @@ class Executor
 		Executor(Ex *ex) : _e(ex)
 		{
 		}
-	private:
+
+	public:
+		// TODO make private and fix friend
 		template<typename Func>
-		friend Future<typename std::result_of<Func()>::type> async(Executor *ex, Func &&f);
+		friend Future<typename std::result_of<Func()>::type> async(Executor<Ex> *ex, Func &&f);
 
 		Ex *_e;
 };
@@ -123,7 +126,7 @@ class Future
 
 		bool isReady()
 		{
-			return _f.isReady();
+			return _f.is_ready();
 		}
 
 		template<typename Func>
@@ -215,7 +218,7 @@ Future<typename std::result_of<Func()>::type> async(Executor<Ex> *ex, Func &&f)
 {
 	using T = typename std::result_of<Func()>::type;
 
-	return Future<T>(boost::async(ex->_e, std::move(f)));
+	return Future<T>(boost::async(*ex->_e, std::move(f)));
 }
 
 template<typename T>

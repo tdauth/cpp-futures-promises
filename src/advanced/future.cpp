@@ -4,7 +4,10 @@
 
 #include <wangle/concurrent/GlobalExecutor.h>
 
+#include <boost/thread/executors/basic_thread_pool.hpp>
+
 #include "advanced_futures_folly.h"
+#include "advanced_futures_boost.h"
 
 void testOnComplete(adv::Executor *ex)
 {
@@ -20,9 +23,37 @@ void testOnComplete(adv::Executor *ex)
 	);
 }
 
+template<typename Ex>
+void testOnCompleteBoost(adv_boost::Executor<Ex> *ex)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] ()
+		{
+			return 10;
+		}
+	);
+	f0.onComplete([] (adv_boost::Try<int> t)
+		{
+			std::cout << "Result: " << t.get() << std::endl;
+		}
+	);
+}
+
+
 void testGetAndIsReady(adv::Executor *ex)
 {
 	adv::Future<int> f1 = adv::async(ex, [] ()
+		{
+			return 10;
+		}
+	);
+	std::cout << "is ready: " << f1.isReady() << std::endl;
+	std::cout << f1.get() << std::endl;
+}
+
+template<typename Ex>
+void testGetAndIsReadyBoost(adv_boost::Executor<Ex> *ex)
+{
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -222,6 +253,11 @@ int main(int argc, char *argv[])
 	testTryCompleteWith(&ex);
 	testTrySuccessWith(&ex);
 	testTryFailureWith(&ex);
+
+	boost::basic_thread_pool thread_pool;
+	adv_boost::Executor<boost::basic_thread_pool> ex_boost(&thread_pool);
+	testOnCompleteBoost(&ex_boost);
+	testGetAndIsReadyBoost(&ex_boost);
 
 	return 0;
 }
