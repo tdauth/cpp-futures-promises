@@ -5,8 +5,8 @@ The project provides an advanced futures and promises API based on our paper [Ad
 The API offers functions which are missing from other C++ futures and promises APIs.
 It is implemented with the help of only a few basic functions which allows a much easier adaption to other libraries.
 Currently, the API has two different reference implementations which use the following two C++ libraries:
-* Boost.Thread
-* Folly
+* [Boost.Thread](https://github.com/boostorg/thread)
+* [Folly](https://github.com/facebook/folly)
 
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
@@ -23,9 +23,9 @@ Therefore, you need Internet access when building for the first time.
 The project requires the GCC with C++17 support and CMake to be built.
 
 The project requires the following libraries:
-* Boost
-* Folly
-* Wangle
+* [Boost](http://www.boost.org/)
+* [Folly](https://github.com/facebook/folly)
+* [Wangle](https://github.com/facebook/wangle)
 
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the `CMakeLists.txt` file in the top level directory of the project.
@@ -37,11 +37,11 @@ Furthermore, the project requires the following packages on Fedora 25:
 * bash
 * which
 * rpm-build
+* valgrind
 
 Folly dependencies on Fedora 25:
 * glog-devel
 * gflags-devel
-* valgrind
 * autoconf
 * automake
 * autoconf
