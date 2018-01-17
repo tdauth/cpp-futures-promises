@@ -132,9 +132,9 @@ class Future
 		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
-			return this->then([f = std::move(f)] (boost::future<T> future) mutable
+			return this->then([f = std::move(f)] (Try<T> t) mutable
 			{
-				auto x = future.get();
+				auto x = t.get();
 
 				if (!f(x))
 				{

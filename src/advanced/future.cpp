@@ -38,7 +38,6 @@ void testOnCompleteBoost(adv_boost::Executor<Ex> *ex)
 	);
 }
 
-
 void testGetAndIsReady(adv::Executor *ex)
 {
 	adv::Future<int> f1 = adv::async(ex, [] ()
@@ -73,6 +72,18 @@ void testGuard(adv::Executor *ex)
 	std::cout << "Result guard: " << f2.get() << std::endl;
 }
 
+template<typename Ex>
+void testGuardBoost(adv_boost::Executor<Ex> *ex)
+{
+	adv_boost::Future<int> f2 = adv_boost::async(ex, [] ()
+		{
+			return 10;
+		}
+	).guard([] (const int &v) { return v == 10; });
+
+	std::cout << "Result guard: " << f2.get() << std::endl;
+}
+
 void testThen(adv::Executor *ex)
 {
 	adv::Future<std::string> f3 = adv::async(ex, [] ()
@@ -80,6 +91,27 @@ void testThen(adv::Executor *ex)
 			return 10;
 		}
 	).then([] (adv::Try<int> t)
+		{
+			if (t.hasValue())
+			{
+				return std::to_string(t.get());
+			}
+
+			return std::string("Failure!");
+		}
+	);
+
+	std::cout << "Result then: " << f3.get() << std::endl;
+}
+
+template<typename Ex>
+void testThenBoost(adv_boost::Executor<Ex> *ex)
+{
+	adv_boost::Future<std::string> f3 = adv_boost::async(ex, [] ()
+		{
+			return 10;
+		}
+	).then([] (adv_boost::Try<int> t)
 		{
 			if (t.hasValue())
 			{
@@ -258,6 +290,8 @@ int main(int argc, char *argv[])
 	adv_boost::Executor<boost::basic_thread_pool> ex_boost(&thread_pool);
 	testOnCompleteBoost(&ex_boost);
 	testGetAndIsReadyBoost(&ex_boost);
+	testGuardBoost(&ex_boost);
+	testThenBoost(&ex_boost);
 
 	return 0;
 }

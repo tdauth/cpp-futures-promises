@@ -95,6 +95,7 @@ The advanced futures and promises are also implemented for the library Boost.Thr
 To use them you have to include the file `advanced/advanced_futures_boost.h`.
 The classes wrap classes of Boost.Thread itself.
 The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
+The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
 
 ## Extensions
 The project does also provide extensions for the libraries Folly and Boost.Thread.
