@@ -76,7 +76,6 @@ set(Boost_LIBRARIES "${BOOST_LIB_DIR}/libboost_thread.so" "${BOOST_LIB_DIR}/libb
 # Folly
 
 # See https://github.com/facebook/folly/blob/master/README.md for all dependencies which have to be installed on Fedora as well.
-find_package(gflags REQUIRED)
 find_library(GLOG_LIBRARY glog)
 
 if (NOT GLOG_LIBRARY)
