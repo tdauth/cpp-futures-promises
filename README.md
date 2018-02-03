@@ -1,12 +1,14 @@
 # cpp-futures-promises
-Examples and extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
-The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
 The project provides an advanced futures and promises API based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 The API offers functions which are missing from other C++ futures and promises APIs.
 It is implemented with the help of only a few basic functions which allows a much easier adaption to other libraries.
 Currently, the API has two different reference implementations which use the following two C++ libraries:
 * [Boost.Thread](https://github.com/boostorg/thread)
 * [Folly](https://github.com/facebook/folly)
+
+The project does also provide extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
+The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
+Some use cases have been implemented to demonstrate the extensions.
 
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
@@ -135,14 +137,16 @@ The project does also provide some of the extensions for Boost.Thread:
 * `whenAnySucc` - Returns a future containg a pair of the completed future's result value and its index similar to `folly::collectAnyWithoutException`.
 
 ## Unit Tests
-To test the functionality, several unit tests are provided for the extensions.
+Several unit tests are provided for the extensions to test the functionality.
 Bear in mind that concurrent programs can behave differently every time due to scheduling.
 Therefore, simple unit tests won't proof that there are no bugs.
+The advanced futures and promises implementations are tested in the files [future.cpp](./src/advanced/future.cpp) and [shared_future.cpp](./src/advanced/shared_future.cpp) with the help of Boost.Test.
+The extensions are tested in the file [future.cpp](./src/extensions.cpp).
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:
-* Shared vs unique future and promise creation - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
-* Recursive non-blocking combinator calls - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
+* [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
+* [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
 
 ## Use Cases
 The project provides several use cases for futures and promises to demonstrate their usage for solving problems.
