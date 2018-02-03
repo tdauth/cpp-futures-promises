@@ -430,6 +430,34 @@ adv::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t childNodes,
 }
 
 template<typename T, typename Func>
+adv_boost::Future<T> customBoostFirstN(std::size_t treeHeight, std::size_t childNodes, Func f)
+{
+	std::vector<adv_boost::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(adv_boost::Future<T>(boost::make_ready_future(f())));
+		}
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(customBoostFirstN<T>(treeHeight - 1, childNodes, f));
+		}
+	}
+
+	return adv_boost::firstN(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, adv_boost::Try<T>>>> t) { return t.get()[0].second.get(); });
+}
+
+template<typename T, typename Func>
 adv::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<adv::Future<T>> v;
@@ -455,6 +483,34 @@ adv::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNo
 	}
 
 	return adv::firstNSucc(std::move(v), childNodes).then([] (adv::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
+}
+
+template<typename T, typename Func>
+adv_boost::Future<T> customBoostFirstNSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
+{
+	std::vector<adv_boost::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(adv_boost::Future<T>(boost::make_ready_future(f())));
+		}
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(customBoostFirstNSucc<T>(treeHeight - 1, childNodes, f));
+		}
+	}
+
+	return adv_boost::firstNSucc(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
 }
 
 inline int initFuture()
@@ -537,9 +593,19 @@ BENCHMARK(AdvFollyFirstN)
 	customFollyFirstN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
+BENCHMARK(AdvBoostFirstN)
+{
+	customBoostFirstN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+}
+
 BENCHMARK(AdvFollyFirstNSucc)
 {
 	customFollyFirstNSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+}
+
+BENCHMARK(AdvBoostFirstNSucc)
+{
+	customBoostFirstNSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
 }
 
 int main(int argc, char *argv[])

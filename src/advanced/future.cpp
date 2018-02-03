@@ -1,3 +1,10 @@
+#define BOOST_TEST_MODULE AdvancedFutureTest
+#include <boost/test/unit_test.hpp>
+
+#if not defined(BOOST_TEST_DYN_LINK) and not defined(WINDOWS)
+#error Define BOOST_TEST_DYN_LINK for proper definition of main function.
+#endif
+
 #include <iostream>
 
 #include <folly/init/Init.h>
@@ -6,10 +13,43 @@
 
 #include <boost/thread/executors/basic_thread_pool.hpp>
 
+#include "folly_fixture.h"
 #include "advanced_futures_folly.h"
 #include "advanced_futures_boost.h"
 
-void testOnComplete(adv::Executor *ex)
+struct Fixture
+{
+	Fixture() : ex(new adv::Executor(wangle::getCPUExecutor().get()))
+	{
+	}
+
+	~Fixture()
+	{
+		delete ex;
+		ex = nullptr;
+	}
+
+	adv::Executor *ex;
+};
+
+struct BoostFixture
+{
+	BoostFixture() : ex(new adv_boost::Executor(&ex_boost))
+	{
+	}
+
+	~BoostFixture()
+	{
+		delete ex;
+		ex = nullptr;
+	}
+
+	typedef boost::basic_thread_pool Ex;
+	Ex ex_boost;
+	adv_boost::Executor<Ex> *ex;
+};
+
+BOOST_FIXTURE_TEST_CASE(OnComplete, Fixture)
 {
 	adv::Future<int> f0 = adv::async(ex, [] ()
 		{
@@ -23,8 +63,7 @@ void testOnComplete(adv::Executor *ex)
 	);
 }
 
-template<typename Ex>
-void testOnCompleteBoost(adv_boost::Executor<Ex> *ex)
+BOOST_FIXTURE_TEST_CASE(OnCompleteBoost, BoostFixture)
 {
 	adv_boost::Future<int> f0 = adv_boost::async(ex, [] ()
 		{
@@ -38,30 +77,31 @@ void testOnCompleteBoost(adv_boost::Executor<Ex> *ex)
 	);
 }
 
-void testGetAndIsReady(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(GetAndIsReady, Fixture)
 {
 	adv::Future<int> f1 = adv::async(ex, [] ()
 		{
 			return 10;
 		}
 	);
-	std::cout << "is ready: " << f1.isReady() << std::endl;
-	std::cout << f1.get() << std::endl;
+
+	BOOST_CHECK_EQUAL(10, f1.get());
+	BOOST_CHECK(f1.isReady());
 }
 
-template<typename Ex>
-void testGetAndIsReadyBoost(adv_boost::Executor<Ex> *ex)
+BOOST_FIXTURE_TEST_CASE(GetAndIsReadyBoost, BoostFixture)
 {
 	adv_boost::Future<int> f1 = adv_boost::async(ex, [] ()
 		{
 			return 10;
 		}
 	);
-	std::cout << "is ready: " << f1.isReady() << std::endl;
-	std::cout << f1.get() << std::endl;
+
+	BOOST_CHECK_EQUAL(10, f1.get());
+	BOOST_CHECK(f1.isReady());
 }
 
-void testGuard(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(Guard, Fixture)
 {
 	adv::Future<int> f2 = adv::async(ex, [] ()
 		{
@@ -69,11 +109,10 @@ void testGuard(adv::Executor *ex)
 		}
 	).guard([] (const int &v) { return v == 10; });
 
-	std::cout << "Result guard: " << f2.get() << std::endl;
+	BOOST_CHECK_EQUAL(10, f2.get());
 }
 
-template<typename Ex>
-void testGuardBoost(adv_boost::Executor<Ex> *ex)
+BOOST_FIXTURE_TEST_CASE(GuardBoost, BoostFixture)
 {
 	adv_boost::Future<int> f2 = adv_boost::async(ex, [] ()
 		{
@@ -81,10 +120,10 @@ void testGuardBoost(adv_boost::Executor<Ex> *ex)
 		}
 	).guard([] (const int &v) { return v == 10; });
 
-	std::cout << "Result guard: " << f2.get() << std::endl;
+	BOOST_CHECK_EQUAL(10, f2.get());
 }
 
-void testThen(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(Then, Fixture)
 {
 	adv::Future<std::string> f3 = adv::async(ex, [] ()
 		{
@@ -101,11 +140,10 @@ void testThen(adv::Executor *ex)
 		}
 	);
 
-	std::cout << "Result then: " << f3.get() << std::endl;
+	BOOST_CHECK_EQUAL("10", f3.get());
 }
 
-template<typename Ex>
-void testThenBoost(adv_boost::Executor<Ex> *ex)
+BOOST_FIXTURE_TEST_CASE(ThenBoost, BoostFixture)
 {
 	adv_boost::Future<std::string> f3 = adv_boost::async(ex, [] ()
 		{
@@ -122,34 +160,64 @@ void testThenBoost(adv_boost::Executor<Ex> *ex)
 		}
 	);
 
-	std::cout << "Result then: " << f3.get() << std::endl;
+	BOOST_CHECK_EQUAL("10", f3.get());
 }
 
-void testOrElse(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(OrElse, Fixture)
 {
 	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
 	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.orElse(std::move(f1));
-	std::cout << "Result orElse: " << f2.get() << std::endl;
+
+	BOOST_CHECK_EQUAL(10, f2.get());
 }
 
-void testFirst(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(OrElseBoost, BoostFixture)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { return 10; });
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
+	auto f2 = f0.orElse(std::move(f1));
+
+	BOOST_CHECK_EQUAL(10, f2.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(First, Fixture)
 {
 	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
 	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
-	std::cout << "Result first: " << f2.get() << std::endl;
+
+	BOOST_CHECK_EQUAL(10, f2.get());
 }
 
-void testFirstSucc(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(FirstBoost, BoostFixture)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { return 10; });
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
+	auto f2 = f0.first(std::move(f1));
+
+	BOOST_CHECK_EQUAL(10, f2.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstSucc, Fixture)
 {
 	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
 	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
-	std::cout << "Result firstSucc: " << f2.get() << std::endl;
+
+	BOOST_CHECK_EQUAL(10, f2.get());
 }
 
-void testFirstN(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(FirstSuccBoost, BoostFixture)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { return 10; });
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
+	auto f2 = f0.firstSucc(std::move(f1));
+
+	BOOST_CHECK_EQUAL(10, f2.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstN, Fixture)
 {
 	std::vector<adv::Future<int>> futures;
 	futures.push_back(adv::async(ex, [] () { return 10; }));
@@ -160,13 +228,36 @@ void testFirstN(adv::Executor *ex)
 	adv::Future<std::vector<std::pair<std::size_t, adv::Try<int>>>> f = adv::firstN(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, adv::Try<int>>> v = f.get();
 
+	BOOST_CHECK_EQUAL(3u, v.size());
+	// TODO check for elements
+
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
 		std::cout << "Result firstN: index: " << v[i].first << ", value: " << v[i].second.get() << std::endl;
 	}
 }
 
-void testFirstNSucc(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(FirstNBoost, BoostFixture)
+{
+	std::vector<adv_boost::Future<int>> futures;
+	futures.push_back(adv_boost::async(ex, [] () { return 10; }));
+	futures.push_back(adv_boost::async(ex, [] () { return 11; }));
+	futures.push_back(adv_boost::async(ex, [] () { return 12; }));
+	futures.push_back(adv_boost::async(ex, [] () { return 13; }));
+
+	adv_boost::Future<std::vector<std::pair<std::size_t, adv_boost::Try<int>>>> f = adv_boost::firstN(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, adv_boost::Try<int>>> v = f.get();
+
+	BOOST_CHECK_EQUAL(3u, v.size());
+	// TODO check for elements
+
+	for (std::size_t i = 0; i < v.size(); ++i)
+	{
+		std::cout << "Result firstN: index: " << v[i].first << ", value: " << v[i].second.get() << std::endl;
+	}
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstNSucc, Fixture)
 {
 	std::vector<adv::Future<int>> futures;
 	futures.push_back(adv::async(ex, [] () { return 1; }));
@@ -177,54 +268,120 @@ void testFirstNSucc(adv::Executor *ex)
 	adv::Future<std::vector<std::pair<std::size_t, int>>> f = adv::firstNSucc(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, int>> v = f.get();
 
+	BOOST_CHECK_EQUAL(3u, v.size());
+	// TODO check for elements 1, 3 and 4
+
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
 		std::cout << "Result firstNSucc: index: " << v[i].first << ", value: " << v[i].second << std::endl;
 	}
 }
 
-void testTryComplete(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(FirstNSuccBoost, BoostFixture)
+{
+	std::vector<adv_boost::Future<int>> futures;
+	futures.push_back(adv_boost::async(ex, [] () { return 1; }));
+	futures.push_back(adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 2; }));
+	futures.push_back(adv_boost::async(ex, [] () { return 3; }));
+	futures.push_back(adv_boost::async(ex, [] () { return 4; }));
+
+	adv_boost::Future<std::vector<std::pair<std::size_t, int>>> f = adv_boost::firstNSucc(std::move(futures), 3);
+	std::vector<std::pair<std::size_t, int>> v = f.get();
+
+	BOOST_CHECK_EQUAL(3u, v.size());
+	// TODO check for elements 1, 3 and 4
+
+	for (std::size_t i = 0; i < v.size(); ++i)
+	{
+		std::cout << "Result firstNSucc: index: " << v[i].first << ", value: " << v[i].second << std::endl;
+	}
+}
+
+BOOST_FIXTURE_TEST_CASE(TryComplete, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
 
 	bool result = p.tryComplete(adv::Try<int>(10));
 
-	std::cout << "Result tryComplete: " << result << std::endl;
-	std::cout << "Future result tryComplete: " << f.get() << std::endl;
+	BOOST_CHECK(result);
+	BOOST_CHECK_EQUAL(10, f.get());
 }
 
-void testTrySuccess(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(TryCompleteBoost, BoostFixture)
+{
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+
+	bool result = p.tryComplete(adv_boost::Try<int>(10));
+
+	BOOST_CHECK(result);
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(TrySuccess, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
 
 	bool result = p.trySuccess(10);
 
-	std::cout << "Result trySuccess: " << result << std::endl;
-	std::cout << "Future result trySuccess: " << f.get() << std::endl;
+	BOOST_CHECK(result);
+	BOOST_CHECK_EQUAL(10, f.get());
 }
 
-void testTryFailure(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(TrySuccessBoost, BoostFixture)
+{
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+
+	bool result = p.trySuccess(10);
+
+	BOOST_CHECK(result);
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(TryFailure, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
 
 	bool result = p.tryFailure(std::runtime_error("Failure!"));
 
-	std::cout << "Result tryFailure: " << result << std::endl;
+	BOOST_CHECK(result);
 
 	try
 	{
 		f.get();
+		BOOST_FAIL("Expected exception");
 	}
 	catch (const std::exception &e)
 	{
-		std::cout << "Future result tryFailure: " << e.what() << std::endl;
+		BOOST_CHECK_EQUAL("Failure!", e.what());
 	}
 }
 
-void testTryCompleteWith(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(TryFailureBoost, BoostFixture)
+{
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+
+	bool result = p.tryFailure(std::runtime_error("Failure!"));
+
+	BOOST_CHECK(result);
+
+	try
+	{
+		f.get();
+		BOOST_FAIL("Expected exception");
+	}
+	catch (const std::exception &e)
+	{
+		BOOST_CHECK_EQUAL("Failure!", e.what());
+	}
+}
+
+BOOST_FIXTURE_TEST_CASE(TryCompleteWith, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
@@ -232,10 +389,21 @@ void testTryCompleteWith(adv::Executor *ex)
 
 	p.tryCompleteWith(std::move(completingFuture));
 
-	std::cout << "Future result tryCompleteWith: " << f.get() << std::endl;
+	BOOST_CHECK_EQUAL(10, f.get());
 }
 
-void testTrySuccessWith(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(TryCompleteWithBoost, BoostFixture)
+{
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+	adv_boost::Future<int> completingFuture = adv_boost::async(ex, [] () { return 10; });
+
+	p.tryCompleteWith(std::move(completingFuture));
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(TrySuccessWith, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
@@ -243,10 +411,21 @@ void testTrySuccessWith(adv::Executor *ex)
 
 	p.trySuccessWith(std::move(completingFuture));
 
-	std::cout << "Future result trySuccessWith: " << f.get() << std::endl;
+	BOOST_CHECK_EQUAL(10, f.get());
 }
 
-void testTryFailureWith(adv::Executor *ex)
+BOOST_FIXTURE_TEST_CASE(TrySuccessWithBoost, BoostFixture)
+{
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+	adv_boost::Future<int> completingFuture = adv_boost::async(ex, [] () { return 10; });
+
+	p.trySuccessWith(std::move(completingFuture));
+
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(TryFailureWith, Fixture)
 {
 	adv::Promise<int> p;
 	adv::Future<int> f = p.future();
@@ -257,41 +436,29 @@ void testTryFailureWith(adv::Executor *ex)
 	try
 	{
 		f.get();
+		BOOST_FAIL("Expected exception");
 	}
 	catch (const std::exception &e)
 	{
-		std::cout << "Future result tryFailureWith: " << e.what() << std::endl;
+		BOOST_CHECK_EQUAL("Failure!", e.what());
 	}
 }
 
-int main(int argc, char *argv[])
+BOOST_FIXTURE_TEST_CASE(TryFailureWithBoost, BoostFixture)
 {
-	folly::init(&argc, &argv);
+	adv_boost::Promise<int> p;
+	adv_boost::Future<int> f = p.future();
+	adv_boost::Future<int> completingFuture = adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
 
-	adv::Executor ex(wangle::getCPUExecutor().get());
+	p.tryFailureWith(std::move(completingFuture));
 
-	testOnComplete(&ex);
-	testGetAndIsReady(&ex);
-	testGuard(&ex);
-	testThen(&ex);
-	testOrElse(&ex);
-	testFirst(&ex);
-	testFirstSucc(&ex);
-	testFirstN(&ex);
-	testFirstNSucc(&ex);
-	testTryComplete(&ex);
-	testTrySuccess(&ex);
-	testTryFailure(&ex);
-	testTryCompleteWith(&ex);
-	testTrySuccessWith(&ex);
-	testTryFailureWith(&ex);
-
-	boost::basic_thread_pool thread_pool;
-	adv_boost::Executor<boost::basic_thread_pool> ex_boost(&thread_pool);
-	testOnCompleteBoost(&ex_boost);
-	testGetAndIsReadyBoost(&ex_boost);
-	testGuardBoost(&ex_boost);
-	testThenBoost(&ex_boost);
-
-	return 0;
+	try
+	{
+		f.get();
+		BOOST_FAIL("Expected exception");
+	}
+	catch (const std::exception &e)
+	{
+		BOOST_CHECK_EQUAL("Failure!", e.what());
+	}
 }
