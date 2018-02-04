@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
-set(boost_VERSION "1.64.0")
-set(boost_VERSION_UNDERSCORE "1_64_0")
+set(boost_VERSION "1.66.0")
+set(boost_VERSION_UNDERSCORE "1_66_0")
 set(folly_VERSION "v2017.07.24.00")
 set(wangle_VERSION "v2017.07.24.00")
 
@@ -147,7 +147,7 @@ set(futures_VERSION "${futures_VERSION_MAJOR}.${futures_VERSION_MINOR}.${futures
 set(CPACK_PACKAGE_NAME "cpp-futures-promises")
 set(CPACK_PACKAGE_VENDOR "${futures_URL}")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/README.md")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Futures and promises in C++.")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Advanced futures and promises in C++.")
 set(CPACK_PACKAGE_VERSION "${futures_VERSION}")
 set(CPACK_PACKAGE_VERSION_MAJOR "${futures_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${futures_VERSION_MINOR}")

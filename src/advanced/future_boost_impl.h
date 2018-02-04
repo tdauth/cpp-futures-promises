@@ -114,7 +114,7 @@ Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>
 						 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
 						 * to protect it from data races.
 						 */
-						ctx->v.emplace_back(i, std::move(t.get()));
+						ctx->v.emplace_back(i, std::move(t));
 
 						if (c == n)
 						{

@@ -25,10 +25,15 @@ class Promise
 			return tryComplete(Try<T>(std::move(v)));
 		}
 
+		bool tryFailure(std::exception_ptr e)
+		{
+			return tryComplete(Try<T>(std::move(e)));
+		}
+
 		template<typename Exception>
 		bool tryFailure(Exception e)
 		{
-			return tryComplete(Try<T>(std::make_exception_ptr(std::move(e))));
+			return tryFailure(std::make_exception_ptr(std::move(e)));
 		}
 
 		void tryCompleteWith(Future<T> &&f)

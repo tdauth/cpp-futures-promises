@@ -13,6 +13,10 @@
 namespace adv_boost
 {
 
+class UsingUninitializedTry : public std::exception
+{
+};
+
 template<typename T>
 class Try
 {
@@ -21,8 +25,7 @@ class Try
 		{
 			if (_v == boost::none)
 			{
-				// TODO replace type, Folly uses throwIfFailed().
-				throw;
+				throw UsingUninitializedTry();
 			}
 
 			if (_v.value().which() != 0)

@@ -277,6 +277,54 @@ BOOST_AUTO_TEST_CASE(TryComplete)
 	BOOST_CHECK_EQUAL(10, f.get());
 }
 
+BOOST_AUTO_TEST_CASE(TryCompleteException)
+{
+	folly::Try<int> t(std::runtime_error("Failure!"));
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryComplete(p, std::move(t)));
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteUninitialized)
+{
+	folly::Try<int> t;
+	folly::Promise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(!tryComplete(p, std::move(t)));
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteShared)
+{
+	folly::Try<int> t(10);
+	folly::SharedPromise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryComplete(p, std::move(t)));
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteExceptionShared)
+{
+	folly::Try<int> t(std::runtime_error("Failure!"));
+	folly::SharedPromise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(tryComplete(p, std::move(t)));
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(TryCompleteUninitializedShared)
+{
+	folly::Try<int> t;
+	folly::SharedPromise<int> p;
+	folly::Future<int> f = p.getFuture();
+
+	BOOST_REQUIRE(!tryComplete(p, std::move(t)));
+}
+
 BOOST_AUTO_TEST_CASE(TryCompleteWith)
 {
 	folly::Future<int> future = folly::makeFuture(10);

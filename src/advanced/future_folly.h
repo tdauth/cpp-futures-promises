@@ -10,12 +10,21 @@
 namespace adv
 {
 
+class UsingUninitializedTry : public std::exception
+{
+};
+
 template<typename T>
 class Try
 {
 	public:
 		T get()
 		{
+			if (!_t.hasValue() && !_t.hasException())
+			{
+				throw UsingUninitializedTry();
+			}
+
 			_t.throwIfFailed();
 
 			return std::move(_t.value());

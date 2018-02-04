@@ -3,9 +3,14 @@
 
 #include <vector>
 #include <utility>
+#include <exception>
 
 namespace adv
 {
+
+class UsingUninitializedTry : public std::exception
+{
+};
 
 template<typename T>
 class Try
@@ -27,6 +32,10 @@ class Executor
 		void submit(Func &&f);
 };
 
+class PredicateNotFulfilled : public std::exception
+{
+};
+
 /**
  * \brief A non-shared future which can only be moved around and has read once semantics. It can only get one callback.
  */
@@ -37,21 +46,21 @@ class Future
 		T get();
 
 		template<typename Func>
-		void onComplete(Func &&f);
+		void onComplete(Func &&f); // (D)
 
 		bool isReady();
 
 		template<typename Func>
-		Future<T> guard(Func &&f);
+		Future<T> guard(Func &&f); // (D)
 
 		template<typename Func, typename S>
 		Future<S> then(Func &&f);
 
-		Future<T> orElse(Future<T> &&other);
+		Future<T> orElse(Future<T> &&other); // (D)
 
-		Future<T> first(Future<T> &&other);
+		Future<T> first(Future<T> &&other); // (D)
 
-		Future<T> firstSucc(Future<T> &&other);
+		Future<T> firstSucc(Future<T> &&other); // (D)
 
 		Future();
 		Future(Future<T> &&other);
@@ -65,10 +74,10 @@ template<typename Func, typename T>
 Future<T> async(Executor *ex, Func &&f);
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n);
+Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>> &&c, std::size_t n); // (D)
 
 template<typename T>
-Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n);
+Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n); // (D)
 
 /**
  * \brief Provides a shared future which can be copied around and has multiple read semantics.

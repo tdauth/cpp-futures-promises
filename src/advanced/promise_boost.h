@@ -17,10 +17,14 @@ class Promise
 
 		bool tryComplete(Try<T> &&v)
 		{
+			if (!v.hasValue() && !v.hasException())
+			{
+				return false;
+			}
+
 			// TODO add a tryComplete for boost::promise to the file "extensions.h" and use it here? Otherwise, we won't show that only this extension is required.
 			try
 			{
-				// TODO what happens if the Try is not set yet, what happens in the Folly implementation?
 				this->_p.set_value(std::move(v.get()));
 			}
 			catch (const boost::promise_already_satisfied &e)
@@ -40,10 +44,15 @@ class Promise
 			return tryComplete(Try<T>(std::move(v)));
 		}
 
+		bool tryFailure(std::exception_ptr &&e)
+		{
+			return tryComplete(Try<T>(std::move(e)));
+		}
+
 		template<typename Exception>
 		bool tryFailure(Exception e)
 		{
-			return tryComplete(Try<T>(std::make_exception_ptr(std::move(e))));
+			return tryFailure(std::make_exception_ptr(std::move(e)));
 		}
 
 		void tryCompleteWith(Future<T> &&f)

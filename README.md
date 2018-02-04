@@ -81,6 +81,18 @@ The following classes and class templates are provided by the library:
 With the help of only four basic functions (`get`, `then`, `isReady` and `tryComplete`) all other functions can be implemented.
 Therefore, every library which is used to implement the advanced futures and promises has only to support these basic functions.
 
+### Paper
+We have written a paper about the advanced futures and promises called [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
+Here are some TODOs for the paper:
+* Improve the description of the C++ syntax.
+* Show examples in other programming languages like ConcurrentML etc. as comparison.
+* Clarify the semantics of `Try`. `Try.get` throws an exception if the object is not initialized yet. Add the type `UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
+* Describe that `tryComplete` does not complete the promise when the `Try` object has not been initialized yet.
+* The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
+* Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
+* Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly,  Adanced Futures and Promises implemented with Boost.Thread.
+* Test several executors in the empirical results section to show the usage of multiple cores.
+
 ### Folly Implementation
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
 To use them you have to include the file `advanced/advanced_futures_folly.h`.

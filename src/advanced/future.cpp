@@ -49,6 +49,18 @@ struct BoostFixture
 	adv_boost::Executor<Ex> *ex;
 };
 
+BOOST_FIXTURE_TEST_CASE(TryNotInitialized, Fixture)
+{
+	adv::Try<int> t;
+	BOOST_CHECK_THROW(t.get(), adv::UsingUninitializedTry);
+}
+
+BOOST_FIXTURE_TEST_CASE(TryNotInitializedBoost, BoostFixture)
+{
+	adv_boost::Try<int> t;
+	BOOST_CHECK_THROW(t.get(), adv_boost::UsingUninitializedTry);
+}
+
 BOOST_FIXTURE_TEST_CASE(OnComplete, Fixture)
 {
 	adv::Future<int> f0 = adv::async(ex, [] ()
@@ -186,8 +198,9 @@ BOOST_FIXTURE_TEST_CASE(First, Fixture)
 	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
 	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
+	auto r = f2.get();
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK(r == 10 || r == 11);
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstBoost, BoostFixture)
@@ -195,8 +208,27 @@ BOOST_FIXTURE_TEST_CASE(FirstBoost, BoostFixture)
 	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { return 10; });
 	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
+	auto r = f2.get();
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK(r == 10 || r == 11);
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstWithException, Fixture)
+{
+	adv::Future<int> f0 = adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	adv::Future<int> f1 = adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 11; });
+	auto f2 = f0.first(std::move(f1));
+
+	BOOST_CHECK_THROW(f2.get(), std::runtime_error);
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstWithExceptionBoost, BoostFixture)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 11; });
+	auto f2 = f0.first(std::move(f1));
+
+	BOOST_CHECK_THROW(f2.get(), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstSucc, Fixture)
@@ -204,8 +236,9 @@ BOOST_FIXTURE_TEST_CASE(FirstSucc, Fixture)
 	adv::Future<int> f0 = adv::async(ex, [] () { return 10; });
 	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
+	auto r = f2.get();
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK(r == 10 || r == 11);
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstSuccBoost, BoostFixture)
@@ -213,15 +246,36 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccBoost, BoostFixture)
 	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { return 10; });
 	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
+	auto r = f2.get();
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK(r == 10 || r == 11);
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, Fixture)
+{
+	adv::Future<int> f0 = adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	adv::Future<int> f1 = adv::async(ex, [] () { return 11; });
+	auto f2 = f0.firstSucc(std::move(f1));
+	auto r = f2.get();
+
+	BOOST_CHECK_EQUAL(11, r);
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstSuccBoostWithException, BoostFixture)
+{
+	adv_boost::Future<int> f0 = adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+	adv_boost::Future<int> f1 = adv_boost::async(ex, [] () { return 11; });
+	auto f2 = f0.firstSucc(std::move(f1));
+	auto r = f2.get();
+
+	BOOST_CHECK_EQUAL(11, r);
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstN, Fixture)
 {
 	std::vector<adv::Future<int>> futures;
 	futures.push_back(adv::async(ex, [] () { return 10; }));
-	futures.push_back(adv::async(ex, [] () { return 11; }));
+	futures.push_back(adv::async(ex, [] () { throw std::runtime_error("Failure!"); return 11; }));
 	futures.push_back(adv::async(ex, [] () { return 12; }));
 	futures.push_back(adv::async(ex, [] () { return 13; }));
 
@@ -230,18 +284,13 @@ BOOST_FIXTURE_TEST_CASE(FirstN, Fixture)
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements
-
-	for (std::size_t i = 0; i < v.size(); ++i)
-	{
-		std::cout << "Result firstN: index: " << v[i].first << ", value: " << v[i].second.get() << std::endl;
-	}
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstNBoost, BoostFixture)
 {
 	std::vector<adv_boost::Future<int>> futures;
 	futures.push_back(adv_boost::async(ex, [] () { return 10; }));
-	futures.push_back(adv_boost::async(ex, [] () { return 11; }));
+	futures.push_back(adv_boost::async(ex, [] () { throw std::runtime_error("Failure!"); return 11; }));
 	futures.push_back(adv_boost::async(ex, [] () { return 12; }));
 	futures.push_back(adv_boost::async(ex, [] () { return 13; }));
 
@@ -250,11 +299,6 @@ BOOST_FIXTURE_TEST_CASE(FirstNBoost, BoostFixture)
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements
-
-	for (std::size_t i = 0; i < v.size(); ++i)
-	{
-		std::cout << "Result firstN: index: " << v[i].first << ", value: " << v[i].second.get() << std::endl;
-	}
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstNSucc, Fixture)
@@ -270,11 +314,6 @@ BOOST_FIXTURE_TEST_CASE(FirstNSucc, Fixture)
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements 1, 3 and 4
-
-	for (std::size_t i = 0; i < v.size(); ++i)
-	{
-		std::cout << "Result firstNSucc: index: " << v[i].first << ", value: " << v[i].second << std::endl;
-	}
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstNSuccBoost, BoostFixture)
@@ -290,11 +329,7 @@ BOOST_FIXTURE_TEST_CASE(FirstNSuccBoost, BoostFixture)
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements 1, 3 and 4
-
-	for (std::size_t i = 0; i < v.size(); ++i)
-	{
-		std::cout << "Result firstNSucc: index: " << v[i].first << ", value: " << v[i].second << std::endl;
-	}
+	// TODO sometimes this test fails with a number of only 2 elements. Due to the exception?
 }
 
 BOOST_FIXTURE_TEST_CASE(TryComplete, Fixture)

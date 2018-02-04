@@ -349,12 +349,25 @@ whenAnySucc(InputIterator first, InputIterator last)
  *
  * \{
  */
+/**
+ * Tries to complete the promise \p p with the content of \p t.
+ * \param p The promise which is completed.
+ * \param t The object which is used for the completion.
+ * \return Returns true if the promise has been completed successfully by the value or exception of \p t. Otherwise, it returns false. This could be the case if the promise is already satisfied or the try object is not initialized yet.
+ */
 template<typename T>
 bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
 {
+	if (!t.hasValue() && !t.hasException())
+	{
+		return false;
+	}
+
 	try
 	{
 		p.setTry(std::move(t));
+
+		return true;
 	}
 	catch (const folly::PromiseAlreadySatisfied &e)
 	{
@@ -367,6 +380,11 @@ bool tryComplete(folly::Promise<T> &p, folly::Try<T> &&t)
 template<typename T>
 bool tryComplete(folly::SharedPromise<T> &p, folly::Try<T> &&t)
 {
+	if (!t.hasValue() && !t.hasException())
+	{
+		return false;
+	}
+
 	try
 	{
 		p.setTry(std::move(t));
