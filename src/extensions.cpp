@@ -511,6 +511,17 @@ BOOST_AUTO_TEST_CASE(FirstSuccBothFailed)
 	BOOST_CHECK_THROW(f.get(), std::runtime_error);
 }
 
+BOOST_AUTO_TEST_CASE(FirstSuccRandom)
+{
+	folly::Future<int> f1 = folly::makeFuture(10);
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = firstSuccRandom(std::move(f1), std::move(f2));
+
+	const int result = f.get();
+
+	BOOST_CHECK(result == 10 || result == 11);
+}
+
 BOOST_AUTO_TEST_CASE(FirstSucc2)
 {
 	folly::Future<int> f1 = folly::makeFuture(10);
@@ -536,4 +547,15 @@ BOOST_AUTO_TEST_CASE(FirstSucc2BothFailed)
 	folly::Future<int> f = firstSucc2(std::move(f1), std::move(f2));
 
 	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
+BOOST_AUTO_TEST_CASE(FirstSucc2Random)
+{
+	folly::Future<int> f1 = folly::makeFuture(10);
+	folly::Future<int> f2 = folly::makeFuture(11);
+	folly::Future<int> f = firstSucc2Random(std::move(f1), std::move(f2));
+
+	const int result = f.get();
+
+	BOOST_CHECK(result == 10 || result == 11);
 }

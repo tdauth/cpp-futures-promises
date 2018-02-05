@@ -125,7 +125,7 @@ The project provides a number of non-blocking combinators which are missing from
 * `firstSucc` - Returns the first succesfully completed future from two. If both fail, the returned future will also fail. Implemented with the help of two orElse calls.
 * `firstSuccRandom` - The same but with shuffling.
 * `firstSucc2` - The same semantics but implemented differently with `orElse` and `onError`.
-* `firstSuccRandom` - The same but with shuffling.
+* `firstSucc2Random` - The same but with shuffling.
 * `collectNWithoutException` - Like `folly::collectN` but collects n futures which have been completed successfully. It ignores failed futures. The returned future fails if the collection is two small or too many futures failed.
 
 ### Promise Extensions for Folly
@@ -153,7 +153,7 @@ Several unit tests are provided for the extensions to test the functionality.
 Bear in mind that concurrent programs can behave differently every time due to scheduling.
 Therefore, simple unit tests won't proof that there are no bugs.
 The advanced futures and promises implementations are tested in the files [future.cpp](./src/advanced/future.cpp) and [shared_future.cpp](./src/advanced/shared_future.cpp) with the help of Boost.Test.
-The extensions are tested in the file [future.cpp](./src/extensions.cpp).
+The extensions are tested in the file [extensions.cpp](./src/extensions.cpp).
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:

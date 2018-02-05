@@ -678,6 +678,23 @@ folly::Future<T> firstSucc(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	);
 }
 
+/**
+ * The same as \ref firstSucc() but shuffles both futures in the beginning to avoid explicit prioritising of the first future.
+ */
+template<typename T>
+folly::Future<T> firstSuccRandom(folly::Future<T> &&f1, folly::Future<T> &&f2)
+{
+	// Make a randomized choice between the two futures:
+	folly::Future<T> futures[] = {
+		std::move(f1),
+		std::move(f2)
+	};
+
+	const int selection = randomNumber(0, 1);
+
+	return firstSucc(std::move(futures[selection]), std::move(futures[1- selection]));
+}
+
 template<typename T>
 folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
@@ -716,6 +733,23 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 		).ensure([ctx] () { });
 
 	return future;
+}
+
+/**
+ * The same as \ref firstSucc2() but shuffles both futures in the beginning to avoid explicit prioritising of the first future.
+ */
+template<typename T>
+folly::Future<T> firstSucc2Random(folly::Future<T> &&f1, folly::Future<T> &&f2)
+{
+	// Make a randomized choice between the two futures:
+	folly::Future<T> futures[] = {
+		std::move(f1),
+		std::move(f2)
+	};
+
+	const int selection = randomNumber(0, 1);
+
+	return firstSucc2(std::move(futures[selection]), std::move(futures[1- selection]));
 }
 /**
  * \}

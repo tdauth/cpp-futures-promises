@@ -34,7 +34,9 @@ struct Fixture
 
 struct BoostFixture
 {
-	BoostFixture() : ex(new adv_boost::Executor(&ex_boost))
+	typedef boost::basic_thread_pool Ex;
+
+	BoostFixture() : ex(new adv_boost::Executor<Ex>(&ex_boost))
 	{
 	}
 
@@ -44,7 +46,6 @@ struct BoostFixture
 		ex = nullptr;
 	}
 
-	typedef boost::basic_thread_pool Ex;
 	Ex ex_boost;
 	adv_boost::Executor<Ex> *ex;
 };
