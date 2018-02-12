@@ -3,13 +3,14 @@ os: linux
 language: cpp
 services:
   - docker
-# Fedora supports the libraries.
+# Fedora supports the required libraries. Therefore, use docker:
 before_install:
   - docker pull fedora:27
   - docker ps -a
   - docker run fedora:27 /bin/sh -c "cd /root; dnf -y install git cmake gcc-c++ libatomic bash which rpm-build gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./build.sh"
-#script:
-#  - bash ./build.sh
+# Use a script to disable the default automake build:
+script:
+  - ls
 #addons:
 #  apt:
 #    packages:
