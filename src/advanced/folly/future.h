@@ -1,45 +1,20 @@
-#ifndef ADV_FUTUREFOLLY_H
-#define ADV_FUTUREFOLLY_H
+#ifndef ADV_FOLLY_FUTURE_H
+#define ADV_FOLLY_FUTURE_H
 
 #include <type_traits>
 
 #include <folly/futures/Future.h>
 
-#include "extensions.h"
+#include "../future.h"
+#include "../../extensions.h"
 
-namespace adv
+namespace adv_folly
 {
-
-class UsingUninitializedTry : public std::exception
-{
-};
 
 template<typename T>
 class Try
 {
 	public:
-		T get()
-		{
-			if (!_t.hasValue() && !_t.hasException())
-			{
-				throw UsingUninitializedTry();
-			}
-
-			_t.throwIfFailed();
-
-			return std::move(_t.value());
-		}
-
-		bool hasValue()
-		{
-			return _t.hasValue();
-		}
-
-		bool hasException()
-		{
-			return _t.hasException();
-		}
-
 		Try()
 		{
 		}
@@ -67,8 +42,46 @@ class Try
 			}
 		}
 
+		Try(Try<T> &&other) : _t(std::move(other._t))
+		{
+		}
+
 		Try(folly::Try<T> &&other) : _t(std::move(other))
 		{
+		}
+
+		T get()
+		{
+			if (!_t.hasValue() && !_t.hasException())
+			{
+				throw adv::UsingUninitializedTry();
+			}
+
+			_t.throwIfFailed();
+
+			return std::move(_t.value());
+		}
+
+		const T& get() const
+		{
+			if (!_t.hasValue() && !_t.hasException())
+			{
+				throw adv::UsingUninitializedTry();
+			}
+
+			_t.throwIfFailed();
+
+			return _t.value();
+		}
+
+		bool hasValue()
+		{
+			return _t.hasValue();
+		}
+
+		bool hasException()
+		{
+			return _t.hasException();
 		}
 
 	private:
@@ -84,24 +97,21 @@ class Future;
 class Executor
 {
 	public:
+		Executor(folly::Executor *ex) : _e(ex)
+		{
+		}
+
 		template<typename Func>
 		void submit(Func &&f)
 		{
 			this->_e->add(std::move(f));
 		}
 
-		Executor(folly::Executor *ex) : _e(ex)
-		{
-		}
 	private:
 		template<typename Func>
 		friend Future<typename std::result_of<Func()>::type> async(Executor *ex, Func &&f);
 
 		folly::Executor *_e;
-};
-
-class PredicateNotFulfilled : public std::exception
-{
 };
 
 template<typename T>
@@ -111,42 +121,31 @@ template<typename T>
 class Future
 {
 	public:
+		Future() : _f(folly::Future<T>::makeEmpty())
+		{
+		}
+
+		Future(Future<T> &&other) : _f(std::move(other._f))
+		{
+		}
+
+		Future(const Future<T> &other) = delete;
+		Future<T>& operator=(const Future<T> &other) = delete;
+
+		Future(folly::Future<T> &&f) : _f(std::move(f))
+		{
+		}
+
+		SharedFuture<T> share();
+
 		T get()
 		{
 			return std::move(_f.get());
 		}
 
-		template<typename Func>
-		void onComplete(Func &&f)
-		{
-			this->then([f = std::move(f)] (Try<T> t) mutable
-				{
-					f(t);
-
-					return folly::unit; // workaround to not provide a future with void
-				}
-			);
-		}
-
 		bool isReady()
 		{
 			return _f.isReady();
-		}
-
-		template<typename Func>
-		Future<T> guard(Func &&f)
-		{
-			return this->then([f = std::move(f)] (Try<T> t) mutable
-			{
-				auto x = t.get();
-
-				if (!f(x))
-				{
-					throw PredicateNotFulfilled();
-				}
-
-				return x;
-			});
 		}
 
 		template<typename Func>
@@ -161,6 +160,34 @@ class Future
 			);
 
 			return Future<S>(std::move(r));
+		}
+
+		template<typename Func>
+		void onComplete(Func &&f)
+		{
+			this->then([f = std::move(f)] (Try<T> t) mutable
+				{
+					f(std::move(t));
+
+					return folly::unit; // workaround to not provide a future with void
+				}
+			);
+		}
+
+		template<typename Func>
+		Future<T> guard(Func &&f)
+		{
+			return this->then([f = std::move(f)] (Try<T> t) mutable
+			{
+				auto x = t.get();
+
+				if (!f(x))
+				{
+					throw adv::PredicateNotFulfilled();
+				}
+
+				return x;
+			});
 		}
 
 		Future<T> orElse(Future<T> &&other)
@@ -186,23 +213,6 @@ class Future
 		Future<T> first(Future<T> &&other);
 
 		Future<T> firstSucc(Future<T> &&other);
-
-		Future() : _f(folly::Future<T>::makeEmpty())
-		{
-		}
-
-		Future(Future<T> &&other) : _f(std::move(other._f))
-		{
-		}
-
-		Future(const Future<T> &other) = delete;
-		Future<T>& operator=(const Future<T> &other) = delete;
-
-		Future(folly::Future<T> &&f) : _f(std::move(f))
-		{
-		}
-
-		SharedFuture<T> share();
 
 	private:
 		folly::Future<T> _f;

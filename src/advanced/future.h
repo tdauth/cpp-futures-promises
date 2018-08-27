@@ -19,8 +19,10 @@ class Try
 		Try();
 		Try(T &&v);
 		Try(std::exception_ptr &&e);
+		Try(Try<T> &&other);
 
 		T get();
+		const T& get() const;
 		bool hasValue();
 		bool hasException();
 };
@@ -36,6 +38,9 @@ class PredicateNotFulfilled : public std::exception
 {
 };
 
+template<typename T>
+class SharedFuture;
+
 /**
  * \brief A non-shared future which can only be moved around and has read once semantics. It can only get one callback.
  */
@@ -43,31 +48,31 @@ template<typename T>
 class Future
 {
 	public:
+		Future() {}
+		Future(Future<T> &&other) {}
+		Future(const Future<T> &other) = delete;
+		Future<T>& operator=(const Future<T> &other) = delete;
+
+		SharedFuture<T> share();
+
 		T get();
+
+		bool isReady();
+
+		template<typename Func, typename S>
+		Future<S> then(Func &&f);
 
 		template<typename Func>
 		void onComplete(Func &&f); // (D)
 
-		bool isReady();
-
 		template<typename Func>
 		Future<T> guard(Func &&f); // (D)
-
-		template<typename Func, typename S>
-		Future<S> then(Func &&f);
 
 		Future<T> orElse(Future<T> &&other); // (D)
 
 		Future<T> first(Future<T> &&other); // (D)
 
 		Future<T> firstSucc(Future<T> &&other); // (D)
-
-		Future();
-		Future(Future<T> &&other);
-		Future(const Future<T> &other) = delete;
-		Future<T>& operator=(const Future<T> &other) = delete;
-
-		SharedFuture<T> share();
 };
 
 template<typename Func, typename T>
@@ -78,15 +83,6 @@ Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>
 
 template<typename T>
 Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>> &&c, std::size_t n); // (D)
-
-/**
- * \brief Provides a shared future which can be copied around and has multiple read semantics.
- */
-template<typename T>
-class SharedFuture
-{
-	// Provides the same functions and lifts them to unique futures if possible to avoid redundant code.
-};
 
 }
 

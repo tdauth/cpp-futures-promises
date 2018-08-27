@@ -1,7 +1,8 @@
-#ifndef ADV_PROMISEBOOST_H
-#define ADV_PROMISEBOOST_H
+#ifndef ADV_BOOST_PROMISE_H
+#define ADV_BOOST_PROMISE_H
 
-#include "future_boost.h"
+#include "future.h"
+#include "../promise.h"
 
 namespace adv_boost
 {
@@ -10,6 +11,21 @@ template<typename T>
 class Promise
 {
 	public:
+		Promise()
+		{
+		}
+
+		Promise(Promise<T> &&other) : _p(std::move(other._p))
+		{
+		}
+
+		Promise(const Promise<T> &other) = delete;
+		Promise<T>& operator=(const Promise<T> &other) = delete;
+
+		Promise(boost::promise<T> &&p) : _p(std::move(p))
+		{
+		}
+
 		Future<T> future()
 		{
 			return _p.get_future();
@@ -33,7 +49,7 @@ class Promise
 			}
 			catch (...)
 			{
-				this->_p.set_exception(std::current_exception());
+				this->_p.set_exception(std::move(boost::current_exception()));
 			}
 
 			return true;
@@ -44,15 +60,15 @@ class Promise
 			return tryComplete(Try<T>(std::move(v)));
 		}
 
-		bool tryFailure(std::exception_ptr &&e)
+		bool tryFailure(boost::exception_ptr &&e)
 		{
 			return tryComplete(Try<T>(std::move(e)));
 		}
 
 		template<typename Exception>
-		bool tryFailure(Exception e)
+		bool tryFailure(Exception &&e)
 		{
-			return tryFailure(std::make_exception_ptr(std::move(e)));
+			return tryFailure(boost::copy_exception(std::move(e)));
 		}
 
 		void tryCompleteWith(Future<T> &&f)
@@ -92,21 +108,6 @@ class Promise
 					}
 				}
 			);
-		}
-
-		Promise()
-		{
-		}
-
-		Promise(Promise<T> &&other) : _p(std::move(other._p))
-		{
-		}
-
-		Promise(const Promise<T> &other) = delete;
-		Promise<T>& operator=(const Promise<T> &other) = delete;
-
-		Promise(boost::promise<T> &&p) : _p(std::move(p))
-		{
 		}
 
 	private:

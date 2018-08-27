@@ -4,8 +4,8 @@
 #ifndef ADV_ADVANCEDFUTURESBOOST_H
 #define ADV_ADVANCEDFUTURESBOOST_H
 
-#include "future_boost.h"
-#include "promise_boost.h"
-#include "future_boost_impl.h"
+#include "boost/future.h"
+#include "boost/promise.h"
+#include "boost/future_impl.h"
 
 #endif

@@ -1,39 +1,70 @@
-#ifndef ADV_FUTUREBOOST_H
-#define ADV_FUTUREBOOST_H
+#ifndef ADV_BOOST_FUTURE_H
+#define ADV_BOOST_FUTURE_H
 
 #include <type_traits>
-#include <exception>
 
 #include <boost/thread.hpp>
 #include <boost/variant.hpp>
 #include <boost/optional.hpp>
+#include <boost/exception/all.hpp>
 
-#include "extensions.h"
+#include "../future.h"
+#include "../../extensions.h"
 
 namespace adv_boost
 {
-
-class UsingUninitializedTry : public std::exception
-{
-};
 
 template<typename T>
 class Try
 {
 	public:
+		Try()
+		{
+		}
+
+		Try(T &&v) : _v(std::move(v))
+		{
+		}
+
+		Try(boost::exception_ptr &&e) : _v(std::move(e))
+		{
+		}
+
+		Try(Try<T> &&other) : _v(std::move(other._v))
+		{
+		}
+
+		Try(const Try<T> &other) = delete;
+		Try<T>& operator=(const Try<T> &other) = delete;
+
 		T get()
 		{
 			if (_v == boost::none)
 			{
-				throw UsingUninitializedTry();
+				throw adv::UsingUninitializedTry();
 			}
 
 			if (_v.value().which() != 0)
 			{
-				std::rethrow_exception(boost::get<std::exception_ptr>(_v.get()));
+				boost::rethrow_exception(std::move(boost::get<boost::exception_ptr>(std::move(_v.get()))));
 			}
 
-			return std::move(boost::get<T>(_v.value()));
+			return std::move(boost::get<T>(std::move(_v.value())));
+		}
+
+		const T& get() const
+		{
+			if (_v == boost::none)
+			{
+				throw adv::UsingUninitializedTry();
+			}
+
+			if (_v.value().which() != 0)
+			{
+				boost::rethrow_exception(boost::get<boost::exception_ptr>(_v.get()));
+			}
+
+			return boost::get<T>(_v.value());
 		}
 
 		bool hasValue()
@@ -56,23 +87,11 @@ class Try
 			return false;
 		}
 
-		Try()
-		{
-		}
-
-		Try(T &&v) : _v(std::move(v))
-		{
-		}
-
-		Try(std::exception_ptr &&e) : _v(std::move(e))
-		{
-		}
-
 	private:
 		template<typename S>
 		friend class Promise;
 
-		boost::optional<boost::variant<T, std::exception_ptr>> _v;
+		boost::optional<boost::variant<T, boost::exception_ptr>> _v;
 };
 
 template<typename T>
@@ -83,14 +102,14 @@ template<typename Ex>
 class Executor
 {
 	public:
+		Executor(Ex *ex) : _e(ex)
+		{
+		}
+
 		template<typename Func>
 		void submit(Func &&f)
 		{
 			this->_e->submit(std::move(f));
-		}
-
-		Executor(Ex *ex) : _e(ex)
-		{
 		}
 
 	public:
@@ -101,10 +120,6 @@ class Executor
 		Ex *_e;
 };
 
-class PredicateNotFulfilled : public std::exception
-{
-};
-
 template<typename T>
 class SharedFuture;
 
@@ -112,40 +127,31 @@ template<typename T>
 class Future
 {
 	public:
+		Future()
+		{
+		}
+
+		Future(Future<T> &&other) : _f(std::move(other._f))
+		{
+		}
+
+		Future(const Future<T> &other) = delete;
+		Future<T>& operator=(const Future<T> &other) = delete;
+
+		Future(boost::future<T> &&f) : _f(std::move(f))
+		{
+		}
+
+		SharedFuture<T> share();
+
 		T get()
 		{
 			return std::move(_f.get());
 		}
 
-		template<typename Func>
-		void onComplete(Func &&f)
-		{
-			this->then([f = std::move(f)] (Try<T> t) mutable
-				{
-					f(t);
-				}
-			);
-		}
-
 		bool isReady()
 		{
 			return _f.is_ready();
-		}
-
-		template<typename Func>
-		Future<T> guard(Func &&f)
-		{
-			return this->then([f = std::move(f)] (Try<T> t) mutable
-			{
-				auto x = t.get();
-
-				if (!f(x))
-				{
-					throw PredicateNotFulfilled();
-				}
-
-				return x;
-			});
 		}
 
 		template<typename Func>
@@ -157,18 +163,44 @@ class Future
 				{
 					try
 					{
-						T value = future.get();
+						T value = std::move(future.get());
 
 						return S(f(Try<T>(std::move(value))));
 					}
 					catch (...)
 					{
-						return S(f(Try<T>(std::move(std::current_exception()))));
+						return S(f(Try<T>(std::move(boost::current_exception()))));
 					}
 				}
 			);
 
 			return Future<S>(std::move(r));
+		}
+
+		template<typename Func>
+		void onComplete(Func &&f)
+		{
+			this->then([f = std::move(f)] (Try<T> t) mutable
+				{
+					f(std::move(t));
+				}
+			);
+		}
+
+		template<typename Func>
+		Future<T> guard(Func &&f)
+		{
+			return this->then([f = std::move(f)] (Try<T> t) mutable
+			{
+				auto x = std::move(t.get());
+
+				if (!f(x))
+				{
+					throw adv::PredicateNotFulfilled();
+				}
+
+				return x;
+			});
 		}
 
 		Future<T> orElse(Future<T> &&other)
@@ -194,23 +226,6 @@ class Future
 		Future<T> first(Future<T> &&other);
 
 		Future<T> firstSucc(Future<T> &&other);
-
-		Future()
-		{
-		}
-
-		Future(Future<T> &&other) : _f(std::move(other._f))
-		{
-		}
-
-		Future(const Future<T> &other) = delete;
-		Future<T>& operator=(const Future<T> &other) = delete;
-
-		Future(boost::future<T> &&f) : _f(std::move(f))
-		{
-		}
-
-		SharedFuture<T> share();
 
 	private:
 		boost::future<T> _f;

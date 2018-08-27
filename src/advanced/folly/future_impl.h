@@ -1,7 +1,7 @@
-#ifndef ADV_FUTUREFOLLYIMPL_H
-#define ADV_FUTUREFOLLYIMPL_H
+#ifndef ADV_FOLLY_FUTURE_IMPL_H
+#define ADV_FOLLY_FUTURE_IMPL_H
 
-namespace adv
+namespace adv_folly
 {
 
 template<typename T>

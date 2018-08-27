@@ -234,9 +234,9 @@ folly::Future<T> customCollectNWithoutException(std::size_t treeHeight, std::siz
 }
 
 template<typename T, typename Func>
-adv::Future<T> customFollyOrElse(std::size_t treeHeight, std::size_t childNodes, Func f)
+adv_folly::Future<T> customFollyOrElse(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
-	std::vector<adv::Future<T>> v;
+	std::vector<adv_folly::Future<T>> v;
 
 	BENCHMARK_SUSPEND
 	{
@@ -247,7 +247,7 @@ adv::Future<T> customFollyOrElse(std::size_t treeHeight, std::size_t childNodes,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(adv::Future<T>(folly::makeFuture(f())));
+			v.push_back(adv_folly::Future<T>(folly::makeFuture(f())));
 		}
 	}
 	else
@@ -290,9 +290,9 @@ adv_boost::Future<T> customBoostOrElse(std::size_t treeHeight, std::size_t child
 }
 
 template<typename T, typename Func>
-adv::Future<T> customFollyFirst(std::size_t treeHeight, std::size_t childNodes, Func f)
+adv_folly::Future<T> customFollyFirst(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
-	std::vector<adv::Future<T>> v;
+	std::vector<adv_folly::Future<T>> v;
 
 	BENCHMARK_SUSPEND
 	{
@@ -303,7 +303,7 @@ adv::Future<T> customFollyFirst(std::size_t treeHeight, std::size_t childNodes, 
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(adv::Future<T>(folly::makeFuture(f())));
+			v.push_back(adv_folly::Future<T>(folly::makeFuture(f())));
 		}
 	}
 	else
@@ -346,9 +346,9 @@ adv_boost::Future<T> customBoostFirst(std::size_t treeHeight, std::size_t childN
 }
 
 template<typename T, typename Func>
-adv::Future<T> customFollyFirstSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
+adv_folly::Future<T> customFollyFirstSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
-	std::vector<adv::Future<T>> v;
+	std::vector<adv_folly::Future<T>> v;
 
 	BENCHMARK_SUSPEND
 	{
@@ -359,7 +359,7 @@ adv::Future<T> customFollyFirstSucc(std::size_t treeHeight, std::size_t childNod
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(adv::Future<T>(folly::makeFuture(f())));
+			v.push_back(adv_folly::Future<T>(folly::makeFuture(f())));
 		}
 	}
 	else
@@ -402,9 +402,9 @@ adv_boost::Future<T> customBoostFirstSucc(std::size_t treeHeight, std::size_t ch
 }
 
 template<typename T, typename Func>
-adv::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t childNodes, Func f)
+adv_folly::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
-	std::vector<adv::Future<T>> v;
+	std::vector<adv_folly::Future<T>> v;
 
 	BENCHMARK_SUSPEND
 	{
@@ -415,7 +415,7 @@ adv::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t childNodes,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(adv::Future<T>(folly::makeFuture(f())));
+			v.push_back(adv_folly::Future<T>(folly::makeFuture(f())));
 		}
 	}
 	else
@@ -426,7 +426,7 @@ adv::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t childNodes,
 		}
 	}
 
-	return adv::firstN(std::move(v), childNodes).then([] (adv::Try<std::vector<std::pair<std::size_t, adv::Try<T>>>> t) { return t.get()[0].second.get(); });
+	return adv_folly::firstN(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, adv_folly::Try<T>>>> t) { return t.get()[0].second.get(); });
 }
 
 template<typename T, typename Func>
@@ -458,9 +458,9 @@ adv_boost::Future<T> customBoostFirstN(std::size_t treeHeight, std::size_t child
 }
 
 template<typename T, typename Func>
-adv::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
+adv_folly::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNodes, Func f)
 {
-	std::vector<adv::Future<T>> v;
+	std::vector<adv_folly::Future<T>> v;
 
 	BENCHMARK_SUSPEND
 	{
@@ -471,7 +471,7 @@ adv::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNo
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(adv::Future<T>(folly::makeFuture(f())));
+			v.push_back(adv_folly::Future<T>(folly::makeFuture(f())));
 		}
 	}
 	else
@@ -482,7 +482,7 @@ adv::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t childNo
 		}
 	}
 
-	return adv::firstNSucc(std::move(v), childNodes).then([] (adv::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
+	return adv_folly::firstNSucc(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
 }
 
 template<typename T, typename Func>

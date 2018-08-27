@@ -1,11 +1,11 @@
-#ifndef ADV_SHAREDFUTURE_H
-#define ADV_SHAREDFUTURE_H
+#ifndef ADV_FOLLY_SHAREDFUTURE_H
+#define ADV_FOLLY_SHAREDFUTURE_H
 
 #include <folly/futures/SharedPromise.h>
 
-#include "future_folly.h"
+#include "future.h"
 
-namespace adv
+namespace adv_folly
 {
 
 /**

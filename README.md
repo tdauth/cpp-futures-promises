@@ -56,6 +56,8 @@ Folly dependencies on Fedora 25:
 * openssl-devel
 * libevent-devel
 
+These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
+
 ## Motivation
 There is several C++ libraries for futures and promises:
 * C++17 thread support library (standard library)
@@ -69,7 +71,7 @@ Therefore, we need to provide a C++ library with all the missing non-blocking co
 The new library should also clarify the semantics of the different non-blocking combinators as well as shared and non-shared futures and promises.
 
 ## Advanced Futures and Promises
-The project provides advanced futures and promises which are implemented for Folly and Boost.Thread only at the moment.
+The project provides advanced futures and promises which are implemented with the help of Folly and Boost.Thread only at the moment.
 The advanced futures and promises are declared in the namespace `adv` and provide the a basic functionality with extensions
 which are missing from Folly and Scala.
 The following classes and class templates are provided by the library:
@@ -86,8 +88,17 @@ We have written a paper about the advanced futures and promises called [Advanced
 Here are some TODOs for the paper:
 * Improve the description of the C++ syntax.
 * Show examples in other programming languages like ConcurrentML etc. as comparison.
-* Clarify the semantics of `Try`. `Try.get` throws an exception if the object is not initialized yet. Add the type `UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
+* Describe the implementation with the help of Boost.Thread.
+* Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: https://svn.boost.org/trac10/ticket/9710 and https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo
+* Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
+* After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
+* Clarify the semantics of `Try`. `Try.get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
+* The class `Try<T>` has to provide a second method with the signature `const T& get() const`. In C++17 an `std::shared_future::get()` call does also return a const reference. This has to be used for read-many semantics of a shared future (only implemented for Folly at the moment).
+* Delete assignment operator and copy constructor of `Try` and only allow the move constructor. Does this have any disadvantages for shared futures? It should work as long as SharedFuture<T>.get() does only return a const reference.
 * Describe that `tryComplete` does not complete the promise when the `Try` object has not been initialized yet.
+* Add the method `SharedFuture<T> share();` for the later shown SharedFutures to the class `Future`.
+* Unify the order of methods in all shown classes: First constructors and assignment operators, then basic methods and then derived methods.
+* The two derived combinators `firstN` and `firstNSucc` are missing parameter names for the future vectors.
 * The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
 * Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
 * Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly,  Adanced Futures and Promises implemented with Boost.Thread.
@@ -99,7 +110,7 @@ To use them you have to include the file `advanced/advanced_futures_folly.h`.
 The classes wrap classes of Folly itself.
 
 ### Shared Futures for Folly
-The advanced futures provide the shared future class template `adv::SharedFuture<T>`.
+The advanced futures provide the shared future class template `adv_folly::SharedFuture<T>`.
 It allows copying the future around and multiple read semantics with `get` by default.
 It does also allow registering more than one callback.
 It is realized with the help of `folly::SharedPromise<T>` for the implementation of the library with Folly.

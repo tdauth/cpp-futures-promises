@@ -1,15 +1,30 @@
 #ifndef ADV_PROMISEFOLLY_H
 #define ADV_PROMISEFOLLY_H
 
-#include "future_folly.h"
+#include "future.h"
 
-namespace adv
+namespace adv_folly
 {
 
 template<typename T>
 class Promise
 {
 	public:
+		Promise()
+		{
+		}
+
+		Promise(Promise<T> &&other) : _p(std::move(other._p))
+		{
+		}
+
+		Promise(const Promise<T> &other) = delete;
+		Promise<T>& operator=(const Promise<T> &other) = delete;
+
+		Promise(folly::Promise<T> &&p) : _p(std::move(p))
+		{
+		}
+
 		Future<T> future()
 		{
 			return _p.getFuture();
@@ -31,7 +46,7 @@ class Promise
 		}
 
 		template<typename Exception>
-		bool tryFailure(Exception e)
+		bool tryFailure(Exception &&e)
 		{
 			return tryFailure(std::make_exception_ptr(std::move(e)));
 		}
@@ -73,21 +88,6 @@ class Promise
 					}
 				}
 			);
-		}
-
-		Promise()
-		{
-		}
-
-		Promise(Promise<T> &&other) : _p(std::move(other._p))
-		{
-		}
-
-		Promise(const Promise<T> &other) = delete;
-		Promise<T>& operator=(const Promise<T> &other) = delete;
-
-		Promise(folly::Promise<T> &&p) : _p(std::move(p))
-		{
 		}
 
 	private:

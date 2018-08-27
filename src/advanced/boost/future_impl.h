@@ -1,5 +1,5 @@
-#ifndef ADV_FUTUREBOOSTIMPL_H
-#define ADV_FUTUREBOOSTIMPL_H
+#ifndef ADV_BOOST_FUTURE_IMPL_H
+#define ADV_BOOST_FUTURE_IMPL_H
 
 namespace adv_boost
 {

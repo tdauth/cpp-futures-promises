@@ -6,9 +6,11 @@
 
 #include "advanced_futures_folly.h"
 
-void testOnComplete(adv::Executor *ex)
+// TODO Refactor using Boost.Test
+
+void testOnComplete(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f0 = adv::async(ex, [] ()
+	adv_folly::SharedFuture<int> f0 = adv_folly::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -19,7 +21,7 @@ void testOnComplete(adv::Executor *ex)
 	 */
 	for (int i = 0; i < 10; ++i)
 	{
-		f0.onComplete([] (adv::Try<int> t)
+		f0.onComplete([] (adv_folly::Try<int> t)
 			{
 				std::cout << "Result onComplete: " << t.get() << std::endl;
 			}
@@ -27,9 +29,9 @@ void testOnComplete(adv::Executor *ex)
 	}
 }
 
-void testGetAndIsReady(adv::Executor *ex)
+void testGetAndIsReady(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f1 = adv::async(ex, [] ()
+	adv_folly::SharedFuture<int> f1 = adv_folly::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -39,9 +41,9 @@ void testGetAndIsReady(adv::Executor *ex)
 	std::cout << f1.get() << std::endl;
 }
 
-void testGuard(adv::Executor *ex)
+void testGuard(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f2 = adv::async(ex, [] ()
+	adv_folly::SharedFuture<int> f2 = adv_folly::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -50,9 +52,9 @@ void testGuard(adv::Executor *ex)
 	std::cout << "Result guard: " << f2.get() << std::endl;
 }
 
-void testThen(adv::Executor *ex)
+void testThen(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f = adv::SharedFuture<int>(adv::async(ex, [] ()
+	adv_folly::SharedFuture<int> f = adv_folly::SharedFuture<int>(adv_folly::async(ex, [] ()
 		{
 			return 10;
 		}
@@ -61,12 +63,12 @@ void testThen(adv::Executor *ex)
 	/*
 	 * A share future allows multiple registrations of callbacks.
 	 */
-	std::vector<adv::SharedFuture<std::string>> futures;
+	std::vector<adv_folly::SharedFuture<std::string>> futures;
 
 	for (int i = 0; i < 10; ++i)
 	{
 		futures.push_back(
-			f.then([] (adv::Try<int> t)
+			f.then([] (adv_folly::Try<int> t)
 				{
 					if (t.hasValue())
 					{
@@ -85,41 +87,41 @@ void testThen(adv::Executor *ex)
 	}
 }
 
-void testOrElse(adv::Executor *ex)
+void testOrElse(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f0(folly::makeFuture(10));
-	adv::SharedFuture<int> f1(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f0(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f1(folly::makeFuture(10));
 	auto f2 = f0.orElse(std::move(f1));
 	std::cout << "Result orElse: " << f2.get() << std::endl;
 }
 
-void testFirst(adv::Executor *ex)
+void testFirst(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f0(folly::makeFuture(10));
-	adv::SharedFuture<int> f1(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f0(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f1(folly::makeFuture(10));
 	auto f2 = f0.first(std::move(f1));
 	std::cout << "Result first: " << f2.get() << std::endl;
 }
 
-void testFirstSucc(adv::Executor *ex)
+void testFirstSucc(adv_folly::Executor *ex)
 {
-	adv::SharedFuture<int> f0(folly::makeFuture(10));
-	adv::SharedFuture<int> f1(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f0(folly::makeFuture(10));
+	adv_folly::SharedFuture<int> f1(folly::makeFuture(10));
 	auto f2 = f0.firstSucc(std::move(f1));
 	std::cout << "Result firstSucc: " << f2.get() << std::endl;
 }
 
-void testFirstN(adv::Executor *ex)
+void testFirstN(adv_folly::Executor *ex)
 {
-	std::vector<adv::SharedFuture<int>> futures;
+	std::vector<adv_folly::SharedFuture<int>> futures;
 
 	for (int i = 0; i < 10; ++i)
 	{
-		futures.push_back(adv::SharedFuture<int>(adv::async(ex, [] () { return 10; })));
+		futures.push_back(adv_folly::SharedFuture<int>(adv_folly::async(ex, [] () { return 10; })));
 	}
 
-	adv::SharedFuture<std::vector<std::pair<std::size_t, adv::Try<int>>>> f = adv::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, adv::Try<int>>> v = f.get();
+	adv_folly::SharedFuture<std::vector<std::pair<std::size_t, adv_folly::Try<int>>>> f = adv_folly::firstN(std::move(futures), 3);
+	const std::vector<std::pair<std::size_t, adv_folly::Try<int>>> &v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
@@ -127,16 +129,16 @@ void testFirstN(adv::Executor *ex)
 	}
 }
 
-void testFirstNSucc(adv::Executor *ex)
+void testFirstNSucc(adv_folly::Executor *ex)
 {
-	std::vector<adv::SharedFuture<int>> futures;
+	std::vector<adv_folly::SharedFuture<int>> futures;
 
 	for (int i = 0; i < 10; ++i)
 	{
-		futures.push_back(adv::SharedFuture<int>(adv::async(ex, [] () { return 10; })));
+		futures.push_back(adv_folly::SharedFuture<int>(adv_folly::async(ex, [] () { return 10; })));
 	}
 
-	adv::SharedFuture<std::vector<std::pair<std::size_t, int>>> f = adv::firstNSucc(std::move(futures), 3);
+	adv_folly::SharedFuture<std::vector<std::pair<std::size_t, int>>> f = adv_folly::firstNSucc(std::move(futures), 3);
 	std::vector<std::pair<std::size_t, int>> v = f.get();
 
 	for (std::size_t i = 0; i < v.size(); ++i)
@@ -149,11 +151,11 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	adv::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
+	adv_folly::Future<std::string> uniqueF(folly::makeFuture<std::string>("My test value"));
 	/*
 	 * A shared future can be created from a non-shared future.
 	 */
-	adv::SharedFuture<std::string> f(std::move(uniqueF));
+	adv_folly::SharedFuture<std::string> f(std::move(uniqueF));
 
 	/*
 	 * It can be copied around, for example to multiple threads.
@@ -186,7 +188,7 @@ int main(int argc, char *argv[])
 	std::cerr << "Result 0: " << f.get() << std::endl;
 	std::cerr << "Result 1: " << f.get() << std::endl;
 
-	adv::Executor ex(wangle::getCPUExecutor().get());
+	adv_folly::Executor ex(wangle::getCPUExecutor().get());
 
 	testOnComplete(&ex);
 	testGetAndIsReady(&ex);

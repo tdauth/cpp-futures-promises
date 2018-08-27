@@ -4,9 +4,9 @@
 #ifndef ADV_ADVANCEDFUTURESFOLLY_H
 #define ADV_ADVANCEDFUTURESFOLLY_H
 
-#include "future_folly.h"
-#include "promise_folly.h"
-#include "shared_future_folly.h"
-#include "future_folly_impl.h"
+#include "folly/future.h"
+#include "folly/promise.h"
+#include "folly/shared_future.h"
+#include "folly/future_impl.h"
 
 #endif

@@ -1,0 +1,2 @@
+#!/bin/bash
+sudo dnf -y install git cmake gcc-c++ libatomic bash which rpm-build gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel
