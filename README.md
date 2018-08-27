@@ -108,6 +108,7 @@ Here are some TODOs for the paper:
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
 To use them you have to include the file `advanced/advanced_futures_folly.h`.
 The classes wrap classes of Folly itself.
+The Folly implementation uses the namespace `adv_folly` to distinguish it from the Boost.Thread implementation.
 
 ### Shared Futures for Folly
 The advanced futures provide the shared future class template `adv_folly::SharedFuture<T>`.
@@ -121,6 +122,7 @@ To use them you have to include the file `advanced/advanced_futures_boost.h`.
 The classes wrap classes of Boost.Thread itself.
 The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
 The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
+Besides, you have to use `boost::exception_ptr` instead of `std::exception_ptr` with the Boost.Thread implementation.
 
 ## Extensions
 The project does also provide extensions for the libraries Folly and Boost.Thread.
@@ -163,7 +165,8 @@ The project does also provide some of the extensions for Boost.Thread:
 Several unit tests are provided for the extensions to test the functionality.
 Bear in mind that concurrent programs can behave differently every time due to scheduling.
 Therefore, simple unit tests won't proof that there are no bugs.
-The advanced futures and promises implementations are tested in the files [future.cpp](./src/advanced/future.cpp) and [shared_future.cpp](./src/advanced/shared_future.cpp) with the help of Boost.Test.
+The advanced futures and promises implementation with Boost.Thread is tested in the files [future.cpp](./src/advanced/boost/test/future.cpp) and [copy_exception.cpp](./src/advanced/boost/test/copy_exception.cpp) with the help of Boost.Test.
+The advanced futures and promises implementation with Folly is tested in the files [future.cpp](./src/advanced/folly/test/future.cpp) and [shared_future.cpp](./src/advanced/folly/test/shared_future.cpp) with the help of Boost.Test.
 The extensions are tested in the file [extensions.cpp](./src/extensions.cpp).
 
 ## Performance Tests
