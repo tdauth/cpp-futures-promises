@@ -50,46 +50,49 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 	}
 	else
 	{
-		folly::mapSetCallback<T>(first, last, [ctx, n, total] (size_t i, folly::Try<T>&& t)
-			{
-				if (!ctx->p.isFulfilled())
+		for (size_t i = 0; first != last; ++first, ++i)
+		{
+			first->setCallback_([ctx, n, total, i] (folly::Try<T>&& t)
 				{
-					// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
-					if (t.hasException())
+					if (!ctx->p.isFulfilled())
 					{
-						auto c = ++ctx->failed;
-
-						/*
-						 * Since the local variable can never have the counter incremented by more than one,
-						 * we can check for the exact final value and do only one setException call.
-						 */
-						if (total - c + 1 == n)
+						// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
+						if (t.hasException())
 						{
-							ctx->p.setException(t.exception());
-						}
-					}
-					else
-					{
-						auto c = ++ctx->succeeded;
+							auto c = ++ctx->failed;
 
-						if (c <= n)
-						{
 							/*
-							 * This is only thread-safe if it does not reallocate the whole vector.
-							 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
-							 * to protect it from data races.
+							 * Since the local variable can never have the counter incremented by more than one,
+							 * we can check for the exact final value and do only one setException call.
 							 */
-							ctx->v.emplace_back(i, std::move(t.value()));
-
-							if (c == n)
+							if (total - c + 1 == n)
 							{
-								ctx->p.setValue(std::move(ctx->v));
+								ctx->p.setException(t.exception());
+							}
+						}
+						else
+						{
+							auto c = ++ctx->succeeded;
+
+							if (c <= n)
+							{
+								/*
+								 * This is only thread-safe if it does not reallocate the whole vector.
+								 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
+								 * to protect it from data races.
+								 */
+								ctx->v.emplace_back(i, std::move(t.value()));
+
+								if (c == n)
+								{
+									ctx->p.setValue(std::move(ctx->v));
+								}
 							}
 						}
 					}
 				}
-			}
-		);
+			);
+		}
 	}
 
 	return ctx->p.getFuture();
@@ -105,7 +108,7 @@ collectNWithoutException(Collection &&c, size_t n)
 template<typename T>
 folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 {
-	return first.then([second = std::move(second)] (folly::Try<T> t) mutable
+	return std::move(first).then([second = std::move(second)] (folly::Try<T> t) mutable
 		{
 			if (t.hasException())
 			{
@@ -113,7 +116,7 @@ folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 
 				if (second.hasValue())
 				{
-					return second.get();
+					return std::move(second).get();
 				}
 
 				t.exception().throw_exception();
@@ -633,7 +636,7 @@ folly::Future<T> firstOnlySuccRandom(folly::Future<T> &&f1, folly::Future<T> &&f
 template<typename T>
 folly::Future<T> orElseWithoutMove(folly::Future<T> &first, folly::Future<T> &second)
 {
-	return first.then([&second] (folly::Try<T> t) mutable
+	return std::move(first).then([&second] (folly::Try<T> t) mutable
 		{
 			if (t.hasException())
 			{
@@ -641,7 +644,7 @@ folly::Future<T> orElseWithoutMove(folly::Future<T> &first, folly::Future<T> &se
 
 				if (second.hasValue())
 				{
-					return second.get();
+					return std::move(second).get();
 				}
 
 				t.exception().throw_exception();
@@ -714,12 +717,12 @@ folly::Future<T> firstSucc2(folly::Future<T> &&f1, folly::Future<T> &&f2)
 	auto ctx = std::make_shared<FirstSucc2Context>(std::move(f1), std::move(f2));
 	auto future = ctx->p.getFuture();
 
-	auto next1 = ctx->f1.then([ctx] (T v)
+	auto next1 = std::move(ctx->f1).then([ctx] (T v)
 		{
 			tryCompleteSuccess(ctx->p, std::move(v));
 		}
 	);
-	auto next2 = ctx->f2.then([ctx] (T v)
+	auto next2 = std::move(ctx->f2).then([ctx] (T v)
 		{
 			tryCompleteSuccess(ctx->p, std::move(v));
 		}

@@ -1,7 +1,6 @@
 #include <folly/init/Init.h>
 #include <folly/futures/Future.h>
-
-#include <wangle/concurrent/CPUThreadPoolExecutor.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
 
 #include "santa.h"
 
@@ -73,7 +72,7 @@ int main(int argc, char **argv)
 {
 	folly::init(&argc, &argv);
 
-	wangle::CPUThreadPoolExecutor executor(std::thread::hardware_concurrency());
+	folly::CPUThreadPoolExecutor executor(std::thread::hardware_concurrency());
 
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 		);
 
 		auto group = orElse(std::move(reindeer), std::move(elves));
-		auto x = group.then(decideFolly);
+		auto x = std::move(group).then(decideFolly);
 		x.wait();
 		santaDoesWork();
 	}

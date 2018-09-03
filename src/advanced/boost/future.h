@@ -30,12 +30,20 @@ class Try
 		{
 		}
 
+		Try(const Try<T> &other) : _v(other._v)
+		{
+		}
+
 		Try(Try<T> &&other) : _v(std::move(other._v))
 		{
 		}
 
-		Try(const Try<T> &other) = delete;
-		Try<T>& operator=(const Try<T> &other) = delete;
+		Try<T>& operator=(const Try<T> &other)
+		{
+			_v = other._v;
+
+			return *this;
+		}
 
 		T get()
 		{
@@ -146,7 +154,14 @@ class Future
 
 		T get()
 		{
-			return std::move(_f.get());
+			try
+			{
+				return std::move(_f.get());
+			}
+			catch (const boost::broken_promise &e)
+			{
+				throw adv::BrokenPromise();
+			}
 		}
 
 		bool isReady()

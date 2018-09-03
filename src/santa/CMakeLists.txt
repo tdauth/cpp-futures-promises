@@ -5,6 +5,6 @@ target_link_libraries(santa_boost ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(SantaBoost santa_boost)
 
 add_executable(santa_folly santa_folly.cpp)
-add_dependencies(santa_folly boost folly wangle)
-target_link_libraries(santa_folly ${Boost_LIBRARIES} ${folly_LIBRARIES} ${wangle_LIBRARIES})
+add_dependencies(santa_folly boost folly)
+target_link_libraries(santa_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(SantaFolly santa_folly)

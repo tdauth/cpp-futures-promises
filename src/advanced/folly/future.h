@@ -42,12 +42,23 @@ class Try
 			}
 		}
 
+		Try(const Try<T> &other) : _t(other._t)
+		{
+		}
+
 		Try(Try<T> &&other) : _t(std::move(other._t))
 		{
 		}
 
 		Try(folly::Try<T> &&other) : _t(std::move(other))
 		{
+		}
+
+		Try<T>& operator=(const Try<T> &other)
+		{
+			_t = other._t;
+
+			return *this;
 		}
 
 		T get()
@@ -140,7 +151,14 @@ class Future
 
 		T get()
 		{
-			return std::move(_f.get());
+			try
+			{
+				return std::move(std::move(_f).get());
+			}
+			catch (const folly::BrokenPromise &e)
+			{
+				throw adv::BrokenPromise();
+			}
 		}
 
 		bool isReady()
@@ -153,7 +171,7 @@ class Future
 		{
 			using S = typename std::result_of<Func(Try<T>)>::type;
 
-			folly::Future<S> r = _f.then([f = std::move(f)] (folly::Try<T> t) mutable
+			folly::Future<S> r = std::move(_f).then([f = std::move(f)] (folly::Try<T> t) mutable
 				{
 					return S(f(std::move(t)));
 				}

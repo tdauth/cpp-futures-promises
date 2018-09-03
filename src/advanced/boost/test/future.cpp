@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include <boost/thread/executors/basic_thread_pool.hpp>
+#include <boost/thread/executors/inline_executor.hpp>
 
 #include "advanced_futures_boost.h"
 
@@ -70,7 +71,7 @@ BOOST_FIXTURE_TEST_CASE(OnComplete, BoostFixture)
 	BOOST_CHECK_EQUAL(10, v);
 }
 
-BOOST_FIXTURE_TEST_CASE(GetAndIsReady, BoostFixture)
+BOOST_FIXTURE_TEST_CASE(Get, BoostFixture)
 {
 	adv_boost::Future<int> f1 = adv_boost::async(ex, [] ()
 		{
@@ -79,6 +80,18 @@ BOOST_FIXTURE_TEST_CASE(GetAndIsReady, BoostFixture)
 	);
 
 	BOOST_CHECK_EQUAL(10, f1.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(IsReady, BoostFixture)
+{
+	boost::inline_executor inlineExecutor;
+	adv_boost::Executor<boost::inline_executor> ex(&inlineExecutor);
+	adv_boost::Future<int> f1 = adv_boost::async(&ex, [] ()
+		{
+			return 10;
+		}
+	);
+
 	BOOST_CHECK(f1.isReady());
 }
 
@@ -190,6 +203,16 @@ BOOST_FIXTURE_TEST_CASE(FirstNSucc, BoostFixture)
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements 1, 3 and 4
 	// TODO sometimes this test fails with a number of only 2 elements. Due to the exception?
+}
+
+BOOST_FIXTURE_TEST_CASE(BrokenPromise, BoostFixture)
+{
+	adv_boost::Promise<int> *p = new adv_boost::Promise<int>();
+	adv_boost::Future<int> f = p->future();
+	delete p;
+	p = nullptr;
+
+	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
 }
 
 BOOST_FIXTURE_TEST_CASE(TryComplete, BoostFixture)

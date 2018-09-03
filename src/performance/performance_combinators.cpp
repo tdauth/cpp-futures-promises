@@ -3,6 +3,7 @@
 #include <folly/Benchmark.h>
 #include <folly/init/Init.h>
 #include <folly/futures/Future.h>
+#include <folly/executors/InlineExecutor.h>
 
 #include "extensions.h"
 #include "advanced_futures_folly.h"
@@ -66,7 +67,7 @@ folly::Future<T> follyCollect(std::size_t treeHeight, std::size_t childNodes, Fu
 }
 
 template<typename T, typename Func>
-folly::Future<T> follyCollectN(std::size_t treeHeight, std::size_t childNodes, Func f)
+folly::Future<T> follyCollectN(folly::Executor *executor, std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<folly::Future<T>> v;
 
@@ -86,11 +87,11 @@ folly::Future<T> follyCollectN(std::size_t treeHeight, std::size_t childNodes, F
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(follyCollectN<T>(treeHeight - 1, childNodes, f));
+			v.push_back(follyCollectN<T>(executor, treeHeight - 1, childNodes, f));
 		}
 	}
 
-	return folly::collectN(v.begin(), v.end(), childNodes).then([] (std::vector<std::pair<size_t, folly::Try<T>>> v) { return v[0].second.value(); });
+	return folly::collectN(v.begin(), v.end(), childNodes).via(executor).then([] (std::vector<std::pair<size_t, folly::Try<T>>> v) { return v[0].second.value(); });
 }
 
 template<typename T, typename Func>
@@ -530,7 +531,9 @@ BENCHMARK(FollyCollect)
 
 BENCHMARK(FollyCollectN)
 {
-	follyCollectN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	// TODO Why does folly::collectN produce a foilly::SemiFuture and not a folly::Future like the other non-blocking combinators?
+	folly::InlineExecutor ex;
+	follyCollectN<TREE_TYPE>(&ex, TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectAny)

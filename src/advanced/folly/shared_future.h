@@ -44,6 +44,10 @@ class SharedFuture
 				{
 					ctx->ptr->setValue(t.get());
 				}
+				catch (const std::exception &e)
+				{
+					ctx->ptr->setException(folly::exception_wrapper(std::current_exception(), e));
+				}
 				catch (...)
 				{
 					ctx->ptr->setException(folly::exception_wrapper(std::current_exception()));
@@ -67,7 +71,7 @@ class SharedFuture
 		 * Does not move the result value out, neither does copy it to keep the performance.
 		 * This is similar to get() of std::shared_future.
 		 */
-		const T& get()
+		T get()
 		{
 			folly::Future<T> f = this->me->getFuture();
 			f.wait();

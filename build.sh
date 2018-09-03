@@ -26,6 +26,7 @@ rm -r "./Testing" || true
 # Pass longer timeouts since the shared test may take longer especially with a memcheck:
 ctest -T test --timeout 5000
 ctest -T memcheck --timeout 5000
+ctest -T coverage --timeout 5000
 
 # Create a package:
 cpack -G "RPM" .

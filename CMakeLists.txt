@@ -3,8 +3,7 @@ project(cpp-futures-promises)
 
 set(boost_VERSION "1.66.0")
 set(boost_VERSION_UNDERSCORE "1_66_0")
-set(folly_VERSION "v2017.07.24.00")
-set(wangle_VERSION "v2017.07.24.00")
+set(folly_VERSION "v2018.08.27.00")
 
 enable_testing()
 
@@ -71,58 +70,99 @@ ExternalProject_Add_StepDependencies(boost build "${CMAKE_CURRENT_SOURCE_DIR}/bu
 include_directories("${BOOST_INCLUDE_DIR}")
 link_directories("${BOOST_LIB_DIR}")
 
-set(Boost_LIBRARIES "${BOOST_LIB_DIR}/libboost_thread.so" "${BOOST_LIB_DIR}/libboost_system.so" "${BOOST_LIB_DIR}/libboost_chrono.so" "${BOOST_LIB_DIR}/libboost_unit_test_framework.so")
+set(Boost_LIBRARIES
+	"${BOOST_LIB_DIR}/libboost_thread.so"
+	"${BOOST_LIB_DIR}/libboost_system.so"
+	"${BOOST_LIB_DIR}/libboost_chrono.so"
+	"${BOOST_LIB_DIR}/libboost_unit_test_framework.so"
+	# For Folly
+	# context, regex, filesystem and program_options are required by Folly
+	"${BOOST_LIB_DIR}/libboost_context.so"
+	"${BOOST_LIB_DIR}/libboost_regex.so"
+	"${BOOST_LIB_DIR}/libboost_filesystem.so"
+	"${BOOST_LIB_DIR}/libboost_program_options.so"
+)
 
 # Folly
 
 # See https://github.com/facebook/folly/blob/master/README.md for all dependencies which have to be installed on Fedora as well.
+# We have to find several dependencies manually and link them with the static Folly library.
+
 find_library(GLOG_LIBRARY glog)
 
 if (NOT GLOG_LIBRARY)
 	message(FATAL_ERROR "Library glog not found.")
 endif ()
 
-set(folly_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly-prefix/src/folly/folly")
+find_library(GFLAGS_LIBRARY gflags)
+
+if (NOT GFLAGS_LIBRARY)
+	message(FATAL_ERROR "Library gflags not found.")
+endif ()
+
+find_library(DL_LIBRARY dl)
+
+if (NOT DL_LIBRARY)
+	message(FATAL_ERROR "Library dl not found.")
+endif ()
+
+find_library(EVENT_LIBRARY event)
+
+if (NOT EVENT_LIBRARY)
+	message(FATAL_ERROR "Library event not found.")
+endif ()
+
+find_library(EVENT_CORE_LIBRARY event_core)
+
+if (NOT EVENT_CORE_LIBRARY)
+	message(FATAL_ERROR "Library event_core not found.")
+endif ()
+
+find_library(DOUBLE_CONVERSION_LIBRARY double-conversion)
+
+if (NOT DOUBLE_CONVERSION_LIBRARY)
+	message(FATAL_ERROR "Library double-conversion not found.")
+endif ()
+
+find_library(PTHREAD_LIBRARY pthread)
+
+if (NOT PTHREAD_LIBRARY)
+	message(FATAL_ERROR "Library pthread not found.")
+endif ()
+
+set(folly_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly-prefix/src/folly")
 set(folly_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly_install")
+set(folly_BUILD_DIR "${CMAKE_BINARY_DIR}/folly-prefix/src/folly-build")
 set(folly_INCLUDE_DIR "${folly_INSTALL_DIR}/include")
 set(folly_LIB_DIR "${folly_INSTALL_DIR}/lib")
 
 set(folly_LIBRARIES
-	"${folly_LIB_DIR}/libfolly.so"
-	"${folly_LIB_DIR}/libfollybenchmark.so"
-	"${folly_LIB_DIR}/libfollyinit.so"
-	"${folly_LIB_DIR}/libfollylogging.so"
+	"${folly_LIB_DIR}/libfolly.a"
+	"${folly_LIB_DIR}/libfollybenchmark.a"
 	${GLOG_LIBRARY}
+	${GFLAGS_LIBRARY}
+	${DL_LIBRARY}
+	${EVENT_LIBRARY}
+	${EVENT_CORE_LIBRARY}
+	${DOUBLE_CONVERSION_LIBRARY}
+	${PTHREAD_LIBRARY}
 )
 
+# The Boost libraries have to be linked as well with the static Folly library.
+list(APPEND folly_LIBRARIES ${Boost_LIBRARIES})
+
 ExternalProject_Add(folly
-	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
+	# TODO Use the latest release where the bug fix is included: https://github.com/facebook/folly/commit/e9842c1e40d1d3e2a1fac9788e14492055855ea3
+	#URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
+	GIT_REPOSITORY "https://github.com/facebook/folly.git"
 	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${folly_LIB_DIR}/libfolly.so"
+	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${BOOST_INSTALL_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_BUILD_DIR}"
 	DEPENDS boost
 )
 
 include_directories("${folly_INCLUDE_DIR}")
 link_directories("${folly_LIB_DIR}")
-
-# Wangle is required for the Thread Pool Executors which work with Folly
-set(wangle_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/wangle_install")
-set(wangle_BUILD_DIR "${CMAKE_BINARY_DIR}/wangle-prefix/src/wangle-build")
-
-ExternalProject_Add(wangle
-	URL "https://github.com/facebook/wangle/archive/${wangle_VERSION}.tar.gz"
-	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurewangle.sh" "${folly_LIB_DIR}" "${folly_INCLUDE_DIR}" "${BOOST_INSTALL_DIR}" "${wangle_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildwangle.sh" "${wangle_BUILD_DIR}"
-	DEPENDS folly boost
-)
-
-set(wangle_INCLUDE_DIR "${wangle_INSTALL_DIR}/include/")
-set(wangle_LIB_DIR "${wangle_INSTALL_DIR}/lib/")
-set(wangle_LIBRARIES "${wangle_LIB_DIR}/libwangle.so")
-
-include_directories("${wangle_INCLUDE_DIR}")
 
 # The file compile_commands.json is require by clang-check and has to be exported.
 add_definitions(-DCMAKE_EXPORT_COMPILE_COMMANDS=1)

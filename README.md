@@ -27,12 +27,11 @@ The project requires the GCC with C++17 support and CMake to be built.
 The project requires the following libraries:
 * [Boost](http://www.boost.org/)
 * [Folly](https://github.com/facebook/folly)
-* [Wangle](https://github.com/facebook/wangle)
 
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the `CMakeLists.txt` file in the top level directory of the project.
 
-Furthermore, the project requires the following packages on Fedora 25:
+Furthermore, the project requires the following packages on Fedora 27:
 * cmake
 * gcc-c++
 * libatomic
@@ -41,7 +40,7 @@ Furthermore, the project requires the following packages on Fedora 25:
 * rpm-build
 * valgrind
 
-Folly dependencies on Fedora 25:
+Folly dependencies on Fedora 27:
 * glog-devel
 * gflags-devel
 * autoconf
@@ -88,21 +87,48 @@ We have written a paper about the advanced futures and promises called [Advanced
 Here are some TODOs for the paper:
 * Improve the description of the C++ syntax.
 * Show examples in other programming languages like ConcurrentML etc. as comparison.
-* Describe the implementation with the help of Boost.Thread.
-* Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: https://svn.boost.org/trac10/ticket/9710 and https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo
-* Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
-* After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
-* Clarify the semantics of `Try`. `Try.get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
-* The class `Try<T>` has to provide a second method with the signature `const T& get() const`. In C++17 an `std::shared_future::get()` call does also return a const reference. This has to be used for read-many semantics of a shared future (only implemented for Folly at the moment).
-* Delete assignment operator and copy constructor of `Try` and only allow the move constructor. Does this have any disadvantages for shared futures? It should work as long as SharedFuture<T>.get() does only return a const reference.
+* Clarify the semantics of `Try`. `Try::get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
+* Clarify the semantics of `Future::get`, `Future::then`, `Future::guard` etc. which should make the current future invalid (as in Folly). The latest version of Folly requires move semantics on the current future.
+* Apparently, `folly::SharedPromise::getFuture` makes a copy of the result value and therefore requires a copy-constructor for the inner type. It uses the copy constructor of `folly::Try`. Therefore, the signature of `adv_folly::SharedFuture::get` should not return a const reference but a copy since this what you get from Folly. The latest version of Folly returns a `SemiFuture`, so maybe update the whole class template. Besides, the class template `Try` needs a copy-constructor and an assignment operator in its declaration.
 * Describe that `tryComplete` does not complete the promise when the `Try` object has not been initialized yet.
+* Mention that `tryCompleteWith` relies on a longer lifetime of the promise than the future. What happens if the promise is destructed before the future is completed? Note that the implementation calls `onComplete` on the given future parameter and simply passes a copy of `this` (the promise). This pointer should become invalid when the promise is destructed. Fix the implementation by using a safe pointer which is set to null when the promise is destructed! Create a unit test for this case.
+* Define a class `adv::BrokenPromise` exception which is thrown when `get` is called but the promise is destructed before completing the future.
 * Add the method `SharedFuture<T> share();` for the later shown SharedFutures to the class `Future`.
 * Unify the order of methods in all shown classes: First constructors and assignment operators, then basic methods and then derived methods.
 * The two derived combinators `firstN` and `firstNSucc` are missing parameter names for the future vectors.
 * The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
 * Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
+
+#### Boost.Thread Implementation
+* Describe the implementation with the help of Boost.Thread.
+* Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: https://svn.boost.org/trac10/ticket/9710 and https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo
+
+#### Folly Changes
+* Consider the updated Folly library which does now provide the type `folly::SemiFuture` and the executors which previously belonged to Wangle.
+* The changes of Folly do also include changes of the non-blocking combinators such as `collectN` where the data race bug probably has been removed with the current implementation. Recheck it!
+* Consider the following changes in the latest Folly version (done in August 2018):
+```
+[[deprecated("must be rvalue-qualified, e.g., std::move(future).get()")]] T
+get() & = delete;
+```
+And also the following change:
+```
+template <typename F, typename R = futures::detail::callableResult<T, F>>
+  [[deprecated("must be rvalue-qualified, e.g., std::move(future).then(...)")]]
+      typename R::Return
+then(F&& func) & = delete;
+```
+* Besides, `folly::Future::filter` moves the current future and makes it invalid, too.
+* `folly::Timeout` has been replaced by `folly::FutureTimeout`.
+* The latest README.md file can be found [here](https://github.com/facebook/folly/blob/master/folly/docs/Futures.md) rather than in the futures source code directory.
+
+#### Performance Analysis
 * Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly,  Adanced Futures and Promises implemented with Boost.Thread.
 * Test several executors in the empirical results section to show the usage of multiple cores.
+
+#### Better Abstraction
+* Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
+* After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
 
 ### Folly Implementation
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
@@ -155,7 +181,7 @@ The project provides extensions for promises which do exist in Scala but are mis
 
 ### Future Extensions for Boost.Thread
 The project does also provide some of the extensions for Boost.Thread:
-* `orElse - The same as `fallbackTo` in Scala.
+* `orElse` - The same as `fallbackTo` in Scala.
 * `whenN` - The same as `folly::collectN` but with `boost::future` instances in the resulting vector.
 * `whenNSucc` - The same as `collectNWithoutException`.
 * `whenAny` - Returns a future containing a pair of the completed future and its index similar to `folly::collectAny`. Boost.Thread's `boost::when_any` returns a future with the whole collection of futures instead.

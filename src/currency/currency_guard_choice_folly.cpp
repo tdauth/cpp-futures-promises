@@ -1,6 +1,6 @@
 #include <folly/init/Init.h>
 #include <folly/futures/Future.h>
-#include <wangle/concurrent/GlobalExecutor.h>
+#include <folly/executors/GlobalExecutor.h>
 
 #include "currency.h"
 
@@ -8,14 +8,14 @@ int main(int argc, char *argv[])
 {
 	folly::init(&argc, &argv);
 
-	folly::Future<double> rateQuoteEUR = folly::via(wangle::getCPUExecutor().get(),
+	folly::Future<double> rateQuoteEUR = folly::via(folly::getCPUExecutor().get(),
 		[] ()
 		{
 			return currentValue(USD, EUR);
 		}
 	);
 
-	folly::Future<Transaction> purchaseEUR = rateQuoteEUR
+	folly::Future<Transaction> purchaseEUR = std::move(rateQuoteEUR)
 		.filter(isProfitable)
 		.then([] (double v)
 			{
@@ -23,14 +23,14 @@ int main(int argc, char *argv[])
 			}
 		);
 
-	folly::Future<double> rateQuoteCHF = folly::via(wangle::getCPUExecutor().get(),
+	folly::Future<double> rateQuoteCHF = folly::via(folly::getCPUExecutor().get(),
 		[] ()
 		{
 			return currentValue(USD, CHF);
 		}
 	);
 
-	folly::Future<Transaction> purchaseCHF = rateQuoteCHF
+	folly::Future<Transaction> purchaseCHF = std::move(rateQuoteCHF)
 		.filter(isProfitable)
 		.then([] (double v)
 			{

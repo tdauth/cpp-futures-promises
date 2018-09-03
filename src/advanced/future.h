@@ -34,6 +34,13 @@ class Executor
 		void submit(Func &&f);
 };
 
+/**
+ * \brief This exception is thrown when the result of a future is retrieved but the corresponding promise has already been deleted before completing the future meaning the future would never be completed by the promise.
+ */
+class BrokenPromise : public std::exception
+{
+};
+
 class PredicateNotFulfilled : public std::exception
 {
 };

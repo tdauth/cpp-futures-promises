@@ -5,18 +5,15 @@
 #error Define BOOST_TEST_DYN_LINK for proper definition of main function.
 #endif
 
-#include <iostream>
-
 #include <folly/init/Init.h>
-
-#include <wangle/concurrent/GlobalExecutor.h>
+#include <folly/executors/CPUThreadPoolExecutor.h>
 
 #include "folly_fixture.h"
 #include "advanced_futures_folly.h"
 
 struct Fixture
 {
-	Fixture() : ex(new adv_folly::Executor(wangle::getCPUExecutor().get()))
+	Fixture() : cpuExecutor(new folly::CPUThreadPoolExecutor(std::thread::hardware_concurrency())), ex(new adv_folly::Executor(cpuExecutor))
 	{
 	}
 
@@ -24,8 +21,11 @@ struct Fixture
 	{
 		delete ex;
 		ex = nullptr;
+		delete cpuExecutor;
+		cpuExecutor = nullptr;
 	}
 
+	folly::CPUThreadPoolExecutor *cpuExecutor;
 	adv_folly::Executor *ex;
 };
 
@@ -70,7 +70,7 @@ BOOST_FIXTURE_TEST_CASE(OnComplete, Fixture)
 	BOOST_CHECK_EQUAL(10, v);
 }
 
-BOOST_FIXTURE_TEST_CASE(GetAndIsReady, Fixture)
+BOOST_FIXTURE_TEST_CASE(Get, Fixture)
 {
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] ()
 		{
@@ -79,6 +79,18 @@ BOOST_FIXTURE_TEST_CASE(GetAndIsReady, Fixture)
 	);
 
 	BOOST_CHECK_EQUAL(10, f1.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(IsReady, Fixture)
+{
+	folly::InlineExecutor inlineExecutor;
+	adv_folly::Executor ex(&inlineExecutor);
+	adv_folly::Future<int> f1 = adv_folly::async(&ex, [] ()
+		{
+			return 10;
+		}
+	);
+
 	BOOST_CHECK(f1.isReady());
 }
 
@@ -191,6 +203,16 @@ BOOST_FIXTURE_TEST_CASE(FirstNSucc, Fixture)
 	// TODO check for elements 1, 3 and 4
 }
 
+BOOST_FIXTURE_TEST_CASE(BrokenPromise, Fixture)
+{
+	adv_folly::Promise<int> *p = new adv_folly::Promise<int>();
+	adv_folly::Future<int> f = p->future();
+	delete p;
+	p = nullptr;
+
+	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
+}
+
 BOOST_FIXTURE_TEST_CASE(TryComplete, Fixture)
 {
 	adv_folly::Promise<int> p;
@@ -242,6 +264,24 @@ BOOST_FIXTURE_TEST_CASE(TryCompleteWith, Fixture)
 	p.tryCompleteWith(std::move(completingFuture));
 
 	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+/**
+ * The promise is released before onComplete is called for the future.
+ * Make sure that it just simply does not try to complete the release promise.
+ */
+BOOST_FIXTURE_TEST_CASE(TryCompleteWithPromiseIsReleasedBeforeOnComplete, Fixture)
+{
+	adv_folly::Promise<int> *p = new adv_folly::Promise<int>();
+	adv_folly::Future<int> f = p->future();
+	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { std::this_thread::sleep_for(std::chrono::seconds(5)); return 10; });
+
+	p->tryCompleteWith(std::move(completingFuture));
+
+	delete p;
+	p = nullptr;
+
+	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
 }
 
 BOOST_FIXTURE_TEST_CASE(TrySuccessWith, Fixture)
