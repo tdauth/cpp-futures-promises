@@ -10,6 +10,8 @@ The project does also provide extensions of C++ futures and promises based on C+
 The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
 Some use cases have been implemented to demonstrate the extensions.
 
+[TOC]
+
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
 
@@ -57,7 +59,7 @@ Folly dependencies on Fedora 27:
 
 These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
 
-## Motivation
+## State of the Art
 There is several C++ libraries for futures and promises:
 * C++17 thread support library (standard library)
 * Boost.Thread
@@ -87,8 +89,9 @@ We have written a paper about the advanced futures and promises called [Advanced
 Here are some TODOs for the paper:
 * Improve the description of the C++ syntax.
 * Show examples in other programming languages like ConcurrentML etc. as comparison.
-* Clarify the semantics of `Try`. `Try::get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty.
+* Clarify the semantics of `Try`. `Try::get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty. What happens if `hasValue` and `hasException` are called? They should return `false` if the Try instance is empty. Make sure that `tryComplete` does also complete the promise/future with this exception when an empty Try is passed.
 * Clarify the semantics of `Future::get`, `Future::then`, `Future::guard` etc. which should make the current future invalid (as in Folly). The latest version of Folly requires move semantics on the current future.
+* Make sure that the second `get` call throws a not initialized exception (`adv::UsingUninitializedTry`? Or another exception type?)
 * Apparently, `folly::SharedPromise::getFuture` makes a copy of the result value and therefore requires a copy-constructor for the inner type. It uses the copy constructor of `folly::Try`. Therefore, the signature of `adv_folly::SharedFuture::get` should not return a const reference but a copy since this what you get from Folly. The latest version of Folly returns a `SemiFuture`, so maybe update the whole class template. Besides, the class template `Try` needs a copy-constructor and an assignment operator in its declaration.
 * Describe that `tryComplete` does not complete the promise when the `Try` object has not been initialized yet.
 * Mention that `tryCompleteWith` relies on a longer lifetime of the promise than the future. What happens if the promise is destructed before the future is completed? Note that the implementation calls `onComplete` on the given future parameter and simply passes a copy of `this` (the promise). This pointer should become invalid when the promise is destructed. Fix the implementation by using a safe pointer which is set to null when the promise is destructed! Create a unit test for this case.
@@ -98,6 +101,8 @@ Here are some TODOs for the paper:
 * The two derived combinators `firstN` and `firstNSucc` are missing parameter names for the future vectors.
 * The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
 * Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
+* What about possible timeouts? For example if `firstSucc` leads to a future which is never completed since both futures fail? Should it not fail with the final failure?
+* Since it is allowed to register only one callback per future, it should move out the state and maybe use && similiar to Folly which would require a `std::move` on every future.
 
 #### Boost.Thread Implementation
 * Describe the implementation with the help of Boost.Thread.
@@ -123,12 +128,18 @@ then(F&& func) & = delete;
 * The latest README.md file can be found [here](https://github.com/facebook/folly/blob/master/folly/docs/Futures.md) rather than in the futures source code directory.
 
 #### Performance Analysis
-* Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly,  Adanced Futures and Promises implemented with Boost.Thread.
+* Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly, Adanced Futures and Promises implemented with Boost.Thread.
 * Test several executors in the empirical results section to show the usage of multiple cores.
+* Produce longer durations rather than small ms durations.
 
 #### Better Abstraction
 * Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
 * After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
+
+#### New Features
+Maybe add the new derived methods to `adv::Future`:
+* `onSuccess`: Registers a callback which takes the successful result value. If the future has failed, it is not called. This method could be used in listing 4 to simplify the code.
+* `onFail`: Takes the failed exception. If the future has been completed successfully, it is not called.
 
 ### Folly Implementation
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
