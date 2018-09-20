@@ -36,6 +36,7 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 		}
 
 		V v;
+		std::atomic<size_t> vectorSize = {0};
 		std::atomic<size_t> succeeded = {0};
 		std::atomic<size_t> failed = {0};
 		folly::Promise<V> p;
@@ -82,8 +83,12 @@ collectNWithoutException(InputIterator first, InputIterator last, size_t n)
 								 * to protect it from data races.
 								 */
 								ctx->v.emplace_back(i, std::move(t.value()));
+								/**
+								 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
+								 */
+								auto s = ++ctx->vectorSize;
 
-								if (c == n)
+								if (s == n)
 								{
 									ctx->p.setValue(std::move(ctx->v));
 								}
@@ -197,26 +202,38 @@ whenN(InputIterator first, InputIterator last, std::size_t n)
 
 	struct WhenNContext
 	{
-		std::mutex m;
+		/*
+		 * Reserve enough space for the vector, so emplace_back won't modify the whole vector and stays thread-safe.
+		 * Folly doesn't do this for folly::collectN which should lead to data races when the vector has a capacity smaller than n.
+		 * See the following link (section Data races): http://www.cplusplus.com/reference/vector/vector/emplace_back/
+		 */
+		WhenNContext(std::size_t n)
+		{
+			v.reserve(n);
+		}
+
 		result_type v;
-		size_t completed = {0};
+		std::atomic<size_t> vectorSize = {0};
+		std::atomic<size_t> completed = {0};
 		boost::promise<result_type> p;
 	};
 
-	auto ctx = std::make_shared<WhenNContext>();
+	auto ctx = std::make_shared<WhenNContext>(n);
 
 	mapSetCallbackBoost<future_value_type>(first, last, [ctx, n] (std::size_t i, future_type f)
 		{
-			std::unique_lock<std::mutex> l(ctx->m);
-
 			auto c = ++ctx->completed;
 
 			if (c <= n)
 			{
 				assert(ctx->v.size() < n);
 				ctx->v.emplace_back(i, std::move(f));
+				/**
+				 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
+				 */
+				auto s = ++ctx->vectorSize;
 
-				if (c == n)
+				if (s == n)
 				{
 					ctx->p.set_value(std::move(ctx->v));
 				}
@@ -246,15 +263,24 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 
 	struct WhenNSuccContext
 	{
-		std::mutex m;
+		/*
+		 * Reserve enough space for the vector, so emplace_back won't modify the whole vector and stays thread-safe.
+		 * Folly doesn't do this for folly::collectN which should lead to data races when the vector has a capacity smaller than n.
+		 * See the following link (section Data races): http://www.cplusplus.com/reference/vector/vector/emplace_back/
+		 */
+		WhenNSuccContext(std::size_t n)
+		{
+			v.reserve(n);
+		}
+
 		result_type v;
-		size_t completed = {0};
-		size_t failed = {0};
+		std::atomic<std::size_t> vectorSize = {0};
+		std::atomic<std::size_t> completed = {0};
+		std::atomic<std::size_t> failed = {0};
 		boost::promise<result_type> p;
-		bool done = {false};
 	};
 
-	auto ctx = std::make_shared<WhenNSuccContext>();
+	auto ctx = std::make_shared<WhenNSuccContext>(n);
 	const size_t total = std::distance(first, last);
 
 	if (total < n)
@@ -265,23 +291,17 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 	{
 		mapSetCallbackBoost<future_value_type>(first, last, [ctx, n, total] (std::size_t i, future_type f)
 			{
-				std::unique_lock<std::mutex> l(ctx->m);
-
 				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
 				if (f.has_exception())
 				{
-					if (!ctx->done)
-					{
-						auto c = ++ctx->failed;
+					auto c = ++ctx->failed;
 
-						if (total - c + 1 == n)
-						{
-							ctx->done = true;
-							ctx->p.set_exception(f.get_exception_ptr());
-						}
+					if (total - c + 1 == n)
+					{
+						ctx->p.set_exception(f.get_exception_ptr());
 					}
 				}
-				else if (!ctx->done)
+				else
 				{
 					auto c = ++ctx->completed;
 
@@ -289,10 +309,13 @@ whenNSucc(InputIterator first, InputIterator last, std::size_t n)
 					{
 						assert(ctx->v.size() < n);
 						ctx->v.emplace_back(i, std::move(f.get()));
+						/**
+						 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
+						 */
+						auto s = ++ctx->vectorSize;
 
-						if (c == n)
+						if (s == n)
 						{
-							ctx->done = true;
 							ctx->p.set_value(std::move(ctx->v));
 						}
 					}

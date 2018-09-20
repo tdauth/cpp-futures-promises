@@ -82,8 +82,8 @@ Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>
 		}
 
 		V v;
+		std::atomic<std::size_t> vectorSize = {0};
 		std::atomic<std::size_t> completed = {0};
-		std::atomic<bool> done = {false};
 		Promise<V> p;
 	};
 
@@ -102,24 +102,24 @@ Future<std::vector<std::pair<std::size_t, Try<T>>>> firstN(std::vector<Future<T>
 		{
 			it->onComplete([ctx, n, total, i] (Try<T> t)
 			{
-				if (!ctx->done)
+				auto c = ++ctx->completed;
+
+				if (c <= n)
 				{
-					auto c = ++ctx->completed;
+					/*
+					 * This is only thread-safe if it does not reallocate the whole vector.
+					 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
+					 * to protect it from data races.
+					 */
+					ctx->v.emplace_back(i, std::move(t));
+					/**
+					 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
+					 */
+					auto s = ++ctx->vectorSize;
 
-					if (c <= n)
+					if (s == n)
 					{
-						/*
-						 * This is only thread-safe if it does not reallocate the whole vector.
-						 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
-						 * to protect it from data races.
-						 */
-						ctx->v.emplace_back(i, std::move(t));
-
-						if (c == n)
-						{
-							ctx->p.trySuccess(std::move(ctx->v));
-							ctx->done = true;
-						}
+						ctx->p.trySuccess(std::move(ctx->v));
 					}
 				}
 			});
@@ -147,9 +147,9 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 		}
 
 		V v;
+		std::atomic<std::size_t> vectorSize = {0};
 		std::atomic<std::size_t> succeeded = {0};
 		std::atomic<std::size_t> failed = {0};
-		std::atomic<bool> done = {false};
 		Promise<V> p;
 	};
 
@@ -168,49 +168,47 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 		{
 			it->onComplete([ctx, n, total, i] (Try<T> t)
 			{
-				if (!ctx->done)
+				// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
+				if (t.hasException())
 				{
-					// ignore exceptions until as many futures failed that n futures cannot be completed successfully anymore
-					if (t.hasException())
+					auto c = ++ctx->failed;
+
+					/*
+					 * Since the local variable can never have the counter incremented by more than one,
+					 * we can check for the exact final value and do only one setException call.
+					 */
+					if (total - c + 1 == n)
 					{
-						auto c = ++ctx->failed;
-
-						/*
-						 * Since the local variable can never have the counter incremented by more than one,
-						 * we can check for the exact final value and do only one setException call.
-						 */
-						if (total - c + 1 == n)
+						try
 						{
-							try
-							{
-								t.get();
-							}
-							catch (...)
-							{
-								ctx->p.tryFailure(std::current_exception());
-							}
-
-							ctx->done = true;
+							t.get();
+						}
+						catch (...)
+						{
+							ctx->p.tryFailure(std::current_exception());
 						}
 					}
-					else
+				}
+				else
+				{
+					auto c = ++ctx->succeeded;
+
+					if (c <= n)
 					{
-						auto c = ++ctx->succeeded;
+						/*
+						 * This is only thread-safe if it does not reallocate the whole vector.
+						 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
+						 * to protect it from data races.
+						 */
+						ctx->v.emplace_back(i, std::move(t.get()));
+						/**
+						 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
+						 */
+						auto s = ++ctx->vectorSize;
 
-						if (c <= n)
+						if (s == n)
 						{
-							/*
-							 * This is only thread-safe if it does not reallocate the whole vector.
-							 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
-							 * to protect it from data races.
-							 */
-							ctx->v.emplace_back(i, std::move(t.get()));
-
-							if (c == n)
-							{
-								ctx->p.trySuccess(std::move(ctx->v));
-								ctx->done = true;
-							}
+							ctx->p.trySuccess(std::move(ctx->v));
 						}
 					}
 				}

@@ -97,13 +97,24 @@ BOOST_FIXTURE_TEST_CASE(IsReady, BoostFixture)
 
 BOOST_FIXTURE_TEST_CASE(Guard, BoostFixture)
 {
-	adv_boost::Future<int> f2 = adv_boost::async(ex, [] ()
+	adv_boost::Future<int> f = adv_boost::async(ex, [] ()
 		{
 			return 10;
 		}
 	).guard([] (const int &v) { return v == 10; });
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(GuardFails, BoostFixture)
+{
+	adv_boost::Future<int> f = adv_boost::async(ex, [] ()
+		{
+			return 10;
+		}
+	).guard([] (const int &v) { return v != 10; });
+
+	BOOST_CHECK_THROW(f.get(), adv::PredicateNotFulfilled);
 }
 
 BOOST_FIXTURE_TEST_CASE(Then, BoostFixture)

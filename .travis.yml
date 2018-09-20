@@ -7,7 +7,7 @@ services:
 before_install:
   - docker pull fedora:27
   - docker ps -a
-  - docker run fedora:27 /bin/sh -c "cd /root; dnf -y install git bash; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./install_fedora_dependencies.sh; bash ./build.sh"
+  - docker run fedora:27 /bin/sh -c "cd /root; dnf -y install git bash; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./install_fedora_dependencies.sh; bash ./build.sh; bash ./build_coverage.sh; bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports""
 # Use a script to disable the default automake build:
 script:
   - ls

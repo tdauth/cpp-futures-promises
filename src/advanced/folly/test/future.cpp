@@ -96,13 +96,24 @@ BOOST_FIXTURE_TEST_CASE(IsReady, Fixture)
 
 BOOST_FIXTURE_TEST_CASE(Guard, Fixture)
 {
-	adv_folly::Future<int> f2 = adv_folly::async(ex, [] ()
+	adv_folly::Future<int> f = adv_folly::async(ex, [] ()
 		{
 			return 10;
 		}
 	).guard([] (const int &v) { return v == 10; });
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(GuardFails, Fixture)
+{
+	adv_folly::Future<int> f = adv_folly::async(ex, [] ()
+		{
+			return 10;
+		}
+	).guard([] (const int &v) { return v != 10; });
+
+	BOOST_CHECK_THROW(f.get(), adv::PredicateNotFulfilled);
 }
 
 BOOST_FIXTURE_TEST_CASE(Then, Fixture)

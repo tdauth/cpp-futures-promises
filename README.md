@@ -41,6 +41,7 @@ Furthermore, the project requires the following packages on Fedora 27:
 * which
 * rpm-build
 * valgrind
+* lcov
 
 Folly dependencies on Fedora 27:
 * glog-devel
@@ -101,12 +102,13 @@ Here are some TODOs for the paper:
 * The two derived combinators `firstN` and `firstNSucc` are missing parameter names for the future vectors.
 * The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
 * Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
+* Update the implementations of `firstN` and `firstNSucc` which had a possible data race when completing the promise with the vector.
 * What about possible timeouts? For example if `firstSucc` leads to a future which is never completed since both futures fail? Should it not fail with the final failure?
 * Since it is allowed to register only one callback per future, it should move out the state and maybe use && similiar to Folly which would require a `std::move` on every future.
 
 #### Boost.Thread Implementation
 * Describe the implementation with the help of Boost.Thread.
-* Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: https://svn.boost.org/trac10/ticket/9710 and https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo
+* Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: <https://svn.boost.org/trac10/ticket/9710> and <https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo>
 
 #### Folly Changes
 * Consider the updated Folly library which does now provide the type `folly::SemiFuture` and the executors which previously belonged to Wangle.

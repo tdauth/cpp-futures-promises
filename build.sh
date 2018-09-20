@@ -7,9 +7,6 @@ fi
 CC="/usr/bin/gcc"
 CXX="/usr/bin/g++"
 
-echo "CC is set to $CC"
-echo "CXX is set to $CXX"
-
 # Configure and build everything:
 cd ./build
 # Create a "compile_commands.json" file for analysis: http://eli.thegreenplace.net/2014/05/21/compilation-databases-for-clang-based-tools
@@ -26,7 +23,6 @@ rm -r "./Testing" || true
 # Pass longer timeouts since the shared test may take longer especially with a memcheck:
 ctest -T test --timeout 5000
 ctest -T memcheck --timeout 5000
-ctest -T coverage --timeout 5000
 
 # Create a package:
 cpack -G "RPM" .
