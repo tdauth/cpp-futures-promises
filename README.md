@@ -1,12 +1,12 @@
-# cpp-futures-promises
-The project provides an advanced futures and promises API based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
+# Advanced Futures and Promises with C++
+This project provides an advanced futures and promises API based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 The API offers functions which are missing from other C++ futures and promises APIs.
 It is implemented with the help of only a few basic functions which allows a much easier adaption to other libraries.
 Currently, the API has two different reference implementations which use the following two C++ libraries:
 * [Boost.Thread](https://github.com/boostorg/thread)
 * [Folly](https://github.com/facebook/folly)
 
-The project does also provide extensions of C++ futures and promises based on C++17, Boost.Thread and Folly.
+The project does also provide extensions for C++ futures and promises in C++17, Boost.Thread and Folly.
 The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
 Some use cases have been implemented to demonstrate the extensions.
 
@@ -14,9 +14,14 @@ Some use cases have been implemented to demonstrate the extensions.
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
 
 ## Manual Build
-To compile the project run the following script on Linux:
-`bash ./build.sh`
-It will compile the project, run all unit tests.
+To compile the project run one of the the following Bash scripts on Linux:
+* [build.sh](./build.sh)
+* [buildcoverage.sh](./buildcoverage.sh)
+* [buildrelease.sh](./buildrelease.sh)
+
+They will compile the project.
+The first two will run all unit tests.
+The third will create an RPM package.
 Note that all targets are added as CTest unit tests which simplifies their execution.
 The dependencies will be downloaded and compiled automatically.
 Therefore, you need Internet access when building for the first time.
@@ -29,7 +34,7 @@ The project requires the following libraries:
 * [Folly](https://github.com/facebook/folly)
 
 It will download and compile these libraries automatically when being compiled.
-The versions of the libraries are specified in the `CMakeLists.txt` file in the top level directory of the project.
+The versions of the libraries are specified in the [CMakeLists.txt](./CMakeLists.txt) file in the top level directory of the project.
 
 Furthermore, the project requires the following packages on Fedora 27:
 * cmake
