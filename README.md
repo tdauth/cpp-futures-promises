@@ -45,6 +45,8 @@ Furthermore, the project requires the following packages on Fedora 27:
 * rpm-build
 * valgrind
 * lcov
+* cppcheck
+* cppcheck-htmlreport
 
 Folly dependencies on Fedora 27:
 * glog-devel
