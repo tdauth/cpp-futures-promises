@@ -1,5 +1,5 @@
-#ifndef TREE_H
-#define TREE_H
+#ifndef PERFORMANCE_TREE_H
+#define PERFORMANCE_TREE_H
 
 /**
  * \brief Simple calculation of the power at compile time.

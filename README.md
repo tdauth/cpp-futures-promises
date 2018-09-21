@@ -10,17 +10,15 @@ The project does also provide extensions of C++ futures and promises based on C+
 The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
 Some use cases have been implemented to demonstrate the extensions.
 
-[TOC]
-
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
 
 ## Manual Build
 To compile the project run the following script on Linux:
 `bash ./build.sh`
-It will compile the project, run all unit tests and create an RPM package.
-Note that all targets are added as CTest unit tests which makes their execution easier.
-The dependencies will be downloaded automatically.
+It will compile the project, run all unit tests.
+Note that all targets are added as CTest unit tests which simplifies their execution.
+The dependencies will be downloaded and compiled automatically.
 Therefore, you need Internet access when building for the first time.
 
 ## Dependencies
@@ -145,7 +143,7 @@ Maybe add the new derived methods to `adv::Future`:
 
 ### Folly Implementation
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
-To use them you have to include the file `advanced/advanced_futures_folly.h`.
+To use them you have to include the file [advanced/advanced_futures_folly.h](./src/advanced/advanced_futures_folly.h).
 The classes wrap classes of Folly itself.
 The Folly implementation uses the namespace `adv_folly` to distinguish it from the Boost.Thread implementation.
 
@@ -157,7 +155,7 @@ It is realized with the help of `folly::SharedPromise<T>` for the implementation
 
 ### Boost.Thread Implementation
 The advanced futures and promises are also implemented for the library Boost.Thread in this project since it provides another extended interface for futures and promises in C++.
-To use them you have to include the file `advanced/advanced_futures_boost.h`.
+To use them you have to include the file [advanced/advanced_futures_boost.h](./src/advanced/advanced_futures_boost.h).
 The classes wrap classes of Boost.Thread itself.
 The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
 The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
@@ -165,7 +163,7 @@ Besides, you have to use `boost::exception_ptr` instead of `std::exception_ptr` 
 
 ## Extensions
 The project does also provide extensions for the libraries Folly and Boost.Thread.
-The use them include the header `extensions.h`.
+The use them include the header [extensions.h](./src/extensions.h).
 
 ### Future Extensions for Folly
 The project provides a number of non-blocking combinators which are missing from the existing C++ libraries:
