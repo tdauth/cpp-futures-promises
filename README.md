@@ -108,7 +108,6 @@ Here are some TODOs for the paper:
 * The `Executor` type has to be usable for Boost.Thread which requires the template type of the used executor or hide the template type in the Boost.Thread implementation.
 * Update the line `ctx−>v.emplace_back(i, std::move(t.get()));` of the `firstN` implementation. It should be `ctx−>v.emplace_back(i, std::move(t));` instead.
 * Update the implementations of `firstN` and `firstNSucc` which had a possible data race when completing the promise with the vector.
-* What about possible timeouts? For example if `firstSucc` leads to a future which is never completed since both futures fail? Should it not fail with the final failure?
 * Since it is allowed to register only one callback per future, it should move out the state and maybe use && similiar to Folly which would require a `std::move` on every future.
 * Instead of `then` we can use `onComplete` as basic method.
 * The Scala FP `find` is implemented the way that one future after another is searched for the result. Hence, it cannot be used to implement `firstSucc` with a guard. TODO Look again at the implementation.
@@ -142,6 +141,10 @@ then(F&& func) & = delete;
 * Produce longer durations rather than small ms durations.
 
 #### Better Abstraction
+These changes bring a lot of performance issues with them.
+You should look into Rust futures which use traits -> more like template meta programming.
+Maybe this approach would be better to avoid virtual methods and heap allocation.
+
 * Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
 * After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
 
