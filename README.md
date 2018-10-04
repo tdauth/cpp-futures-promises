@@ -110,6 +110,8 @@ Here are some TODOs for the paper:
 * Update the implementations of `firstN` and `firstNSucc` which had a possible data race when completing the promise with the vector.
 * What about possible timeouts? For example if `firstSucc` leads to a future which is never completed since both futures fail? Should it not fail with the final failure?
 * Since it is allowed to register only one callback per future, it should move out the state and maybe use && similiar to Folly which would require a `std::move` on every future.
+* Instead of `then` we can use `onComplete` as basic method.
+* The Scala FP `find` is implemented the way that one future after another is searched for the result. Hence, it cannot be used to implement `firstSucc` with a guard. TODO Look again at the implementation.
 
 #### Boost.Thread Implementation
 * Describe the implementation with the help of Boost.Thread.
@@ -119,12 +121,12 @@ Here are some TODOs for the paper:
 * Consider the updated Folly library which does now provide the type `folly::SemiFuture` and the executors which previously belonged to Wangle.
 * The changes of Folly do also include changes of the non-blocking combinators such as `collectN` where the data race bug probably has been removed with the current implementation. Recheck it!
 * Consider the following changes in the latest Folly version (done in August 2018):
-```
+```cpp
 [[deprecated("must be rvalue-qualified, e.g., std::move(future).get()")]] T
 get() & = delete;
-```
+```cpp
 And also the following change:
-```
+```cpp
 template <typename F, typename R = futures::detail::callableResult<T, F>>
   [[deprecated("must be rvalue-qualified, e.g., std::move(future).then(...)")]]
       typename R::Return

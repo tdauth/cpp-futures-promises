@@ -521,94 +521,94 @@ inline int initFuture()
 
 BENCHMARK(FollyCollectAll)
 {
-	follyCollectAll<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).wait();
+	follyCollectAll<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
 }
 
 BENCHMARK(FollyCollect)
 {
-	follyCollect<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	follyCollect<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectN)
 {
 	// TODO Why does folly::collectN produce a foilly::SemiFuture and not a folly::Future like the other non-blocking combinators?
 	folly::InlineExecutor ex;
-	follyCollectN<TREE_TYPE>(&ex, TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	follyCollectN<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectAny)
 {
-	follyCollectAny<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	follyCollectAny<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(FollyCollectAnyWithoutException)
 {
-	follyCollectAnyWithoutException<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).wait();
+	follyCollectAnyWithoutException<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
 }
 
 BENCHMARK(BoostWhenAll)
 {
-	boostWhenAll<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	boostWhenAll<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(BoostWhenAny)
 {
-	boostWhenAny<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	boostWhenAny<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(CustomCollectNWithoutException)
 {
-	customCollectNWithoutException<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS,  initFuture).wait();
+	customCollectNWithoutException<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS,  initFuture).wait();
 }
 
 BENCHMARK(AdvFollyOrElse)
 {
-	customFollyOrElse<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customFollyOrElse<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvBoostOrElse)
 {
-	customBoostOrElse<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customBoostOrElse<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvFollyFirst)
 {
-	customFollyFirst<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customFollyFirst<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvBoostFirst)
 {
-	customBoostFirst<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customBoostFirst<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvFollyFirstSucc)
 {
-	customFollyFirstSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customFollyFirstSucc<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvBoostFirstSucc)
 {
-	customBoostFirstSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customBoostFirstSucc<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvFollyFirstN)
 {
-	customFollyFirstN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customFollyFirstN<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvBoostFirstN)
 {
-	customBoostFirstN<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customBoostFirstN<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvFollyFirstNSucc)
 {
-	customFollyFirstNSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customFollyFirstNSucc<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvBoostFirstNSucc)
 {
-	customBoostFirstNSucc<TREE_TYPE>(TREE_DEPTH, TREE_CHILDS, initFuture).get();
+	customBoostFirstNSucc<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 int main(int argc, char *argv[])
