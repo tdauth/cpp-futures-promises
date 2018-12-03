@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 
 	folly::Future<Transaction> purchaseEUR = std::move(rateQuoteEUR)
 		.filter(isProfitable)
-		.then([] (double v)
+		.thenValue([] (double v)
 			{
 				return buy(EUR, amount, v);
 			}
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 
 	folly::Future<Transaction> purchaseCHF = std::move(rateQuoteCHF)
 		.filter(isProfitable)
-		.then([] (double v)
+		.thenValue([] (double v)
 			{
 				return buy(CHF, amount, v);
 			}
@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
 
 	folly::Future<folly::Unit> print = folly::collectAnyWithoutException(
 			std::begin(futures), std::end(futures)
-		)
-		.then([](std::pair<std::size_t, Transaction> pair)
+        ).via(folly::getCPUExecutor().get())
+		.thenValue([](std::pair<std::size_t, Transaction> pair)
 			{
 				printPurchase(std::get<0>(pair.second), std::get<1>(pair.second));
 			}

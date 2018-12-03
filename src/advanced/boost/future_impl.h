@@ -5,6 +5,30 @@ namespace adv_boost
 {
 
 template<typename T>
+template<typename Func>
+Future<typename std::result_of<Func(Try<T>)>::type> Future<T>::then(Func &&f)
+{
+    using S = typename std::result_of<Func(Try<T>)>::type;
+    auto p = std::make_shared<Promise<S>>();
+
+    this->onComplete([f = std::move(f), p] (Try<T> t) mutable
+        {
+            try
+            {
+                S result = S(f(std::move(t)));
+                p->trySuccess(std::move(result));
+            }
+            catch (...)
+            {
+                p->tryFailure(std::move(boost::current_exception()));
+            }
+        }
+    );
+
+    return std::move(p->future());
+}
+
+template<typename T>
 Future<T> Future<T>::first(Future<T> &&other)
 {
 	struct SharedContext
@@ -48,11 +72,11 @@ Future<T> Future<T>::firstSucc(Future<T> &&other)
 	auto future = ctx->p.future();
 
 	ctx->f0.onComplete([ctx] (Try<T> t) {
-		ctx->p.trySuccess(t.get());
+		ctx->p.trySuccess(std::move(t).get());
 	});
 
 	ctx->f1.onComplete([ctx] (Try<T> t) {
-		ctx->p.trySuccess(t.get());
+		ctx->p.trySuccess(std::move(t).get());
 	});
 
 	return future;
@@ -181,7 +205,7 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 					{
 						try
 						{
-							t.get();
+							std::move(t).get();
 						}
 						catch (...)
 						{
@@ -200,7 +224,7 @@ Future<std::vector<std::pair<std::size_t, T>>> firstNSucc(std::vector<Future<T>>
 						 * Since we allocated enough space, it should never happen and therefore we don't need a mutex
 						 * to protect it from data races.
 						 */
-						ctx->v.emplace_back(i, std::move(t.get()));
+						ctx->v.emplace_back(i, std::move(t).get());
 						/**
 						 * Compare to the actual size of the vector, after adding the element, to prevent possible data races which would occur if we had used c instead.
 						 */

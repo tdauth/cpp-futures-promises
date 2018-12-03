@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE(TryCompleteWith)
 	folly::Promise<int> p;
 	folly::Future<int> f = p.getFuture();
 
-	tryCompleteWith(p, std::move(future));
+	tryCompleteWith(std::move(p), std::move(future));
 
 	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }

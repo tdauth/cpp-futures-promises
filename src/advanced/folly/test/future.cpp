@@ -13,7 +13,8 @@
 
 struct Fixture
 {
-	Fixture() : cpuExecutor(new folly::CPUThreadPoolExecutor(std::thread::hardware_concurrency())), ex(new adv_folly::Executor(cpuExecutor))
+	// Use only one thread to detect blocking operations.
+	Fixture() : cpuExecutor(new folly::CPUThreadPoolExecutor(1)), ex(new adv_folly::Executor(cpuExecutor))
 	{
 	}
 
@@ -34,21 +35,21 @@ BOOST_FIXTURE_TEST_CASE(TryNotInitialized, Fixture)
 	adv_folly::Try<int> t;
 	BOOST_REQUIRE(!t.hasValue());
 	BOOST_REQUIRE(!t.hasException());
-	BOOST_CHECK_THROW(t.get(), adv::UsingUninitializedTry);
+	BOOST_CHECK_THROW(std::move(t).get(), adv::UsingUninitializedTry);
 }
 
 BOOST_FIXTURE_TEST_CASE(TryRuntimeError, Fixture)
 {
 	adv_folly::Try<int> t(std::make_exception_ptr(std::runtime_error("Error")));
 	BOOST_REQUIRE(t.hasException());
-	BOOST_CHECK_THROW(t.get(), std::runtime_error);
+	BOOST_CHECK_THROW(std::move(t).get(), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(TryValue, Fixture)
 {
 	adv_folly::Try<int> t(10);
 	BOOST_REQUIRE(t.hasValue());
-	BOOST_CHECK_EQUAL(10, t.get());
+	BOOST_CHECK_EQUAL(10, std::move(t).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(OnComplete, Fixture)
@@ -61,7 +62,7 @@ BOOST_FIXTURE_TEST_CASE(OnComplete, Fixture)
 	);
 	f0.onComplete([&v] (adv_folly::Try<int> t)
 		{
-			v = t.get();
+			v = std::move(t).get();
 		}
 	);
 
@@ -78,7 +79,7 @@ BOOST_FIXTURE_TEST_CASE(Get, Fixture)
 		}
 	);
 
-	BOOST_CHECK_EQUAL(10, f1.get());
+	BOOST_CHECK_EQUAL(10, std::move(f1).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(IsReady, Fixture)
@@ -102,7 +103,7 @@ BOOST_FIXTURE_TEST_CASE(Guard, Fixture)
 		}
 	).guard([] (const int &v) { return v == 10; });
 
-	BOOST_CHECK_EQUAL(10, f.get());
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(GuardFails, Fixture)
@@ -113,7 +114,7 @@ BOOST_FIXTURE_TEST_CASE(GuardFails, Fixture)
 		}
 	).guard([] (const int &v) { return v != 10; });
 
-	BOOST_CHECK_THROW(f.get(), adv::PredicateNotFulfilled);
+	BOOST_CHECK_THROW(std::move(f).get(), adv::PredicateNotFulfilled);
 }
 
 BOOST_FIXTURE_TEST_CASE(Then, Fixture)
@@ -126,23 +127,82 @@ BOOST_FIXTURE_TEST_CASE(Then, Fixture)
 		{
 			if (t.hasValue())
 			{
-				return std::to_string(t.get());
+				return std::to_string(std::move(t).get());
 			}
 
 			return std::string("Failure!");
 		}
 	);
 
-	BOOST_CHECK_EQUAL("10", f3.get());
+	BOOST_CHECK_EQUAL("10", std::move(f3).get());
 }
 
-BOOST_FIXTURE_TEST_CASE(OrElse, Fixture)
+BOOST_FIXTURE_TEST_CASE(ThenWith, Fixture)
+{
+	adv_folly::Future<std::string> f1 = adv_folly::async(ex, [] ()
+		{
+			return std::string("11");
+		}
+	);
+	adv_folly::Future<std::string> f2 = adv_folly::async(ex, [] ()
+		{
+			return 10;
+		}
+	).thenWith([f1 = std::move(f1)] (adv_folly::Try<int>&&) mutable
+		{
+			// TODO Why do we have to move it explicitly here and cannot simply return f1?
+			return adv_folly::Future<std::string>(std::move(f1));
+		}
+	);
+
+	BOOST_CHECK_EQUAL("11", std::move(f2).get());
+}
+
+// Important for orElse.
+BOOST_FIXTURE_TEST_CASE(ThenWithItself, Fixture)
+{
+	adv_folly::Future<std::string> f1 = adv_folly::async(ex, [] ()
+		{
+			return std::string("11");
+		}
+	);
+	auto ctx = std::make_shared<adv_folly::Future<std::string>>(std::move(f1));
+	adv_folly::Future<std::string> f2 = ctx->thenWith([ctx] (adv_folly::Try<std::string>&&) mutable
+		{
+			// TODO Why do we have to move it explicitly here and cannot simply return f1?
+			return adv_folly::Future<std::string>(std::move(*ctx));
+		}
+	);
+
+	// TODO Throws a BrokenPromise exception. Why?
+	BOOST_CHECK_EQUAL("11", std::move(f2).get());
+}
+
+BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, Fixture)
 {
 	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { return 10; });
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; });
-	auto f2 = f0.orElse(std::move(f1));
+	auto f2 = std::move(f0).orElse(std::move(f1));
 
-	BOOST_CHECK_EQUAL(10, f2.get());
+	BOOST_CHECK_EQUAL(10, std::move(f2).get());
+}
+
+BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, Fixture)
+{
+	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { return 10; throw std::runtime_error("Failure!"); });
+	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; });
+	auto f2 = std::move(f0).orElse(std::move(f1));
+
+	BOOST_CHECK_EQUAL(11, std::move(f2).get());
+}
+
+BOOST_FIXTURE_TEST_CASE(OrElseBothFail, Fixture)
+{
+	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { return 10; throw std::runtime_error("Failure 0!"); });
+	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; throw std::runtime_error("Failure 1!"); });
+	auto f2 = std::move(f0).orElse(std::move(f1));
+
+	BOOST_CHECK_THROW(std::move(f2).get(), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(First, Fixture)
@@ -150,7 +210,7 @@ BOOST_FIXTURE_TEST_CASE(First, Fixture)
 	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { return 10; });
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; });
 	auto f2 = f0.first(std::move(f1));
-	auto r = f2.get();
+	auto r = std::move(f2).get();
 
 	BOOST_CHECK(r == 10 || r == 11);
 }
@@ -161,7 +221,7 @@ BOOST_FIXTURE_TEST_CASE(FirstWithException, Fixture)
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { throw std::runtime_error("Failure!"); return 11; });
 	auto f2 = f0.first(std::move(f1));
 
-	BOOST_CHECK_THROW(f2.get(), std::runtime_error);
+	BOOST_CHECK_THROW(std::move(f2).get(), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstSucc, Fixture)
@@ -169,7 +229,7 @@ BOOST_FIXTURE_TEST_CASE(FirstSucc, Fixture)
 	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { return 10; });
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
-	auto r = f2.get();
+	auto r = std::move(f2).get();
 
 	BOOST_CHECK(r == 10 || r == 11);
 }
@@ -179,7 +239,7 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, Fixture)
 	adv_folly::Future<int> f0 = adv_folly::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
 	adv_folly::Future<int> f1 = adv_folly::async(ex, [] () { return 11; });
 	auto f2 = f0.firstSucc(std::move(f1));
-	auto r = f2.get();
+	auto r = std::move(f2).get();
 
 	BOOST_CHECK_EQUAL(11, r);
 }
@@ -193,7 +253,7 @@ BOOST_FIXTURE_TEST_CASE(FirstN, Fixture)
 	futures.push_back(adv_folly::async(ex, [] () { return 13; }));
 
 	adv_folly::Future<std::vector<std::pair<std::size_t, adv_folly::Try<int>>>> f = adv_folly::firstN(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, adv_folly::Try<int>>> v = f.get();
+	std::vector<std::pair<std::size_t, adv_folly::Try<int>>> v = std::move(f).get();
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements
@@ -208,7 +268,7 @@ BOOST_FIXTURE_TEST_CASE(FirstNSucc, Fixture)
 	futures.push_back(adv_folly::async(ex, [] () { return 4; }));
 
 	adv_folly::Future<std::vector<std::pair<std::size_t, int>>> f = adv_folly::firstNSucc(std::move(futures), 3);
-	std::vector<std::pair<std::size_t, int>> v = f.get();
+	std::vector<std::pair<std::size_t, int>> v = std::move(f).get();
 
 	BOOST_CHECK_EQUAL(3u, v.size());
 	// TODO check for elements 1, 3 and 4
@@ -221,7 +281,7 @@ BOOST_FIXTURE_TEST_CASE(BrokenPromise, Fixture)
 	delete p;
 	p = nullptr;
 
-	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
+	BOOST_CHECK_THROW(std::move(f).get(), adv::BrokenPromise);
 }
 
 BOOST_FIXTURE_TEST_CASE(TryComplete, Fixture)
@@ -232,7 +292,7 @@ BOOST_FIXTURE_TEST_CASE(TryComplete, Fixture)
 	bool result = p.tryComplete(adv_folly::Try<int>(10));
 
 	BOOST_CHECK(result);
-	BOOST_CHECK_EQUAL(10, f.get());
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(TrySuccess, Fixture)
@@ -243,7 +303,7 @@ BOOST_FIXTURE_TEST_CASE(TrySuccess, Fixture)
 	bool result = p.trySuccess(10);
 
 	BOOST_CHECK(result);
-	BOOST_CHECK_EQUAL(10, f.get());
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(TryFailure, Fixture)
@@ -257,7 +317,7 @@ BOOST_FIXTURE_TEST_CASE(TryFailure, Fixture)
 
 	try
 	{
-		f.get();
+		std::move(f).get();
 		BOOST_FAIL("Expected exception");
 	}
 	catch (const std::exception &e)
@@ -272,27 +332,31 @@ BOOST_FIXTURE_TEST_CASE(TryCompleteWith, Fixture)
 	adv_folly::Future<int> f = p.future();
 	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { return 10; });
 
-	p.tryCompleteWith(std::move(completingFuture));
+	std::move(p).tryCompleteWith(std::move(completingFuture));
 
-	BOOST_CHECK_EQUAL(10, f.get());
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }
 
-/**
- * The promise is released before onComplete is called for the future.
- * Make sure that it just simply does not try to complete the release promise.
- */
-BOOST_FIXTURE_TEST_CASE(TryCompleteWithPromiseIsReleasedBeforeOnComplete, Fixture)
+BOOST_FIXTURE_TEST_CASE(TryCompleteWithDelayed, Fixture)
 {
-	adv_folly::Promise<int> *p = new adv_folly::Promise<int>();
-	adv_folly::Future<int> f = p->future();
-	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { std::this_thread::sleep_for(std::chrono::seconds(5)); return 10; });
+	adv_folly::Promise<int> p;
+	adv_folly::Future<int> f = p.future();
+	adv_folly::Future<int> completingFuture = adv_folly::Future<folly::Unit>(folly::futures::sleep(folly::Duration(1000))).then([] (adv_folly::Try<folly::Unit> &&t) { return 10; });
 
-	p->tryCompleteWith(std::move(completingFuture));
+	std::move(p).tryCompleteWith(std::move(completingFuture));
 
-	delete p;
-	p = nullptr;
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
+}
 
-	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
+BOOST_FIXTURE_TEST_CASE(TryCompleteWithFailure, Fixture)
+{
+	adv_folly::Promise<int> p;
+	adv_folly::Future<int> f = p.future();
+	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
+
+	std::move(p).tryCompleteWith(std::move(completingFuture));
+
+	BOOST_CHECK_THROW(std::move(f).get(), std::runtime_error);
 }
 
 BOOST_FIXTURE_TEST_CASE(TrySuccessWith, Fixture)
@@ -301,9 +365,9 @@ BOOST_FIXTURE_TEST_CASE(TrySuccessWith, Fixture)
 	adv_folly::Future<int> f = p.future();
 	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { return 10; });
 
-	p.trySuccessWith(std::move(completingFuture));
+	std::move(p).trySuccessWith(std::move(completingFuture));
 
-	BOOST_CHECK_EQUAL(10, f.get());
+	BOOST_CHECK_EQUAL(10, std::move(f).get());
 }
 
 BOOST_FIXTURE_TEST_CASE(TryFailureWith, Fixture)
@@ -312,11 +376,11 @@ BOOST_FIXTURE_TEST_CASE(TryFailureWith, Fixture)
 	adv_folly::Future<int> f = p.future();
 	adv_folly::Future<int> completingFuture = adv_folly::async(ex, [] () { throw std::runtime_error("Failure!"); return 10; });
 
-	p.tryFailureWith(std::move(completingFuture));
+	std::move(p).tryFailureWith(std::move(completingFuture));
 
 	try
 	{
-		f.get();
+		std::move(f).get();
 		BOOST_FAIL("Expected exception");
 	}
 	catch (const std::exception &e)

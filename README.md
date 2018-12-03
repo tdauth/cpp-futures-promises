@@ -111,6 +111,7 @@ Here are some TODOs for the paper:
 * Since it is allowed to register only one callback per future, it should move out the state and maybe use && similiar to Folly which would require a `std::move` on every future.
 * Instead of `then` we can use `onComplete` as basic method.
 * The Scala FP `find` is implemented the way that one future after another is searched for the result. Hence, it cannot be used to implement `firstSucc` with a guard. TODO Look again at the implementation.
+* Introduce the derived method `thenWith` similiar to Scala FP's `transformWith`. It has to be used to implement `orElse`. Do not ever use `get` to implement `orElse` since it is blocking. This would lead to a deadlock if there are not enough threads.
 
 #### Boost.Thread Implementation
 * Describe the implementation with the help of Boost.Thread.

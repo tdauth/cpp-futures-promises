@@ -88,23 +88,11 @@ int main()
 	 */
 	for (int i = 0; i < RUNS_NUMBER; ++i)
 	{
-		auto reindeer = boost::async(createReindeer).then([]
-			(boost::future<std::vector<boost::future<Type>>> collection)
-			{
-				auto c = collection.get();
-
-				return whenNSucc(c.begin(), c.end(), REINDEER_MATCH_NUMBER).get();
-			}
-		);
-		auto elves = boost::async(createElves).then([]
-			(boost::future<std::vector<boost::future<Type>>> collection)
-			{
-				auto c = collection.get();
-
-				return whenNSucc(c.begin(), c.end(), ELF_MATCH_NUMBER).get();
-			}
-		);
-
+		auto reindeerCollection = createReindeer();
+		auto reindeer = whenNSucc(reindeerCollection.begin(), reindeerCollection.end(), REINDEER_MATCH_NUMBER);
+		auto elvesCollection = createElves();
+		auto elves = whenNSucc(elvesCollection.begin(), elvesCollection.end(), ELF_MATCH_NUMBER);
+		// TODO Actually we should use collectAnyWithoutException, reindeer are only preferred if both arrive at the same time.
 		auto group = orElse(std::move(reindeer), std::move(elves));
 		auto x = group.then(decideBoost);
 		x.wait();

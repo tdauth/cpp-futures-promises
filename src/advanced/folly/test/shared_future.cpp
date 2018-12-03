@@ -141,7 +141,7 @@ BOOST_FIXTURE_TEST_CASE(Then, Fixture)
 				{
 					if (t.hasValue())
 					{
-						return std::to_string(t.get());
+						return std::to_string(std::move(t).get());
 					}
 
 					return std::string("Failure!");
@@ -199,7 +199,7 @@ BOOST_FIXTURE_TEST_CASE(FirstN, Fixture)
 	for (std::size_t i = 0; i < v.size(); ++i)
 	{
 		BOOST_CHECK(v[i].first >= 0 && v[i].first <= 9);
-		BOOST_CHECK_EQUAL(10, v[i].second.get());
+		BOOST_CHECK_EQUAL(10, std::move(v[i].second).get());
 	}
 }
 

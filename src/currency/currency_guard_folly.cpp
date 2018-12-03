@@ -16,14 +16,14 @@ int main(int argc, char *argv[])
 
 	folly::Future<double> purchase = std::move(exchangeRate)
 		.filter(isProfitable)
-		.then([] (double v)
+		.thenValue([] (double v)
 			{
 				return buy(amount, v);
 			}
 		);
 
 	folly::Future<folly::Unit> print = std::move(purchase)
-		.then([] (double v)
+		.thenValue([] (double v)
 			{
 				printPurchase(EUR, v);
 			}

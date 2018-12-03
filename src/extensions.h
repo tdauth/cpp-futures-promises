@@ -113,10 +113,11 @@ collectNWithoutException(Collection &&c, size_t n)
 template<typename T>
 folly::Future<T> orElse(folly::Future<T> &&first, folly::Future<T> &&second)
 {
-	return std::move(first).then([second = std::move(second)] (folly::Try<T> t) mutable
+	return std::move(first).thenTry([second = std::move(second)] (folly::Try<T> t) mutable
 		{
 			if (t.hasException())
 			{
+				// TODO never block in a callback, use transformWith here!
 				second.wait();
 
 				if (second.hasValue())
@@ -433,27 +434,24 @@ bool tryComplete(folly::SharedPromise<T> &p, folly::Try<T> &&t)
  * \param f The future of which the result is used to try to complete the promise.
  * \param ensureFunc This function is called when the future is completed and can add additional clean ups of memory.
  * \return Returns the passed promise.
+ * \note We have to move the promise. Otherwise, we cannot guarantee its lifetime.
  */
 template<typename T, typename Func>
-folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
+void tryCompleteWith(folly::Promise<T> &&p, folly::Future<T> &&f, Func &&ensureFunc)
 {
-
 	auto ctx = std::make_shared<folly::Future<T>>(std::move(f));
-
-	ctx->setCallback_([&p, ctx, ensureFunc = std::move(ensureFunc)] (folly::Try<T> t)
+	ctx->setCallback_([p = std::move(p), ctx, ensureFunc = std::move(ensureFunc)] (folly::Try<T> &&t) mutable
 		{
 			tryComplete(p, std::move(t));
 
 			ensureFunc();
 		});
-
-	return p;
 }
 
 template<typename T>
-folly::Promise<T>& tryCompleteWith(folly::Promise<T> &p, folly::Future<T> &&f)
+void tryCompleteWith(folly::Promise<T> &&p, folly::Future<T> &&f)
 {
-	return tryCompleteWith(p, std::move(f), [] () {});
+	tryCompleteWith(std::move(p), std::move(f), [] () {});
 }
 
 template<typename T>
@@ -486,6 +484,7 @@ bool tryCompleteSuccess(boost::promise<T> &p, T &&v)
 	return true;
 }
 
+// TODO Adapt to tryCompleteWith
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteSuccessWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
@@ -525,6 +524,7 @@ bool tryCompleteFailure(folly::Promise<T> &p, Exception &&e)
 	return true;
 }
 
+// TODO Adapt to tryCompleteWith
 template<typename T, typename Func>
 folly::Promise<T>& tryCompleteFailureWith(folly::Promise<T> &p, folly::Future<T> &&f, Func &&ensureFunc)
 {
@@ -596,11 +596,13 @@ folly::Promise<T> successful(T &&t)
 template<typename T>
 folly::Future<T> first(folly::Future<T> &&f1, folly::Future<T> &&f2)
 {
+	// TODO Simplify by providing one single context class.
 	auto p = std::make_shared<folly::Promise<T>>();
 	auto future = p->getFuture();
-
-	tryCompleteWith(*p, std::move(f1), [p] () { });
-	tryCompleteWith(*p, std::move(f2), [p] () { });
+	auto ctx1 = std::make_shared<folly::Future<T>>(std::move(f1));
+	auto ctx2 = std::make_shared<folly::Future<T>>(std::move(f2));
+	ctx1->setCallback_([ctx1, p](folly::Try<T> &&t) { tryComplete(*p, std::move(t)); });
+	ctx2->setCallback_([ctx2, p](folly::Try<T> &&t) { tryComplete(*p, std::move(t)); });
 
 	return future;
 }

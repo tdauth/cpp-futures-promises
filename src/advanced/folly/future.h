@@ -42,6 +42,7 @@ class Try
 			}
 		}
 
+		// Only required for shared futures:
 		Try(const Try<T> &other) : _t(other._t)
 		{
 		}
@@ -54,6 +55,7 @@ class Try
 		{
 		}
 
+		// Only required for shared futures:
 		Try<T>& operator=(const Try<T> &other)
 		{
 			_t = other._t;
@@ -61,7 +63,7 @@ class Try
 			return *this;
 		}
 
-		T get()
+		T get() &&
 		{
 			if (!_t.hasValue() && !_t.hasException())
 			{
@@ -71,18 +73,6 @@ class Try
 			_t.throwIfFailed();
 
 			return std::move(_t.value());
-		}
-
-		const T& get() const
-		{
-			if (!_t.hasValue() && !_t.hasException())
-			{
-				throw adv::UsingUninitializedTry();
-			}
-
-			_t.throwIfFailed();
-
-			return _t.value();
 		}
 
 		bool hasValue()
@@ -132,6 +122,9 @@ template<typename T>
 class Future
 {
 	public:
+		using type = T;
+
+		// Core methods:
 		Future() : _f(folly::Future<T>::makeEmpty())
 		{
 		}
@@ -149,7 +142,7 @@ class Future
 
 		SharedFuture<T> share();
 
-		T get()
+		T get() &&
 		{
 			try
 			{
@@ -161,43 +154,36 @@ class Future
 			}
 		}
 
-		bool isReady()
+		bool isReady() const
 		{
 			return _f.isReady();
 		}
 
 		template<typename Func>
-		Future<typename std::result_of<Func(Try<T>)>::type> then(Func &&f)
-		{
-			using S = typename std::result_of<Func(Try<T>)>::type;
-
-			folly::Future<S> r = std::move(_f).then([f = std::move(f)] (folly::Try<T> t) mutable
-				{
-					return S(f(std::move(t)));
-				}
-			);
-
-			return Future<S>(std::move(r));
-		}
-
-		template<typename Func>
 		void onComplete(Func &&f)
 		{
-			this->then([f = std::move(f)] (Try<T> t) mutable
+            this->_f.setCallback_([f = std::move(f)] (folly::Try<T> &&t) mutable
 				{
-					f(std::move(t));
+                    f(Try<T>(std::move(t)));
 
 					return folly::unit; // workaround to not provide a future with void
 				}
 			);
 		}
 
+		// Derived methods:
+		template<typename Func>
+        Future<typename std::result_of<Func(Try<T>)>::type> then(Func &&f);
+
+		template<typename Func>
+        typename std::result_of<Func(Try<T>)>::type thenWith(Func &&f);
+
 		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
-			return this->then([f = std::move(f)] (Try<T> t) mutable
+			return this->then([f = std::move(f)] (Try<T> &&t) mutable
 			{
-				auto x = t.get();
+				auto x = std::move(t).get();
 
 				if (!f(x))
 				{
@@ -208,24 +194,27 @@ class Future
 			});
 		}
 
-		Future<T> orElse(Future<T> &&other)
+		Future<T> orElse(Future<T> &&other) &&
 		{
-			return this->then([other = std::move(other)] (Try<T> t) mutable
-				{
-					if (t.hasException())
-					{
-						try
-						{
-							return other.get();
-						}
-						catch (...)
-						{
-						}
-					}
+			auto first = std::make_shared<Future<T>>(std::move(*this));
+			auto second = std::make_shared<Future<T>>(std::move(other));
 
-					return t.get(); // will rethrow if failed
-				}
-			);
+			return first->thenWith([first, second] (Try<T> &&t) mutable {
+					if (t.hasException()) {
+						return second->then([t = std::move(t)] (Try<T> &&tt) mutable {
+								if (tt.hasException()) {
+									return std::move(t).get();
+								}
+								else {
+									return std::move(tt).get();
+								}
+							}
+						);
+					}
+					else {
+						return std::move(*first);
+					}
+				});
 		}
 
 		Future<T> first(Future<T> &&other);
@@ -236,6 +225,7 @@ class Future
 		folly::Future<T> _f;
 };
 
+// TODO Derived from a constructor with an executor.
 template<typename Func>
 Future<typename std::result_of<Func()>::type> async(Executor *ex, Func &&f)
 {

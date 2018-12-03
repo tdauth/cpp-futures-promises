@@ -10,6 +10,7 @@ template<typename T>
 class Promise
 {
 	public:
+		// Core methods:
 		Promise()
 		{
 		}
@@ -35,6 +36,7 @@ class Promise
 			return ::tryComplete(this->_p, std::move(v._t));
 		}
 
+		// Derived methods:
 		bool trySuccess(T &&v)
 		{
 			return tryComplete(Try<T>(std::move(v)));
@@ -51,40 +53,40 @@ class Promise
 			return tryFailure(std::make_exception_ptr(std::move(e)));
 		}
 
-		void tryCompleteWith(Future<T> &&f)
+		void tryCompleteWith(Future<T> &&f) &&
 		{
 			auto ctx = std::make_shared<Future<T>>(std::move(f));
 
-			ctx->onComplete([this, ctx] (Try<T> t)
+			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
 				{
-					this->tryComplete(std::move(t));
+					p.tryComplete(std::move(t));
 				}
 			);
 		}
 
-		void trySuccessWith(Future<T> &&f)
+		void trySuccessWith(Future<T> &&f) &&
 		{
 			auto ctx = std::make_shared<Future<T>>(std::move(f));
 
-			ctx->onComplete([this, ctx] (Try<T> t)
+			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
 				{
 					if (t.hasValue())
 					{
-						this->tryComplete(std::move(t));
+						p.tryComplete(std::move(t));
 					}
 				}
 			);
 		}
 
-		void tryFailureWith(Future<T> &&f)
+		void tryFailureWith(Future<T> &&f) &&
 		{
 			auto ctx = std::make_shared<Future<T>>(std::move(f));
 
-			ctx->onComplete([this, ctx] (Try<T> t)
+			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
 				{
 					if (t.hasException())
 					{
-						this->tryComplete(std::move(t));
+						p.tryComplete(std::move(t));
 					}
 				}
 			);

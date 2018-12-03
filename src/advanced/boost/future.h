@@ -30,22 +30,15 @@ class Try
 		{
 		}
 
-		Try(const Try<T> &other) : _v(other._v)
-		{
-		}
+		Try(const Try<T> &other) = delete;
 
 		Try(Try<T> &&other) : _v(std::move(other._v))
 		{
 		}
 
-		Try<T>& operator=(const Try<T> &other)
-		{
-			_v = other._v;
+		Try<T>& operator=(const Try<T> &other) = delete;
 
-			return *this;
-		}
-
-		T get()
+		T get() &&
 		{
 			if (_v == boost::none)
 			{
@@ -58,21 +51,6 @@ class Try
 			}
 
 			return std::move(boost::get<T>(std::move(_v.value())));
-		}
-
-		const T& get() const
-		{
-			if (_v == boost::none)
-			{
-				throw adv::UsingUninitializedTry();
-			}
-
-			if (_v.value().which() != 0)
-			{
-				boost::rethrow_exception(boost::get<boost::exception_ptr>(_v.get()));
-			}
-
-			return boost::get<T>(_v.value());
 		}
 
 		bool hasValue()
@@ -135,6 +113,7 @@ template<typename T>
 class Future
 {
 	public:
+        // Core methods:
 		Future()
 		{
 		}
@@ -152,7 +131,7 @@ class Future
 
 		SharedFuture<T> share();
 
-		T get()
+		T get() &&
 		{
 			try
 			{
@@ -164,50 +143,31 @@ class Future
 			}
 		}
 
-		bool isReady()
+		bool isReady() const
 		{
 			return _f.is_ready();
 		}
 
+        template<typename Func>
+        void onComplete(Func &&f)
+        {
+            this->_f.then([f = std::move(f)] (boost::future<T> future) mutable
+            {
+                    T value = std::move(future.get());
+                    f(Try<T>(std::move(value)));
+            });
+        }
+
+        // Derived methods:
 		template<typename Func>
-		Future<typename std::result_of<Func(Try<T>)>::type> then(Func &&f)
-		{
-			using S = typename std::result_of<Func(Try<T>)>::type;
-
-			boost::future<S> r = _f.then([f = std::move(f)] (boost::future<T> future) mutable
-				{
-					try
-					{
-						T value = std::move(future.get());
-
-						return S(f(Try<T>(std::move(value))));
-					}
-					catch (...)
-					{
-						return S(f(Try<T>(std::move(boost::current_exception()))));
-					}
-				}
-			);
-
-			return Future<S>(std::move(r));
-		}
-
-		template<typename Func>
-		void onComplete(Func &&f)
-		{
-			this->then([f = std::move(f)] (Try<T> t) mutable
-				{
-					f(std::move(t));
-				}
-			);
-		}
+        Future<typename std::result_of<Func(Try<T>)>::type> then(Func &&f);
 
 		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
 			return this->then([f = std::move(f)] (Try<T> t) mutable
 			{
-				auto x = std::move(t.get());
+				auto x = std::move(t).get();
 
 				if (!f(x))
 				{
@@ -226,14 +186,15 @@ class Future
 					{
 						try
 						{
-							return other.get();
+							// TODO Never call get here, use flatMap, get will block the executor thread!
+							return std::move(other).get();
 						}
 						catch (...)
 						{
 						}
 					}
 
-					return t.get(); // will rethrow if failed
+					return std::move(t).get(); // will rethrow if failed
 				}
 			);
 		}
@@ -246,6 +207,7 @@ class Future
 		boost::future<T> _f;
 };
 
+// TODO Derived from a constructor with an executor.
 template<typename Ex, typename Func>
 Future<typename std::result_of<Func()>::type> async(Executor<Ex> *ex, Func &&f)
 {

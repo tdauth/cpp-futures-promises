@@ -3,7 +3,7 @@ project(cpp-futures-promises)
 
 set(boost_VERSION "1.66.0")
 set(boost_VERSION_UNDERSCORE "1_66_0")
-set(folly_VERSION "v2018.08.27.00")
+set(folly_VERSION "v2018.11.26.00")
 
 enable_testing()
 
@@ -11,7 +11,7 @@ include(CTest)
 
 include(CheckCXXCompilerFlag)
 
-CHECK_CXX_COMPILER_FLAG(-std=c++1z HAS_CXX_17)
+CHECK_CXX_COMPILER_FLAG(-std=c++17 HAS_CXX_17)
 CHECK_CXX_COMPILER_FLAG(-std=c++14 HAS_CXX_14)
 CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 
@@ -20,7 +20,7 @@ CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 if (HAS_CXX_17)
 	add_compile_options(-std=c++1z)
 	set(ENV{CFLAGS} "-std=c11")
-	set(ENV{CXXFLAGS} "-std=c++1z")
+	set(ENV{CXXFLAGS} "-std=c++17")
 elseif (HAS_CXX_14)
 	add_compile_options(-std=c++14)
 	set(ENV{CFLAGS} "-std=c11")

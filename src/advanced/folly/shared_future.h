@@ -42,7 +42,7 @@ class SharedFuture
 			{
 				try
 				{
-					ctx->ptr->setValue(t.get());
+					ctx->ptr->setValue(std::move(t).get());
 				}
 				catch (const std::exception &e)
 				{
@@ -78,7 +78,8 @@ class SharedFuture
 
 			f.getTry().throwIfFailed();
 
-			return f.value();
+			// TODO Does this move out the whole shared state of the shared promise?? Only read with const!
+			return std::move(f).value();
 		}
 
 		template<typename Func>

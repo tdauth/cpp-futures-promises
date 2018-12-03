@@ -15,4 +15,4 @@ cd "$1"
 # chrono is required for time measurements
 # context, regex, filesystem and program_options are required by Folly
 # test is required for all unit tests
-./bootstrap.sh --with-toolset=gcc --with-libraries=thread,chrono,context,program_options,regex,filesystem,test,date_time --prefix="\"$2\""
+./bootstrap.sh --with-toolset=gcc --with-libraries=thread,chrono,context,program_options,regex,filesystem,test,date_time,system --prefix="\"$2\""

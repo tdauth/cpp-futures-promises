@@ -12,29 +12,24 @@ template<typename T>
 class SharedFuture
 {
 	public:
+		// Core methods:
 		SharedFuture();
 		SharedFuture(SharedFuture<T> &&other);
-		SharedFuture(const SharedFuture<T> &other) = delete;
-		SharedFuture<T>& operator=(const SharedFuture<T> &other) = delete;
-
+		SharedFuture(const SharedFuture<T> &other);
+		SharedFuture<T>& operator=(const SharedFuture<T> &other);
 		T get();
-
 		bool isReady();
+		template<typename Func>
+		void onComplete(Func &&f);
 
+		// Derived methods:
 		template<typename Func, typename S>
 		SharedFuture<S> then(Func &&f);
-
 		template<typename Func>
-		void onComplete(Func &&f); // (D)
-
-		template<typename Func>
-		SharedFuture<T> guard(Func &&f); // (D)
-
-		SharedFuture<T> orElse(SharedFuture<T> &&other); // (D)
-
-		SharedFuture<T> first(SharedFuture<T> &&other); // (D)
-
-		SharedFuture<T> firstSucc(SharedFuture<T> &&other); // (D)
+		SharedFuture<T> guard(Func &&f);
+		SharedFuture<T> orElse(SharedFuture<T> &&other);
+		SharedFuture<T> first(SharedFuture<T> &&other);
+		SharedFuture<T> firstSucc(SharedFuture<T> &&other);
 };
 
 }

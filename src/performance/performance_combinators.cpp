@@ -35,7 +35,7 @@ folly::Future<T> follyCollectAll(std::size_t treeHeight, std::size_t childNodes,
 		}
 	}
 
-	return folly::collectAll(v.begin(), v.end()).then([] (std::vector<folly::Try<T>> v) { return v[0].value(); });
+	return folly::collectAll(v.begin(), v.end()).thenValue([] (std::vector<folly::Try<T>> v) { return v[0].value(); });
 }
 
 template<typename T, typename Func>
@@ -63,7 +63,7 @@ folly::Future<T> follyCollect(std::size_t treeHeight, std::size_t childNodes, Fu
 		}
 	}
 
-	return folly::collect(v.begin(), v.end()).then([] (std::vector<T> v) { return v[0]; });
+	return folly::collect(v.begin(), v.end()).thenValue([] (std::vector<T> v) { return v[0]; });
 }
 
 template<typename T, typename Func>
@@ -91,7 +91,7 @@ folly::Future<T> follyCollectN(folly::Executor *executor, std::size_t treeHeight
 		}
 	}
 
-	return folly::collectN(v.begin(), v.end(), childNodes).via(executor).then([] (std::vector<std::pair<size_t, folly::Try<T>>> v) { return v[0].second.value(); });
+	return folly::collectN(v.begin(), v.end(), childNodes).via(executor).thenValue([] (std::vector<std::pair<size_t, folly::Try<T>>> v) { return v[0].second.value(); });
 }
 
 template<typename T, typename Func>
@@ -119,11 +119,11 @@ folly::Future<T> follyCollectAny(std::size_t treeHeight, std::size_t childNodes,
 		}
 	}
 
-	return folly::collectAny(v.begin(), v.end()).then([] (std::pair<size_t, folly::Try<T>> v) { return v.second.value(); });
+	return folly::collectAny(v.begin(), v.end()).thenValue([] (std::pair<size_t, folly::Try<T>> v) { return v.second.value(); });
 }
 
 template<typename T, typename Func>
-folly::Future<T> follyCollectAnyWithoutException(std::size_t treeHeight, std::size_t childNodes, Func f)
+folly::Future<T> follyCollectAnyWithoutException(folly::Executor *executor, std::size_t treeHeight, std::size_t childNodes, Func f)
 {
 	std::vector<folly::Future<T>> v;
 
@@ -143,11 +143,11 @@ folly::Future<T> follyCollectAnyWithoutException(std::size_t treeHeight, std::si
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			v.push_back(follyCollectAnyWithoutException<T>(treeHeight - 1, childNodes, f));
+            v.push_back(follyCollectAnyWithoutException<T>(executor, treeHeight - 1, childNodes, f));
 		}
 	}
 
-	return folly::collectAnyWithoutException(v.begin(), v.end()).then([] (std::pair<size_t, T> v) { return v.second; });
+    return folly::collectAnyWithoutException(v.begin(), v.end()).via(executor).thenValue([] (std::pair<size_t, T> v) { return v.second; });
 }
 
 template<typename T, typename Func>
@@ -231,7 +231,7 @@ folly::Future<T> customCollectNWithoutException(std::size_t treeHeight, std::siz
 		}
 	}
 
-	return collectNWithoutException(v.begin(), v.end(), childNodes).then([] (std::vector<std::pair<size_t, T>> v) { return v[0].second; });
+	return collectNWithoutException(v.begin(), v.end(), childNodes).thenValue([] (std::vector<std::pair<size_t, T>> v) { return v[0].second; });
 }
 
 template<typename T, typename Func>
@@ -259,7 +259,7 @@ adv_folly::Future<T> customFollyOrElse(std::size_t treeHeight, std::size_t child
 		}
 	}
 
-	return v[0].orElse(std::move(v[1]));
+	return std::move(v[0]).orElse(std::move(v[1]));
 }
 
 template<typename T, typename Func>
@@ -427,7 +427,7 @@ adv_folly::Future<T> customFollyFirstN(std::size_t treeHeight, std::size_t child
 		}
 	}
 
-	return adv_folly::firstN(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, adv_folly::Try<T>>>> t) { return t.get()[0].second.get(); });
+	return adv_folly::firstN(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, adv_folly::Try<T>>>> t) { return std::move(std::move(t).get()[0].second).get(); });
 }
 
 template<typename T, typename Func>
@@ -455,7 +455,7 @@ adv_boost::Future<T> customBoostFirstN(std::size_t treeHeight, std::size_t child
 		}
 	}
 
-	return adv_boost::firstN(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, adv_boost::Try<T>>>> t) { return t.get()[0].second.get(); });
+	return adv_boost::firstN(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, adv_boost::Try<T>>>> t) { return std::move(std::move(t).get()[0].second).get(); });
 }
 
 template<typename T, typename Func>
@@ -483,7 +483,7 @@ adv_folly::Future<T> customFollyFirstNSucc(std::size_t treeHeight, std::size_t c
 		}
 	}
 
-	return adv_folly::firstNSucc(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
+	return adv_folly::firstNSucc(std::move(v), childNodes).then([] (adv_folly::Try<std::vector<std::pair<std::size_t, T>>> t) { return std::move(t).get()[0].second; });
 }
 
 template<typename T, typename Func>
@@ -511,7 +511,7 @@ adv_boost::Future<T> customBoostFirstNSucc(std::size_t treeHeight, std::size_t c
 		}
 	}
 
-	return adv_boost::firstNSucc(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, T>>> t) { return t.get()[0].second; });
+	return adv_boost::firstNSucc(std::move(v), childNodes).then([] (adv_boost::Try<std::vector<std::pair<std::size_t, T>>> t) { return std::move(t).get()[0].second; });
 }
 
 inline int initFuture()
@@ -543,7 +543,9 @@ BENCHMARK(FollyCollectAny)
 
 BENCHMARK(FollyCollectAnyWithoutException)
 {
-	follyCollectAnyWithoutException<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
+    // TODO Why does folly::collectAnyWithoutException produce a foilly::SemiFuture and not a folly::Future like the other non-blocking combinators?
+    folly::InlineExecutor ex;
+    follyCollectAnyWithoutException<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
 }
 
 BENCHMARK(BoostWhenAll)

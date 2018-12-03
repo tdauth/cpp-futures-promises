@@ -11,6 +11,7 @@ template<typename T>
 class Promise
 {
 	public:
+		// Core methods:
 		Promise()
 		{
 		}
@@ -41,7 +42,7 @@ class Promise
 			// TODO add a tryComplete for boost::promise to the file "extensions.h" and use it here? Otherwise, we won't show that only this extension is required.
 			try
 			{
-				this->_p.set_value(std::move(v.get()));
+				this->_p.set_value(std::move(v).get());
 			}
 			catch (const boost::promise_already_satisfied &e)
 			{
@@ -55,6 +56,7 @@ class Promise
 			return true;
 		}
 
+		// Derived methods:
 		bool trySuccess(T &&v)
 		{
 			return tryComplete(Try<T>(std::move(v)));
