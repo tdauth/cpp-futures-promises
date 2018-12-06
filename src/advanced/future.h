@@ -45,6 +45,10 @@ class PredicateNotFulfilled : public std::exception
 {
 };
 
+class OnlyOneCallbackPerFuture : public std::exception
+{
+};
+
 template<typename T>
 class SharedFuture;
 
@@ -58,27 +62,29 @@ template<typename T>
 class Future
 {
 	public:
+        using type = T;
+
 		// Core methods:
 		Future() {}
 		Future(Future<T> &&other) {}
 		Future(const Future<T> &other) = delete;
 		Future<T>& operator=(const Future<T> &other) = delete;
 		SharedFuture<T> share();
-		T get() &&;
+		T get();
 		bool isReady() const;
 		template<typename Func>
 		void onComplete(Func &&f);
 
 		// Derived methods:
 		template<typename Func, typename S>
-		Future<S> then(Func &&f) &&;
+		Future<S> then(Func &&f);
 		template<typename Func, typename S>
-		Future<S> thenWith(Func &&f) &&;
+		Future<S> thenWith(Func &&f);
 		template<typename Func>
-		Future<T> guard(Func &&f) &&;
-		Future<T> orElse(Future<T> &&other) &&;
-		Future<T> first(Future<T> &&other) &&;
-		Future<T> firstSucc(Future<T> &&other) &&;
+		Future<T> guard(Func &&f);
+		Future<T> orElse(Future<T> &&other);
+		Future<T> first(Future<T> &other);
+		Future<T> firstSucc(Future<T> &other);
 };
 
 // Core methods:

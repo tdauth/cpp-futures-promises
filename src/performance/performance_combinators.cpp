@@ -315,7 +315,18 @@ adv_folly::Future<T> customFollyFirst(std::size_t treeHeight, std::size_t childN
 		}
 	}
 
-	return v[0].first(std::move(v[1]));
+	struct context
+	{
+		adv_folly::Future<T> f0;
+		adv_folly::Future<T> f1;
+	};
+
+	auto ctx = std::make_shared<context>(context {
+		.f0 = std::move(v[0]),
+		.f1 = std::move(v[1])
+	});
+
+	return ctx->f0.first(ctx->f1).then([ctx] (adv_folly::Try<int> &&t) { return t.get(); });
 }
 
 template<typename T, typename Func>
@@ -343,7 +354,18 @@ adv_boost::Future<T> customBoostFirst(std::size_t treeHeight, std::size_t childN
 		}
 	}
 
-	return v[0].first(std::move(v[1]));
+    struct context
+    {
+        adv_boost::Future<T> f0;
+        adv_boost::Future<T> f1;
+    };
+
+    auto ctx = std::make_shared<context>(context {
+            .f0 = std::move(v[0]),
+            .f1 = std::move(v[1])
+    });
+
+	return ctx->f0.first(ctx->f1).then([ctx] (adv_boost::Try<T> &&t) { return std::move(t).get(); });
 }
 
 template<typename T, typename Func>
@@ -371,7 +393,18 @@ adv_folly::Future<T> customFollyFirstSucc(std::size_t treeHeight, std::size_t ch
 		}
 	}
 
-	return v[0].firstSucc(std::move(v[1]));
+	struct context
+	{
+		adv_folly::Future<T> f0;
+		adv_folly::Future<T> f1;
+	};
+
+	auto ctx = std::make_shared<context>(context {
+			.f0 = std::move(v[0]),
+			.f1 = std::move(v[1])
+	});
+
+	return ctx->f0.firstSucc(ctx->f1).then([ctx] (adv_folly::Try<T> &&t) { return t.get(); });
 }
 
 template<typename T, typename Func>
@@ -399,7 +432,18 @@ adv_boost::Future<T> customBoostFirstSucc(std::size_t treeHeight, std::size_t ch
 		}
 	}
 
-	return v[0].firstSucc(std::move(v[1]));
+    struct context
+    {
+        adv_boost::Future<T> f0;
+        adv_boost::Future<T> f1;
+    };
+
+    auto ctx = std::make_shared<context>(context {
+            .f0 = std::move(v[0]),
+            .f1 = std::move(v[1])
+    });
+
+	return ctx->f0.firstSucc(ctx->f1).then([ctx] (adv_boost::Try<int> &&t) { return std::move(t).get(); });
 }
 
 template<typename T, typename Func>

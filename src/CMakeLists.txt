@@ -9,6 +9,7 @@ add_test(Extensions extensions)
 install(FILES extensions.h random.h DESTINATION include/cpp-futures-promises)
 
 add_subdirectory(advanced)
+add_subdirectory(callbacks)
 add_subdirectory(currency)
 add_subdirectory(performance)
 add_subdirectory(santa)

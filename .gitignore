@@ -1,3 +1,6 @@
 /build
 /build_coverage
-*.kdev4
+/*.kdev4
+/.idea
+/cmake-build-debug
+/cppcheck_report

@@ -55,6 +55,11 @@ class Try
 		{
 		}
 
+		// Only required for multi-callback support:
+		Try(const folly::Try<T> &other) : _t(other)
+		{
+		}
+
 		// Only required for shared futures:
 		Try<T>& operator=(const Try<T> &other)
 		{
@@ -63,7 +68,7 @@ class Try
 			return *this;
 		}
 
-		T get() &&
+		T get()
 		{
 			if (!_t.hasValue() && !_t.hasException())
 			{
@@ -72,7 +77,20 @@ class Try
 
 			_t.throwIfFailed();
 
-			return std::move(_t.value());
+			return _t.value();
+		}
+
+		// Only required for shared futures and multi-callback support:
+		const T& get() const
+		{
+			if (!_t.hasValue() && !_t.hasException())
+			{
+				throw adv::UsingUninitializedTry();
+			}
+
+			_t.throwIfFailed();
+
+			return _t.value();
 		}
 
 		bool hasValue()
@@ -142,7 +160,7 @@ class Future
 
 		SharedFuture<T> share();
 
-		T get() &&
+		T get()
 		{
 			try
 			{
@@ -159,16 +177,22 @@ class Future
 			return _f.isReady();
 		}
 
+		/**
+		 * Each future can have only one callback due to the limitations of Folly.
+		 * @param The callback function which gets a adv_folly::Try<T>.
+		 * @throws adv::OnlyOneCallbackPerFuture If there is already a callback registered for this future.
+		 */
 		template<typename Func>
 		void onComplete(Func &&f)
 		{
-            this->_f.setCallback_([f = std::move(f)] (folly::Try<T> &&t) mutable
-				{
-                    f(Try<T>(std::move(t)));
-
-					return folly::unit; // workaround to not provide a future with void
-				}
-			);
+		    try {
+                this->_f.setCallback_([f = std::move(f)](folly::Try<T> &&t) mutable {
+                                          f(Try<T>(std::move(t)));
+                                      }
+                );
+            } catch (const folly::FutureAlreadyContinued &) {
+		        throw adv::OnlyOneCallbackPerFuture();
+		    }
 		}
 
 		// Derived methods:
@@ -181,7 +205,7 @@ class Future
 		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
-			return this->then([f = std::move(f)] (Try<T> &&t) mutable
+			return std::move(*this).then([f = std::move(f)] (Try<T> &&t) mutable
 			{
 				auto x = std::move(t).get();
 
@@ -194,32 +218,11 @@ class Future
 			});
 		}
 
-		Future<T> orElse(Future<T> &&other) &&
-		{
-			auto first = std::make_shared<Future<T>>(std::move(*this));
-			auto second = std::make_shared<Future<T>>(std::move(other));
+		Future<T> orElse(Future<T> &&other);
 
-			return first->thenWith([first, second] (Try<T> &&t) mutable {
-					if (t.hasException()) {
-						return second->then([t = std::move(t)] (Try<T> &&tt) mutable {
-								if (tt.hasException()) {
-									return std::move(t).get();
-								}
-								else {
-									return std::move(tt).get();
-								}
-							}
-						);
-					}
-					else {
-						return std::move(*first);
-					}
-				});
-		}
+		Future<T> first(Future<T> &other);
 
-		Future<T> first(Future<T> &&other);
-
-		Future<T> firstSucc(Future<T> &&other);
+		Future<T> firstSucc(Future<T> &other);
 
 	private:
 		folly::Future<T> _f;

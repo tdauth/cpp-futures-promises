@@ -116,12 +116,14 @@ class SharedFuture
 
 		SharedFuture<T> first(SharedFuture<T> other)
 		{
-			return Future<T>(this->me->getFuture()).first(Future<T>(other.me->getFuture()));
+			auto otherF = std::make_shared<Future<T>>(other.me->getFuture());
+			return Future<T>(this->me->getFuture()).first(*otherF).then([otherF] (Try<T> &&t) { return t.get(); });
 		}
 
 		SharedFuture<T> firstSucc(SharedFuture<T> other)
 		{
-			return Future<T>(this->me->getFuture()).firstSucc(Future<T>(other.me->getFuture()));
+			auto otherF = std::make_shared<Future<T>>(other.me->getFuture());
+			return Future<T>(this->me->getFuture()).firstSucc(*otherF).then([otherF] (Try<T> &&t) { return t.get(); });
 		}
 
 		SharedFuture() = delete;

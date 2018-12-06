@@ -53,22 +53,31 @@ class Promise
 			return tryFailure(std::make_exception_ptr(std::move(e)));
 		}
 
-		void tryCompleteWith(Future<T> &&f) &&
+		void tryCompleteWith(Future<T> &f) &&
 		{
-			auto ctx = std::make_shared<Future<T>>(std::move(f));
-
-			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
+			f.onComplete([p = std::move(*this)] (Try<T> t) mutable
 				{
 					p.tryComplete(std::move(t));
 				}
 			);
 		}
 
-		void trySuccessWith(Future<T> &&f) &&
+		/**
+		 * Keeps the passed future alive until it is completed.
+		 */
+		void tryCompleteWithSafe(Future<T> &&f) &&
 		{
 			auto ctx = std::make_shared<Future<T>>(std::move(f));
+            ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
+						 {
+							 p.tryComplete(std::move(t));
+						 }
+			);
+		}
 
-			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
+		void trySuccessWith(Future<T> &f) &&
+		{
+			f.onComplete([p = std::move(*this)] (Try<T> t) mutable
 				{
 					if (t.hasValue())
 					{
@@ -78,11 +87,9 @@ class Promise
 			);
 		}
 
-		void tryFailureWith(Future<T> &&f) &&
+		void tryFailureWith(Future<T> &f) &&
 		{
-			auto ctx = std::make_shared<Future<T>>(std::move(f));
-
-			ctx->onComplete([p = std::move(*this), ctx] (Try<T> t) mutable
+			f.onComplete([p = std::move(*this)] (Try<T> t) mutable
 				{
 					if (t.hasException())
 					{

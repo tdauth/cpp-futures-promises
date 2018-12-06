@@ -46,14 +46,13 @@ typename std::result_of<Func(Try<T>)>::type Future<T>::thenWith(Func &&f)
 	static_assert(is_adv_future<FutureS>::value, "Return type must be of Future<S>");
 	using S = typename FutureS::type;
 
-	auto p = std::make_shared<Promise<S>>();
-	auto r = p->future();
+	auto p = Promise<S>();
+	auto r = p.future();
 
-	this->onComplete([f = std::move(f), p] (Try<T> &&t) mutable
+	this->onComplete([f = std::move(f), p = std::move(p)] (Try<T> &&t) mutable
         {
-			Future<S> result = f(std::move(t));
-			// TODO What happens if the result is this? this gets another callback than the curently run with onComplete to complete p.
-			std::move(*p).tryCompleteWith(std::move(result));
+	        // The future will stay alive until it is completed.
+            std::move(p).tryCompleteWithSafe(f(std::move(t)));
 		}
 	);
 
@@ -67,57 +66,59 @@ SharedFuture<T> Future<T>::share()
 }
 
 template<typename T>
-Future<T> Future<T>::first(Future<T> &&other)
+Future<T> Future<T>::orElse(Future<T> &&other)
 {
-	struct SharedContext
-	{
-		SharedContext(Future<T> &&f0, Future<T> &&f1) : f0(std::move(f0)), f1(std::move(f1))
-		{ }
-
-		Promise<T> p;
-		Future<T> f0;
-		Future<T> f1;
-	};
-
-	auto ctx = std::make_shared<SharedContext>(std::move(*this), std::move(other));
-	auto future = ctx->p.future();
-
-	ctx->f0.onComplete([ctx] (Try<T> t) {
-		ctx->p.tryComplete(std::move(t));
-	});
-
-	ctx->f1.onComplete([ctx] (Try<T> t) {
-		ctx->p.tryComplete(std::move(t));
-	});
-
-	return future;
+    return this->thenWith([other = std::move(other)] (Try<T> &&t) mutable {
+        if (t.hasException()) {
+            return other.then([t = std::move(t)] (Try<T> &&tt) mutable {
+                                    if (tt.hasException()) {
+                                        return std::move(t).get();
+                                    }
+                                    else {
+                                        return std::move(tt).get();
+                                    }
+                                }
+            );
+        }
+        else {
+            // Don't ever move first since it would register a second callback which is not allowed.
+            Promise<T> p;
+            p.tryComplete(std::move(t));
+            return p.future();
+        }
+    });
 }
 
 template<typename T>
-Future<T> Future<T>::firstSucc(Future<T> &&other)
+Future<T> Future<T>::first(Future<T> &other)
 {
-	struct SharedContext
-	{
-		SharedContext(Future<T> &&f0, Future<T> &&f1) : f0(std::move(f0)), f1(std::move(f1))
-		{ }
+    auto p = std::make_shared<Promise<T>>();
 
-		Promise<T> p;
-		Future<T> f0;
-		Future<T> f1;
-	};
-
-	auto ctx = std::make_shared<SharedContext>(std::move(*this), std::move(other));
-	auto future = ctx->p.future();
-
-	ctx->f0.onComplete([ctx] (Try<T> t) {
-		ctx->p.trySuccess(std::move(t).get());
+	this->onComplete([p] (Try<T> t) {
+        p->tryComplete(std::move(t));
 	});
 
-	ctx->f1.onComplete([ctx] (Try<T> t) {
-		ctx->p.trySuccess(std::move(t).get());
+   other.onComplete([p] (Try<T> t) {
+       p->tryComplete(std::move(t));
 	});
 
-	return future;
+	return p->future();
+}
+
+template<typename T>
+Future<T> Future<T>::firstSucc(Future<T> &other)
+{
+    auto p = std::make_shared<Promise<T>>();
+
+	this->onComplete([p] (Try<T> t) {
+		p->trySuccess(std::move(t).get());
+	});
+
+	other.onComplete([p] (Try<T> t) {
+        p->trySuccess(std::move(t).get());
+	});
+
+    return p->future();
 }
 
 template<typename T>

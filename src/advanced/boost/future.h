@@ -30,6 +30,17 @@ class Try
 		{
 		}
 
+		/**
+		 * Simplifies the conversion from a non-shared future into a Try.
+		 */
+		Try(boost::future<T> &&f) {
+			try {
+				this->_v = std::move(f.get());
+			} catch (...) {
+				this->_v = boost::current_exception();
+			}
+		}
+
 		Try(const Try<T> &other) = delete;
 
 		Try(Try<T> &&other) : _v(std::move(other._v))
@@ -38,7 +49,7 @@ class Try
 
 		Try<T>& operator=(const Try<T> &other) = delete;
 
-		T get() &&
+		T get()
 		{
 			if (_v == boost::none)
 			{
@@ -113,6 +124,8 @@ template<typename T>
 class Future
 {
 	public:
+		using type = T;
+
         // Core methods:
 		Future()
 		{
@@ -131,7 +144,7 @@ class Future
 
 		SharedFuture<T> share();
 
-		T get() &&
+		T get()
 		{
 			try
 			{
@@ -151,10 +164,14 @@ class Future
         template<typename Func>
         void onComplete(Func &&f)
         {
-            this->_f.then([f = std::move(f)] (boost::future<T> future) mutable
+			// non-shared futures become invalid in Boost.Thread after registering one callback.
+            std::scoped_lock<std::mutex> lock(_callbackFutureMutex);
+            if (_isCallbackSet) {
+                throw adv::OnlyOneCallbackPerFuture();
+            }
+            this->_callbackFuture = this->_f.then([f = std::move(f)] (boost::future<T> &&future) mutable
             {
-                    T value = std::move(future.get());
-                    f(Try<T>(std::move(value)));
+				f(Try<T>(std::move(future)));
             });
         }
 
@@ -163,9 +180,12 @@ class Future
         Future<typename std::result_of<Func(Try<T>)>::type> then(Func &&f);
 
 		template<typename Func>
+		typename std::result_of<Func(Try<T>)>::type thenWith(Func &&f);
+
+		template<typename Func>
 		Future<T> guard(Func &&f)
 		{
-			return this->then([f = std::move(f)] (Try<T> t) mutable
+			return this->then([f = std::move(f)] (Try<T> &&t) mutable
 			{
 				auto x = std::move(t).get();
 
@@ -178,33 +198,16 @@ class Future
 			});
 		}
 
-		Future<T> orElse(Future<T> &&other)
-		{
-			return this->then([other = std::move(other)] (Try<T> t) mutable
-				{
-					if (t.hasException())
-					{
-						try
-						{
-							// TODO Never call get here, use flatMap, get will block the executor thread!
-							return std::move(other).get();
-						}
-						catch (...)
-						{
-						}
-					}
-
-					return std::move(t).get(); // will rethrow if failed
-				}
-			);
-		}
-
-		Future<T> first(Future<T> &&other);
-
-		Future<T> firstSucc(Future<T> &&other);
+		Future<T> orElse(Future<T> &&other);
+		Future<T> first(Future<T> &other);
+		Future<T> firstSucc(Future<T> &other);
 
 	private:
 		boost::future<T> _f;
+		// TODO Do we have to store the callbackFuture? We could use a shared future.
+		std::mutex _callbackFutureMutex;
+		bool _isCallbackSet = false;
+		boost::future<void> _callbackFuture;
 };
 
 // TODO Derived from a constructor with an executor.
