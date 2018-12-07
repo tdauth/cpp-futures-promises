@@ -11,7 +11,7 @@ The extensions are mainly inspired by the [Scala library for futures and promise
 Some use cases have been implemented to demonstrate the extensions.
 
 ## Automatic Build with TravisCI
-[![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
+[![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=single-read-and-bugfixes)](https://travis-ci.org/tdauth/cpp-futures-promises)
 
 ## Manual Build
 To compile the project run one of the the following Bash scripts on Linux:
