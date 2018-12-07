@@ -1,6 +1,6 @@
 # http://releases.llvm.org/5.0.0/tools/clang/docs/ClangFormatStyleOptions.html
 Language:        Cpp
-AccessModifierOffset: -2
+AccessModifierOffset: 0
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
@@ -10,13 +10,13 @@ AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
+AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: false
-AlwaysBreakTemplateDeclarations: false
+AlwaysBreakTemplateDeclarations: true
 BinPackArguments: true
 BinPackParameters: true
 BraceWrapping:
@@ -107,6 +107,7 @@ BreakBeforeBraces: Custom
 BraceWrapping:
     AfterEnum: true
     AfterStruct: true
+    AfterClass: true
     AfterControlStatement: true
     AfterFunction: true
     AfterNamespace: true
@@ -114,3 +115,4 @@ BraceWrapping:
     BeforeCatch: true
     BeforeElse: true
     IndentBraces: false
+    SplitEmptyFunction: true
