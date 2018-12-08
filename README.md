@@ -94,7 +94,8 @@ Therefore, every library which is used to implement the advanced futures and pro
 #### Abstraction of the basic functions
 `adv::Future<T>` and `adv::Promise<T>` expect core types which provide the basic functions.
 The core type has to specified as template argument similar to type classes in Haskell.
-Another solution would be to specify a pointer internally to class which provides the core methods.
+Another solution would be to specify a pointer internally to a class which provides the core methods.
+The second approach would be much easier to implement but would require a heap allocation and indirection at runtime.
 
 ### Folly Implementation
 The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.

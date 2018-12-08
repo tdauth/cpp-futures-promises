@@ -169,7 +169,7 @@ class SharedFuture
 	SharedFuture<T> firstSucc(SharedFuture<T> other)
 	{
 		auto otherF = std::make_shared<FutureType>(other.getFuture());
-        using CoreT = Core<T>;
+		using CoreT = Core<T>;
 
 		return getFuture().firstSucc(*otherF).then<CoreT>(
 		    [otherF](adv::Try<T> &&t) { return t.get(); });

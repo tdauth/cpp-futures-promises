@@ -13,8 +13,11 @@ namespace adv_folly
 template <typename T>
 class SharedFuture;
 
-template<typename T>
+template <typename T>
 class Promise;
+
+template <typename T>
+class Future;
 
 template <typename T>
 class Core
@@ -23,10 +26,13 @@ class Core
 	using Self = Core<T>;
 	using Type = T;
 
-	template<typename S>
+	template <typename S>
 	using CoreType = Core<S>;
-	template<typename S>
+	template <typename S>
 	using PromiseType = Promise<S>;
+
+	template <typename S>
+	using FutureType = Future<S>;
 
 	// Core methods:
 	Core() : _f(folly::Future<T>::makeEmpty())
@@ -37,7 +43,8 @@ class Core
 	{
 	}
 
-	Self& operator=(Self &&other) {
+	Self &operator=(Self &&other)
+	{
 		this->_f = std::move(other._f);
 	}
 
@@ -88,8 +95,8 @@ class Core
 		}
 	}
 
-    template<typename S>
-    static Promise<S> createPromise();
+	template <typename S>
+	static Promise<S> createPromise();
 
 	private:
 	folly::Future<T> _f;
@@ -112,7 +119,8 @@ class Future : public adv::Future<T, Core<T>>
 	{
 	}
 
-	Self& operator=(Parent &&p) {
+	Self &operator=(Parent &&p)
+	{
 		return Parent::operator=(std::move(p));
 	}
 };

@@ -155,6 +155,25 @@ Future<T, CoreType> Future<T, CoreType>::firstSucc(Future<T, CoreType> &other)
 	return p->future();
 }
 
+template <typename T, typename CoreType>
+Future<T, CoreType> Future<T, CoreType>::successful(T &&v)
+{
+	using PromiseType = typename CoreType::template PromiseType<T>;
+	PromiseType p;
+	p.trySuccess(std::move(v));
+	return p.future();
+}
+
+template <typename T, typename CoreType>
+template <typename E>
+Future<T, CoreType> Future<T, CoreType>::failed(E &&e)
+{
+	using PromiseType = typename CoreType::template PromiseType<T>;
+	PromiseType p;
+	p.tryFailure(std::move(e));
+	return p.future();
+}
+
 template <typename PromiseType, typename Executor, typename Func>
 typename PromiseType::FutureType async(Executor *ex, Func &&f)
 {
@@ -177,23 +196,24 @@ typename PromiseType::FutureType async(Executor *ex, Func &&f)
 	return p->future();
 }
 
-template <typename PromiseType, typename FutureType>
-Future<std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>,
-       typename FutureType::CoreType>
+template <typename FutureType>
+typename FutureType::CoreType::template FutureType<
+    std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>>
 firstN(std::vector<FutureType> &&c, std::size_t n)
 {
 	using CoreType = typename FutureType::CoreType;
 	using T = typename CoreType::Type;
-	typedef std::vector<std::pair<size_t, Try<T>>> V;
+	using V = std::vector<std::pair<size_t, Try<T>>>;
+	using PromiseType = typename CoreType::template PromiseType<V>;
 
 	struct FirstNContext
 	{
-		/*
-		 * Reserve enough space for the vector, so emplace_back won't modify the whole
-		 * vector and stays thread-safe.
-		 */
 		FirstNContext(std::size_t n)
 		{
+			/*
+			 * Reserve enough space for the vector, so emplace_back won't modify the
+			 * whole vector and stays thread-safe.
+			 */
 			v.reserve(n);
 		}
 
@@ -245,22 +265,24 @@ firstN(std::vector<FutureType> &&c, std::size_t n)
 	return ctx->p.future();
 }
 
-template <typename PromiseType, typename FutureType>
-Future<std::vector<std::pair<std::size_t, typename FutureType::Type>>,
-       typename FutureType::CoreType>
+template <typename FutureType>
+typename FutureType::CoreType::template FutureType<
+    std::vector<std::pair<std::size_t, typename FutureType::Type>>>
 firstNSucc(std::vector<FutureType> &&c, std::size_t n)
 {
 	using T = typename FutureType::Type;
-	typedef std::vector<std::pair<size_t, T>> V;
+	using V = std::vector<std::pair<size_t, T>>;
+	using CoreType = typename FutureType::CoreType;
+	using PromiseType = typename CoreType::template PromiseType<V>;
 
 	struct FirstNSuccContext
 	{
-		/*
-		 * Reserve enough space for the vector, so emplace_back won't modify the whole
-		 * vector and stays thread-safe.
-		 */
 		FirstNSuccContext(std::size_t n)
 		{
+			/*
+			 * Reserve enough space for the vector, so emplace_back won't modify the
+			 * whole vector and stays thread-safe.
+			 */
 			v.reserve(n);
 		}
 

@@ -283,56 +283,71 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, adv::TestFixture)
 	}
 }
 
+BOOST_FIXTURE_TEST_CASE(Successful, adv::TestFixture)
+{
+	auto f = adv_folly::Future<int>::successful(10);
+	BOOST_CHECK_EQUAL(10, f.get());
+}
+
+BOOST_FIXTURE_TEST_CASE(Failed, adv::TestFixture)
+{
+	auto f = adv_folly::Future<int>::failed(std::runtime_error("Failure!"));
+	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+}
+
 BOOST_FIXTURE_TEST_CASE(Async, adv::TestFixture)
 {
 	auto f = adv::async<adv_folly::Promise<int>>(ex, []() { return 10; });
 	BOOST_CHECK_EQUAL(10, f.get());
 }
 
-/*
 BOOST_FIXTURE_TEST_CASE(FirstN, adv::TestFixture)
 {
- std::vector<adv_folly::Future<int>> futures;
- futures.push_back(
-     adv::async<adv_folly::Promise<int>>(ex, []() { return 10; }));
- futures.push_back(adv::async<adv_folly::Promise<int>>(ex, []() {
-  throw std::runtime_error("Failure!");
-  return 11;
- }));
- futures.push_back(
-     adv::async<adv_folly::Promise<int>>(ex, []() { return 12; }));
- futures.push_back(
-     adv::async<adv_folly::Promise<int>>(ex, []() { return 13; }));
+	std::vector<adv_folly::Future<int>> futures;
+	futures.push_back(adv_folly::Future<int>::successful(10));
+	futures.push_back(
+	    adv_folly::Future<int>::failed(std::runtime_error("Failure!")));
+	futures.push_back(adv_folly::Future<int>::successful(12));
+	futures.push_back(adv_folly::Future<int>::successful(13));
 
- adv_folly::Future<std::vector<std::pair<std::size_t, adv::Try<int>>>> f =
-     adv::firstN<adv_folly::Promise<std::vector<std::pair<std::size_t,
-adv::Try<int>>>>>(std::move(futures), 3); std::vector<std::pair<std::size_t,
-adv::Try<int>>> v = f.get();
+	auto f = adv::firstN(std::move(futures), 3);
+	auto v = f.get();
 
- BOOST_CHECK_EQUAL(3u, v.size());
- // TODO check for elements
+	BOOST_CHECK_EQUAL(3u, v.size());
+	auto v0 = std::move(v[0]);
+	BOOST_CHECK_EQUAL(0u, v0.first);
+	BOOST_CHECK_EQUAL(10, v0.second.get());
+	auto v1 = std::move(v[1]);
+	BOOST_CHECK_EQUAL(1u, v1.first);
+	BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
+	auto v2 = std::move(v[2]);
+	BOOST_CHECK_EQUAL(2u, v2.first);
+	BOOST_CHECK_EQUAL(12, v2.second.get());
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstNSucc, adv::TestFixture)
 {
- std::vector<adv_folly::Future<int>> futures;
- futures.push_back(adv::async<adv_folly::Promise<int>>(ex, []() { return 1; }));
- futures.push_back(adv::async<adv_folly::Promise<int>>(ex, []() {
-  throw std::runtime_error("Failure!");
-  return 2;
- }));
- futures.push_back(adv::async<adv_folly::Promise<int>>(ex, []() { return 3; }));
- futures.push_back(adv::async<adv_folly::Promise<int>>(ex, []() { return 4; }));
+	std::vector<adv_folly::Future<int>> futures;
+	futures.push_back(adv_folly::Future<int>::successful(10));
+	futures.push_back(
+	    adv_folly::Future<int>::failed(std::runtime_error("Failure!")));
+	futures.push_back(adv_folly::Future<int>::successful(12));
+	futures.push_back(adv_folly::Future<int>::successful(13));
 
- adv_folly::Future<std::vector<std::pair<std::size_t, int>>> f =
-     adv::firstNSucc<adv_folly::Promise<std::vector<std::pair<std::size_t,
-int>>>>(std::move(futures), 3); std::vector<std::pair<std::size_t, int>> v =
-f.get();
+	auto f = adv::firstNSucc(std::move(futures), 3);
+	auto v = f.get();
 
- BOOST_CHECK_EQUAL(3u, v.size());
- // TODO check for elements 1, 3 and 4
+	BOOST_CHECK_EQUAL(3u, v.size());
+	auto v0 = std::move(v[0]);
+	BOOST_CHECK_EQUAL(0u, v0.first);
+	BOOST_CHECK_EQUAL(10, v0.second);
+	auto v1 = std::move(v[1]);
+	BOOST_CHECK_EQUAL(2u, v1.first);
+	BOOST_CHECK_EQUAL(12, v1.second);
+	auto v2 = std::move(v[2]);
+	BOOST_CHECK_EQUAL(3u, v2.first);
+	BOOST_CHECK_EQUAL(13, v2.second);
 }
- */
 
 BOOST_FIXTURE_TEST_CASE(BrokenPromise, adv::TestFixture)
 {

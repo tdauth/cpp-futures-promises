@@ -91,18 +91,22 @@ class Future : public CoreType
 	Self first(Self &other);
 
 	Self firstSucc(Self &other);
+
+	static Self successful(T &&v);
+	template <typename E>
+	static Self failed(E &&e);
 };
 
 // Derived methods:
 template <typename PromiseType, typename Executor, typename Func>
 typename PromiseType::FutureType async(Executor *ex, Func &&f);
-template <typename PromiseType, typename FutureType>
-Future<std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>,
-       typename FutureType::CoreType>
+template <typename FutureType>
+typename FutureType::CoreType::template FutureType<
+    std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>>
 firstN(std::vector<FutureType> &&c, std::size_t n);
-template <typename PromiseType, typename FutureType>
-Future<std::vector<std::pair<std::size_t, typename FutureType::Type>>,
-       typename FutureType::CoreType>
+template <typename FutureType>
+typename FutureType::CoreType::template FutureType<
+    std::vector<std::pair<std::size_t, typename FutureType::Type>>>
 firstNSucc(std::vector<FutureType> &&c, std::size_t n);
 }
 
