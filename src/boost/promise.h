@@ -13,7 +13,7 @@ class CorePromise
 	public:
 	using Self = CorePromise<T, F>;
 	using FutureType = F;
-	// Core methods:
+
 	CorePromise()
 	{
 	}

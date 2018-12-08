@@ -34,7 +34,6 @@ class Core
 	template <typename S>
 	using FutureType = Future<S>;
 
-	// Core methods:
 	Core() : _f(folly::Future<T>::makeEmpty())
 	{
 	}

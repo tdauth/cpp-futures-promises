@@ -1,5 +1,5 @@
-#ifndef ADV_PROMISEFOLLY_H
-#define ADV_PROMISEFOLLY_H
+#ifndef ADV_FOLLY_PROMISE_H
+#define ADV_FOLLY_PROMISE_H
 
 #include "../promise.h"
 #include "../try.h"
@@ -16,7 +16,6 @@ class CorePromise
 	using Self = CorePromise<T>;
 	using FutureType = Future<T>;
 
-	// Core methods:
 	CorePromise()
 	{
 	}

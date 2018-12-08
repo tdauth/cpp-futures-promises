@@ -135,9 +135,7 @@ BOOST_FIXTURE_TEST_CASE(ThenWith, adv::TestFixture)
 	p1.trySuccess(10);
 	auto f1 = p1.future();
 	auto f = f1.thenWith([f0 = std::move(f0)](adv::Try<int> &&) mutable {
-		// TODO Why do we have to move it explicitly here and cannot simply
-		// return f1?
-		return adv_folly::Future<std::string>(std::move(f0));
+		return std::move(f0);
 	});
 
 	BOOST_CHECK_EQUAL("11", f.get());

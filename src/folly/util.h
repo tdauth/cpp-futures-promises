@@ -8,7 +8,7 @@ namespace adv_folly
 {
 
 template <typename T>
-static adv::Try<T> tryFromFollyTry(folly::Try<T> &&t)
+inline adv::Try<T> tryFromFollyTry(folly::Try<T> &&t)
 {
 	try
 	{
@@ -21,7 +21,7 @@ static adv::Try<T> tryFromFollyTry(folly::Try<T> &&t)
 }
 
 template <typename T>
-static folly::Try<T> follyTryFromTry(adv::Try<T> &&t)
+inline folly::Try<T> follyTryFromTry(adv::Try<T> &&t)
 {
 	try
 	{

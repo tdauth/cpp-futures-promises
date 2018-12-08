@@ -10,7 +10,7 @@
 namespace adv_boost
 {
 
-template<typename T>
+template <typename T>
 class Promise;
 
 template <typename T>
@@ -68,7 +68,7 @@ class Core
 		    });
 	}
 
-	template<typename S>
+	template <typename S>
 	static Promise<S> createPromise();
 
 	private:
