@@ -87,8 +87,38 @@ The following classes and class templates are provided by the library:
 * `adv::Future<T>` - Non-sharable template class for futures. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
 * `adv::Promise<T>` - Non-sharable template class for promises. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
 
-With the help of only four basic functions (`get`, `then`, `isReady` and `tryComplete`) all other functions can be implemented.
+With the help of only four basic functions (`get`, `onComplete`, `isReady` and `tryComplete`) all other functions can be implemented.
 Therefore, every library which is used to implement the advanced futures and promises has only to support these basic functions.
+
+#### Abstraction of the basic functions
+`adv::Future<T>` and `adv::Promise<T>` expect core types which provide the basic functions.
+The core type has to specified as template argument similar to type classes in Haskell.
+Another solution would be to specify a pointer internally to class which provides the core methods.
+
+### Folly Implementation
+The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
+To use them you have to include the file [advanced/advanced_futures_folly.h](./src/advanced/advanced_futures_folly.h).
+The classes wrap classes of Folly itself.
+The Folly implementation uses the namespace `adv_folly` to distinguish it from the Boost.Thread implementation.
+
+### Shared Futures for Folly
+The advanced futures provide the shared future class template `adv_folly::SharedFuture<T>`.
+It allows copying the future around and multiple read semantics with `get` by default.
+It does also allow registering more than one callback.
+It is realized with the help of `folly::SharedPromise<T>` for the implementation of the library with Folly.
+
+### Boost.Thread Implementation
+The advanced futures and promises are also implemented for the library Boost.Thread in this project since it provides another extended interface for futures and promises in C++.
+To use them you have to include the file [advanced/advanced_futures_boost.h](./src/advanced/advanced_futures_boost.h).
+The classes wrap classes of Boost.Thread itself.
+The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
+The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
+Besides, you have to use `boost::exception_ptr` instead of `std::exception_ptr` with the Boost.Thread implementation.
+
+## Performance Tests
+The project provides several performance tests using the benchmark suite from Folly:
+* [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
+* [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
 
 ### Paper
 We have written a paper about the advanced futures and promises called [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
@@ -153,87 +183,3 @@ Maybe this approach would be better to avoid virtual methods and heap allocation
 Maybe add the new derived methods to `adv::Future`:
 * `onSuccess`: Registers a callback which takes the successful result value. If the future has failed, it is not called. This method could be used in listing 4 to simplify the code.
 * `onFail`: Takes the failed exception. If the future has been completed successfully, it is not called.
-
-### Folly Implementation
-The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
-To use them you have to include the file [advanced/advanced_futures_folly.h](./src/advanced/advanced_futures_folly.h).
-The classes wrap classes of Folly itself.
-The Folly implementation uses the namespace `adv_folly` to distinguish it from the Boost.Thread implementation.
-
-### Shared Futures for Folly
-The advanced futures provide the shared future class template `adv_folly::SharedFuture<T>`.
-It allows copying the future around and multiple read semantics with `get` by default.
-It does also allow registering more than one callback.
-It is realized with the help of `folly::SharedPromise<T>` for the implementation of the library with Folly.
-
-### Boost.Thread Implementation
-The advanced futures and promises are also implemented for the library Boost.Thread in this project since it provides another extended interface for futures and promises in C++.
-To use them you have to include the file [advanced/advanced_futures_boost.h](./src/advanced/advanced_futures_boost.h).
-The classes wrap classes of Boost.Thread itself.
-The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
-The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
-Besides, you have to use `boost::exception_ptr` instead of `std::exception_ptr` with the Boost.Thread implementation.
-
-## Extensions
-The project does also provide extensions for the libraries Folly and Boost.Thread.
-The use them include the header [extensions.h](./src/extensions.h).
-
-### Future Extensions for Folly
-The project provides a number of non-blocking combinators which are missing from the existing C++ libraries:
-* `orElse` - The same as `fallbackTo` in Scala.
-* `first` - Returns the first completed future from two.
-* `firstRandom` - The same but with shuffling.
-* `firstOnlySucc` - Returns the first successfully completed future from two. If both fail, the program will starve.
-* `firstOnlySuccRandom` - The same but with shuffling.
-* `firstSucc` - Returns the first succesfully completed future from two. If both fail, the returned future will also fail. Implemented with the help of two orElse calls.
-* `firstSuccRandom` - The same but with shuffling.
-* `firstSucc2` - The same semantics but implemented differently with `orElse` and `onError`.
-* `firstSucc2Random` - The same but with shuffling.
-* `collectNWithoutException` - Like `folly::collectN` but collects n futures which have been completed successfully. It ignores failed futures. The returned future fails if the collection is two small or too many futures failed.
-
-### Promise Extensions for Folly
-The project provides extensions for promises which do exist in Scala but are missing from Folly:
-* `tryComplete` - Tries to complete a promise with a `folly::Try` object. Returns if the completion was successful.
-* `tryCompleteWith` - Tries to complete a promise with a `folly::Future` object in a non-blocking way. Returns the promise.
-* `tryCompleteSuccess` - Tries to complete a promise with a value. Returns if the completion was successful.
-* `tryCompleteSuccessWith` - Tries to complete a promise with a `folly::Future` object's successful result value in a non-blocking way. Returns the promise. If the future fails, the promise is not completed by it.
-* `tryCompleteFailure` - Tries to complete a promise with an exception. Returns if the completion was successful.
-* `tryCompleteFailureWith` - Tries to complete a promise with a `folly::Future` object's exception in a non-blocking way. Returns the promise. If the future succeeds, the promise is not completed by it.
-* `fromTry` - Creates a completed promise from a `folly::Try` object.
-* `failed` - Creates a failed promise from an exception.
-* `successful` - Creates a successful promise from a value.
-
-### Future Extensions for Boost.Thread
-The project does also provide some of the extensions for Boost.Thread:
-* `orElse` - The same as `fallbackTo` in Scala.
-* `whenN` - The same as `folly::collectN` but with `boost::future` instances in the resulting vector.
-* `whenNSucc` - The same as `collectNWithoutException`.
-* `whenAny` - Returns a future containing a pair of the completed future and its index similar to `folly::collectAny`. Boost.Thread's `boost::when_any` returns a future with the whole collection of futures instead.
-* `whenAnySucc` - Returns a future containg a pair of the completed future's result value and its index similar to `folly::collectAnyWithoutException`.
-
-## Unit Tests
-Several unit tests are provided for the extensions to test the functionality.
-Bear in mind that concurrent programs can behave differently every time due to scheduling.
-Therefore, simple unit tests won't proof that there are no bugs.
-The advanced futures and promises implementation with Boost.Thread is tested in the files [future.cpp](./src/advanced/boost/test/future.cpp) and [copy_exception.cpp](./src/advanced/boost/test/copy_exception.cpp) with the help of Boost.Test.
-The advanced futures and promises implementation with Folly is tested in the files [future.cpp](./src/advanced/folly/test/future.cpp) and [shared_future.cpp](./src/advanced/folly/test/shared_future.cpp) with the help of Boost.Test.
-The extensions are tested in the file [extensions.cpp](./src/extensions.cpp).
-
-## Performance Tests
-The project provides several performance tests using the benchmark suite from Folly:
-* [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
-* [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
-
-## Use Cases
-The project provides several use cases for futures and promises to demonstrate their usage for solving problems.
-
-### Currency Exchange
-A simple use case of exchanging currencies with the help of futures and promises.
-It is extended with guards in a second variant and finally with a choice between two exchanges in a third variant, but only for Folly.
-This use case shows the limitations of the libraries.
-
-### Santa Claus
-Santa Claus sleeps and is woken up either by a group of reindeer or a group of elves ([Original Paper](http://dl.acm.org/citation.cfm?id=187391)).
-In our variant he prefers to wait for the reindeer first and only if they could not make it he waits for the elves.
-This is realized with the usage of `orElse`.
-Depending on which group wakes up Santa, he either delivers toys or constructs them.

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
-set(boost_VERSION "1.66.0")
-set(boost_VERSION_UNDERSCORE "1_66_0")
-set(folly_VERSION "v2018.11.26.00")
+set(boost_VERSION "1.68.0")
+set(boost_VERSION_UNDERSCORE "1_68_0")
+set(folly_VERSION "v2018.10.29.00")
 
 enable_testing()
 
@@ -18,7 +18,7 @@ CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
 # Try to use standard C++17 but if it is not available fallback until C++11.
 # The environment variables are required for the Bash scripts which often compile external libraries.
 if (HAS_CXX_17)
-	add_compile_options(-std=c++1z)
+	add_compile_options(-std=c++17)
 	set(ENV{CFLAGS} "-std=c11")
 	set(ENV{CXXFLAGS} "-std=c++17")
 elseif (HAS_CXX_14)
@@ -152,9 +152,7 @@ set(folly_LIBRARIES
 list(APPEND folly_LIBRARIES ${Boost_LIBRARIES})
 
 ExternalProject_Add(folly
-	# TODO Use the latest release where the bug fix is included: https://github.com/facebook/folly/commit/e9842c1e40d1d3e2a1fac9788e14492055855ea3
-	#URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	GIT_REPOSITORY "https://github.com/facebook/folly.git"
+	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
 	INSTALL_COMMAND ""
 	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${BOOST_INSTALL_DIR}"
 	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_BUILD_DIR}"

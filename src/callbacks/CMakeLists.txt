@@ -1,4 +1,0 @@
-add_executable(multiple_callbacks_boost multiple_callbacks_boost.cpp)
-add_dependencies(multiple_callbacks_boost boost)
-target_link_libraries(multiple_callbacks_boost ${Boost_LIBRARIES})
-add_test(MultipleCallbacksBoost multiple_callbacks_boost)
