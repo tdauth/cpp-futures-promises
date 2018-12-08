@@ -1,7 +1,7 @@
 #ifndef ADV_TESTFIXTURE_H
 #define ADV_TESTFIXTURE_H
 
-#include "executor.h"
+#include "inline_executor.h"
 #include <folly/init/Init.h>
 
 namespace adv
@@ -9,7 +9,8 @@ namespace adv
 
 struct TestFixture
 {
-	TestFixture() : ex(new adv::Executor(1))
+	// Do not use multiple threads to detect invalid blocking.
+	TestFixture() : ex(new InlineExecutor())
 	{
 	}
 
@@ -19,7 +20,7 @@ struct TestFixture
 		ex = nullptr;
 	}
 
-	Executor *ex;
+	InlineExecutor *ex;
 };
 }
 

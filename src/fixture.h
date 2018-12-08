@@ -1,4 +1,3 @@
-#include "executor.h"
 #include <folly/init/Init.h>
 
 /**

@@ -30,9 +30,14 @@ class Promise : public CoreType
 	Promise()
 	{
 	}
-	Promise(Self &&other)
+	Promise(Self &&other) : Parent(std::move(other))
 	{
 	}
+	Self &operator=(Self &&other)
+	{
+		return Parent::operator=(std::move(other));
+	}
+
 	Promise(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 

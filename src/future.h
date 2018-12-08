@@ -45,16 +45,23 @@ class Future : public CoreType
 	// Core methods:
 	using Parent::Parent;
 
-	Future()
+	Future(Self &&other) : Parent(std::move(other))
 	{
 	}
-	Future(Self &&other)
+	Self &operator=(Self &&other)
 	{
+		return Parent::operator=(std::move(other));
 	}
+
 	Future(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
 	// Derived methods:
+	template <typename Func>
+	void onSuccess(Func &&f);
+	template <typename Func>
+	void onFailure(Func &&f);
+
 	template <typename Func>
 	Future<typename std::result_of<Func(Try<T>)>::type,
 	       typename CoreType::template CoreType<
@@ -87,7 +94,7 @@ class Future : public CoreType
 };
 
 // Derived methods:
-template <typename PromiseType, typename Func>
+template <typename PromiseType, typename Executor, typename Func>
 typename PromiseType::FutureType async(Executor *ex, Func &&f);
 template <typename PromiseType, typename FutureType>
 Future<std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>,

@@ -3,12 +3,43 @@
 
 #include <type_traits>
 
-#include "executor.h"
 #include "future.h"
 #include "promise.h"
+#include "thread_pool_executor.h"
 
 namespace adv
 {
+
+template <typename T, typename CoreType>
+template <typename Func>
+void Future<T, CoreType>::onSuccess(Func &&f)
+{
+	this->onComplete([f = std::move(f)](Try<T> && t) mutable {
+		if (t.hasValue())
+		{
+			f(std::move(t).get());
+		}
+	});
+}
+
+template <typename T, typename CoreType>
+template <typename Func>
+void Future<T, CoreType>::onFailure(Func &&f)
+{
+	this->onComplete([f = std::move(f)](Try<T> && t) mutable {
+		if (t.hasException())
+		{
+			try
+			{
+				t.get();
+			}
+			catch (...)
+			{
+				f(std::current_exception());
+			}
+		}
+	});
+}
 
 template <typename T, typename CoreType>
 template <typename Func>
@@ -23,8 +54,9 @@ Future<T, CoreType>::then(Func &&f)
 	    typename CoreTypeS::template PromiseType<typename CoreTypeS::Type>;
 
 	auto p = std::make_shared<PromiseS>();
+	auto r = p->future();
 
-	this->onComplete([ f = std::move(f), p ](Try<T> t) mutable {
+	this->onComplete([ f = std::move(f), p ](Try<T> && t) mutable {
 		try
 		{
 			S result = S(f(std::move(t)));
@@ -36,14 +68,13 @@ Future<T, CoreType>::then(Func &&f)
 		}
 	});
 
-	return p->future();
+	return std::move(r);
 }
 
 template <typename FutureType>
 struct is_adv_future : std::false_type
 {
 };
-// TODO Define for Boost and Folly types.
 
 template <typename T, typename CoreType>
 template <typename Func>
@@ -104,9 +135,9 @@ Future<T, CoreType> Future<T, CoreType>::first(Future<T, CoreType> &other)
 	using PromiseType = typename CoreType::template PromiseType<T>;
 	auto p = std::make_shared<PromiseType>();
 
-	this->onComplete([p](Try<T> t) { p->tryComplete(std::move(t)); });
+	this->onComplete([p](Try<T> &&t) { p->tryComplete(std::move(t)); });
 
-	other.onComplete([p](Try<T> t) { p->tryComplete(std::move(t)); });
+	other.onComplete([p](Try<T> &&t) { p->tryComplete(std::move(t)); });
 
 	return p->future();
 }
@@ -117,16 +148,19 @@ Future<T, CoreType> Future<T, CoreType>::firstSucc(Future<T, CoreType> &other)
 	using PromiseType = typename CoreType::template PromiseType<T>;
 	auto p = std::make_shared<PromiseType>();
 
-	this->onComplete([p](Try<T> t) { p->trySuccess(std::move(t).get()); });
+	this->onSuccess([p](T &&v) { p->trySuccess(std::move(v)); });
 
-	other.onComplete([p](Try<T> t) { p->trySuccess(std::move(t).get()); });
+	other.onSuccess([p](T &&v) { p->trySuccess(std::move(v)); });
 
 	return p->future();
 }
 
-template <typename PromiseType, typename Func>
+template <typename PromiseType, typename Executor, typename Func>
 typename PromiseType::FutureType async(Executor *ex, Func &&f)
 {
+	using T = typename std::result_of<Func()>::type;
+	static_assert(std::is_same<typename PromiseType::Type, T>::value,
+	              "Promise has to have the same type as the function.");
 	/*
 	 * TODO Moving the promise will complete the futures associated with a
 	 * BrokenPromise exception in Folly! Therefore, we have to keep the promise

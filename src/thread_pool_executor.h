@@ -1,19 +1,19 @@
-#ifndef ADV_EXECUTOR_H
-#define ADV_EXECUTOR_H
+#ifndef ADV_THREADPOOLEXECUTOR_H
+#define ADV_THREADPOOLEXECUTOR_H
 
 #include <folly/executors/CPUThreadPoolExecutor.h>
 
 namespace adv
 {
 
-class Executor
+class ThreadPoolExecutor
 {
 	public:
-	Executor(int n) : cpuExecutor(new folly::CPUThreadPoolExecutor(n))
+	ThreadPoolExecutor(int n) : cpuExecutor(new folly::CPUThreadPoolExecutor(n))
 	{
 	}
 
-	virtual ~Executor()
+	virtual ~ThreadPoolExecutor()
 	{
 		delete cpuExecutor;
 		cpuExecutor = nullptr;

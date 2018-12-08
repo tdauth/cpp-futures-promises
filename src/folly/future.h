@@ -20,6 +20,7 @@ template <typename T>
 class Core
 {
 	public:
+	using Self = Core<T>;
 	using Type = T;
 
 	template<typename S>
@@ -32,12 +33,16 @@ class Core
 	{
 	}
 
-	Core(Core<T> &&other) : _f(std::move(other._f))
+	Core(Self &&other) : _f(std::move(other._f))
 	{
 	}
 
-	Core(const Core<T> &other) = delete;
-	Core<T> &operator=(const Core<T> &other) = delete;
+	Self& operator=(Self &&other) {
+		this->_f = std::move(other._f);
+	}
+
+	Core(const Self &other) = delete;
+	Self &operator=(const Self &other) = delete;
 
 	Core(folly::Future<T> &&f) : _f(std::move(f))
 	{
@@ -94,6 +99,7 @@ template <typename T>
 class Future : public adv::Future<T, Core<T>>
 {
 	public:
+	using Self = Future<T>;
 	using CoreType = Core<T>;
 	using Parent = adv::Future<T, Core<T>>;
 	using Parent::Parent;
@@ -104,6 +110,10 @@ class Future : public adv::Future<T, Core<T>>
 	 */
 	Future(Parent &&p) : Parent(std::move(p))
 	{
+	}
+
+	Self& operator=(Parent &&p) {
+		return Parent::operator=(std::move(p));
 	}
 };
 }
