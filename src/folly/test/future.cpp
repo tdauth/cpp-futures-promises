@@ -1,14 +1,8 @@
 #define BOOST_TEST_MODULE AdvancedFollyFutureTest
 #include <boost/test/unit_test.hpp>
 
-#if not defined(BOOST_TEST_DYN_LINK) and not defined(WINDOWS)
-#error Define BOOST_TEST_DYN_LINK for proper definition of main function.
-#endif
-
 #include <atomic>
 
-// TODO Fix initialization.
-//#include "../../fixture.h"
 #include "../../future.h"
 #include "../../future_impl.h"
 #include "../../test_fixture.h"
@@ -182,7 +176,6 @@ BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, adv::TestFixture)
 {
-
 	adv_folly::Promise<int> p0;
 	p0.tryFailure(std::runtime_error("Failure!"));
 	auto f0 = p0.future();
@@ -231,8 +224,15 @@ BOOST_FIXTURE_TEST_CASE(FirstWithException, adv::TestFixture)
 	auto f1 = p1.future();
 	auto f2 = f0.first(f1);
 
-	// TODO Check which exception is thrown.
-	BOOST_CHECK_THROW(f2.get(), std::runtime_error);
+	try
+	{
+		f2.get();
+		BOOST_FAIL("Expecting exception.");
+	}
+	catch (const std::runtime_error &e)
+	{
+		BOOST_CHECK_EQUAL("Failure 0!", e.what());
+	}
 }
 
 BOOST_FIXTURE_TEST_CASE(FirstSucc, adv::TestFixture)
@@ -261,6 +261,26 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, adv::TestFixture)
 	auto r = f2.get();
 
 	BOOST_CHECK_EQUAL(11, r);
+}
+
+BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, adv::TestFixture)
+{
+	adv_folly::Promise<int> p0;
+	p0.tryFailure(std::runtime_error("Failure 0!"));
+	auto f0 = p0.future();
+	adv_folly::Promise<int> p1;
+	p1.tryFailure(std::runtime_error("Failure 1!"));
+	auto f1 = p1.future();
+	auto f2 = f0.firstSucc(f1);
+
+	try
+	{
+		f2.get();
+		BOOST_FAIL("Expecting exception.");
+	}
+	catch (const adv::BrokenPromise &e)
+	{
+	}
 }
 
 BOOST_FIXTURE_TEST_CASE(Async, adv::TestFixture)

@@ -11,5 +11,3 @@ before_install:
 # Use a script to disable the default automake build:
 script:
   - ls
-after_success:
-  - bash <(curl -s https://codecov.io/bash)

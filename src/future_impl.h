@@ -161,12 +161,6 @@ typename PromiseType::FutureType async(Executor *ex, Func &&f)
 	using T = typename std::result_of<Func()>::type;
 	static_assert(std::is_same<typename PromiseType::Type, T>::value,
 	              "Promise has to have the same type as the function.");
-	/*
-	 * TODO Moving the promise will complete the futures associated with a
-	 * BrokenPromise exception in Folly! Therefore, we have to keep the promise
-	 * alive in a shared pointer. This is kind of weird since why not keep the
-	 * futures uncompleted and use the new promise?!
-	 */
 	auto p = std::make_shared<PromiseType>();
 
 	ex->submit([ f = std::move(f), p ]() mutable {

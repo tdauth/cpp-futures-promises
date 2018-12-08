@@ -12,6 +12,7 @@ Some use cases have been implemented to demonstrate the extensions.
 
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=single-read-and-bugfixes)](https://travis-ci.org/tdauth/cpp-futures-promises)
+[![Code Coverage](https://img.shields.io/codecov/c/github/tdauth/cpp-futures-promises/master.svg)](https://codecov.io/github/tdauth/cpp-futures-promises?branch=single-read-and-bugfixes)
 
 ## Manual Build
 To compile the project run one of the the following Bash scripts on Linux:

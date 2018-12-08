@@ -43,3 +43,6 @@ genhtml --output-directory coverage \
   --title "Advanced Futures and Promises Test Coverage" \
   --function-coverage --branch-coverage --legend \
   my_prog_filtered.info
+
+# Send coverage data to server:
+bash <(curl -s https://codecov.io/bash)
