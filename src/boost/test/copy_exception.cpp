@@ -1,10 +1,6 @@
 #define BOOST_TEST_MODULE AdvancedBoostCopyExceptionTest
 #include <boost/test/unit_test.hpp>
 
-#if not defined(BOOST_TEST_DYN_LINK) and not defined(WINDOWS)
-#error Define BOOST_TEST_DYN_LINK for proper definition of main function.
-#endif
-
 #include <boost/thread.hpp>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>

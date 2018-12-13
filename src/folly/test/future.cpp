@@ -1,458 +1,173 @@
 #define BOOST_TEST_MODULE AdvancedFollyFutureTest
-#include <boost/test/unit_test.hpp>
 
-#include <atomic>
-
-#include "../../future.h"
-#include "../../future_impl.h"
-#include "../../test_fixture.h"
 #include "../future.h"
+#include "../../test_suite.h"
 #include "../future_impl.h"
 #include "../promise.h"
 
-BOOST_FIXTURE_TEST_CASE(TryNotInitialized, adv::TestFixture)
+using TestSuite = adv::TestSuite<adv_folly::Future<int>>;
+
+BOOST_FIXTURE_TEST_CASE(TryNotInitialized, TestSuite)
 {
-	adv::Try<int> t;
-	BOOST_REQUIRE(!t.hasValue());
-	BOOST_REQUIRE(!t.hasException());
-	BOOST_CHECK_THROW(t.get(), adv::UsingUninitializedTry);
+	testTryNotInitialized();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryRuntimeError, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryRuntimeError, TestSuite)
 {
-	adv::Try<int> t(std::make_exception_ptr(std::runtime_error("Error")));
-	BOOST_REQUIRE(t.hasException());
-	BOOST_CHECK_THROW(t.get(), std::runtime_error);
+	testTryRuntimeError();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryValue, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryValue, TestSuite)
 {
-	adv::Try<int> t(10);
-	BOOST_REQUIRE(t.hasValue());
-	BOOST_CHECK_EQUAL(10, t.get());
+	testTryValue();
 }
 
-BOOST_FIXTURE_TEST_CASE(FutureFromFollyFuture, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OnComplete, TestSuite)
 {
-	folly::Future<int> f1 = folly::makeFuture(10);
-	adv_folly::Future<int> f2(ex, std::move(f1));
-
-	BOOST_REQUIRE(f2.isReady());
-	BOOST_CHECK_EQUAL(10, f2.get());
+	testOnComplete();
 }
 
-BOOST_FIXTURE_TEST_CASE(OnComplete, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OnSuccess, TestSuite)
 {
-	std::string v = "5";
-	adv_folly::Promise<std::string> p(ex);
-	p.trySuccess("10");
-	auto f = p.future();
-	f.onComplete([&v](adv::Try<std::string> &&t) { v = t.get(); });
-
-	BOOST_CHECK_EQUAL("10", v);
-
-	// multiple callbacks are not allowed
-	BOOST_CHECK_THROW(f.onComplete([](adv::Try<std::string> &&t) {}),
-	                  adv::OnlyOneCallbackPerFuture);
+	testOnSuccess();
 }
 
-BOOST_FIXTURE_TEST_CASE(OnSuccess, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OnFailure, TestSuite)
 {
-	std::string v = "5";
-	adv_folly::Promise<std::string> p(ex);
-	p.trySuccess("10");
-	auto f = p.future();
-	f.onSuccess([&v](std::string &&t) { v = std::move(t); });
-
-	BOOST_CHECK_EQUAL("10", v);
+	testOnFailure();
 }
 
-BOOST_FIXTURE_TEST_CASE(OnFailure, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Get, TestSuite)
 {
-	std::optional<adv::Try<std::string>> t;
-	adv_folly::Promise<std::string> p(ex);
-	p.tryFailure(std::runtime_error("Failure!"));
-	auto f = p.future();
-	f.onFailure([&t](std::exception_ptr &&e) {
-		t.emplace(adv::Try<std::string>(std::move(e)));
-	});
-
-	BOOST_CHECK(t.has_value());
-	auto r = std::move(t.value());
-	BOOST_CHECK(r.hasException());
-
-	try
-	{
-		r.get();
-		BOOST_FAIL("Expected exception.");
-	}
-	catch (std::runtime_error &e)
-	{
-		BOOST_CHECK_EQUAL("Failure!", e.what());
-	}
+	testGet();
 }
 
-BOOST_FIXTURE_TEST_CASE(Get, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(IsReady, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	p.trySuccess(10);
-	auto f = p.future();
-
-	BOOST_CHECK_EQUAL(10, f.get());
+	testIsReady();
 }
 
-BOOST_FIXTURE_TEST_CASE(IsReady, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Then, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	p.trySuccess(10);
-	auto f = p.future();
-
-	BOOST_CHECK(f.isReady());
+	testThen();
 }
 
-BOOST_FIXTURE_TEST_CASE(Then, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(ThenWith, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	p.trySuccess(10);
-	auto f = p.future().then([](adv::Try<int> &&t) {
-		if (t.hasValue())
-		{
-			return std::to_string(t.get());
-		}
-
-		return std::string("Failure!");
-	});
-
-	BOOST_CHECK_EQUAL("10", f.get());
+	testThenWith();
 }
 
-BOOST_FIXTURE_TEST_CASE(ThenWith, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Guard, TestSuite)
 {
-	adv_folly::Promise<std::string> p0(ex);
-	p0.trySuccess("11");
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(10);
-	auto f1 = p1.future();
-	auto f = f1.thenWith([f0 = std::move(f0)](adv::Try<int> &&) mutable {
-		return std::move(f0);
-	});
-
-	BOOST_CHECK_EQUAL("11", f.get());
+	testGuard();
 }
 
-BOOST_FIXTURE_TEST_CASE(Guard, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(GuardFails, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	p.trySuccess(10);
-	auto f = p.future().guard([](const int &v) { return v == 10; });
-
-	BOOST_CHECK_EQUAL(10, f.get());
+	testGuardFails();
 }
 
-BOOST_FIXTURE_TEST_CASE(GuardFails, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	p.trySuccess(10);
-	auto f = p.future().guard([](const int &v) { return v != 10; });
-
-	BOOST_CHECK_THROW(f.get(), adv::PredicateNotFulfilled);
+	testOrElseFirstSuccessful();
 }
 
-BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.trySuccess(10);
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(11);
-	auto f1 = p1.future();
-	auto f2 = f0.orElse(std::move(f1));
-
-	BOOST_CHECK_EQUAL(10, f2.get());
+	testOrElseSecondSuccessful();
 }
 
-BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(OrElseBothFail, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.tryFailure(std::runtime_error("Failure!"));
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(11);
-	auto f1 = p1.future();
-	auto f2 = f0.orElse(std::move(f1));
-
-	BOOST_CHECK_EQUAL(11, f2.get());
+	testOrElseBothFail();
 }
 
-BOOST_FIXTURE_TEST_CASE(OrElseBothFail, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(First, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.tryFailure(std::runtime_error("Failure 0!"));
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.tryFailure(std::runtime_error("Failure 1!"));
-	auto f1 = p1.future();
-	auto f2 = f0.orElse(std::move(f1));
-
-	BOOST_CHECK_THROW(f2.get(), std::runtime_error);
+	testFirst();
 }
 
-BOOST_FIXTURE_TEST_CASE(First, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstWithException, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.trySuccess(10);
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(11);
-	auto f1 = p1.future();
-	auto f2 = f0.first(f1);
-	auto r = f2.get();
-
-	BOOST_CHECK_EQUAL(10, r);
+	testFirstWithException();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstWithException, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstSucc, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.tryFailure(std::runtime_error("Failure 0!"));
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.tryFailure(std::runtime_error("Failure 1!"));
-	auto f1 = p1.future();
-	auto f2 = f0.first(f1);
-
-	try
-	{
-		f2.get();
-		BOOST_FAIL("Expecting exception.");
-	}
-	catch (const std::runtime_error &e)
-	{
-		BOOST_CHECK_EQUAL("Failure 0!", e.what());
-	}
+	testFirstSucc();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstSucc, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.trySuccess(10);
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(11);
-	auto f1 = p1.future();
-	auto f2 = f0.firstSucc(f1);
-	auto r = f2.get();
-
-	BOOST_CHECK_EQUAL(10, r);
+	testFirstSuccWithException();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.tryFailure(std::runtime_error("Failure 0!"));
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.trySuccess(11);
-	auto f1 = p1.future();
-	auto f2 = f0.firstSucc(f1);
-	auto r = f2.get();
-
-	BOOST_CHECK_EQUAL(11, r);
+	testFirstSuccBothFail();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Successful, TestSuite)
 {
-	adv_folly::Promise<int> p0(ex);
-	p0.tryFailure(std::runtime_error("Failure 0!"));
-	auto f0 = p0.future();
-	adv_folly::Promise<int> p1(ex);
-	p1.tryFailure(std::runtime_error("Failure 1!"));
-	auto f1 = p1.future();
-	auto f2 = f0.firstSucc(f1);
-
-	try
-	{
-		f2.get();
-		BOOST_FAIL("Expecting exception.");
-	}
-	catch (const adv::BrokenPromise &e)
-	{
-	}
+	testSuccessful();
 }
 
-BOOST_FIXTURE_TEST_CASE(Successful, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Failed, TestSuite)
 {
-	auto f = adv_folly::Future<int>::successful(ex, 10);
-	BOOST_CHECK_EQUAL(10, f.get());
+	testFailed();
 }
 
-BOOST_FIXTURE_TEST_CASE(Failed, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(Async, TestSuite)
 {
-	auto f = adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!"));
-	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+	testAsync();
 }
 
-BOOST_FIXTURE_TEST_CASE(Async, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstN, TestSuite)
 {
-	auto f = adv::async<adv_folly::Promise<int>>(ex, []() { return 10; });
-	BOOST_CHECK_EQUAL(10, f.get());
+	testFirstN();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstN, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(FirstNSucc, TestSuite)
 {
-	std::vector<adv_folly::Future<int>> futures;
-	futures.push_back(adv_folly::Future<int>::successful(ex, 10));
-	futures.push_back(
-	    adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!")));
-	futures.push_back(adv_folly::Future<int>::successful(ex, 12));
-	futures.push_back(adv_folly::Future<int>::successful(ex, 13));
-
-	auto f = adv::firstN(ex, std::move(futures), 3);
-	auto v = f.get();
-
-	BOOST_CHECK_EQUAL(3u, v.size());
-	auto v0 = std::move(v[0]);
-	BOOST_CHECK_EQUAL(0u, v0.first);
-	BOOST_CHECK_EQUAL(10, v0.second.get());
-	auto v1 = std::move(v[1]);
-	BOOST_CHECK_EQUAL(1u, v1.first);
-	BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
-	auto v2 = std::move(v[2]);
-	BOOST_CHECK_EQUAL(2u, v2.first);
-	BOOST_CHECK_EQUAL(12, v2.second.get());
+	testFirstNSucc();
 }
 
-BOOST_FIXTURE_TEST_CASE(FirstNSucc, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(BrokenPromise, TestSuite)
 {
-	std::vector<adv_folly::Future<int>> futures;
-	futures.push_back(adv_folly::Future<int>::successful(ex, 10));
-	futures.push_back(
-	    adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!")));
-	futures.push_back(adv_folly::Future<int>::successful(ex, 12));
-	futures.push_back(adv_folly::Future<int>::successful(ex, 13));
-
-	auto f = adv::firstNSucc(ex, std::move(futures), 3);
-	auto v = f.get();
-
-	BOOST_CHECK_EQUAL(3u, v.size());
-	auto v0 = std::move(v[0]);
-	BOOST_CHECK_EQUAL(0u, v0.first);
-	BOOST_CHECK_EQUAL(10, v0.second);
-	auto v1 = std::move(v[1]);
-	BOOST_CHECK_EQUAL(2u, v1.first);
-	BOOST_CHECK_EQUAL(12, v1.second);
-	auto v2 = std::move(v[2]);
-	BOOST_CHECK_EQUAL(3u, v2.first);
-	BOOST_CHECK_EQUAL(13, v2.second);
+	testBrokenPromise();
 }
 
-BOOST_FIXTURE_TEST_CASE(BrokenPromise, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryComplete, TestSuite)
 {
-	adv_folly::Promise<int> *p = new adv_folly::Promise<int>(ex);
-	adv_folly::Future<int> f = p->future();
-	delete p;
-	p = nullptr;
-
-	BOOST_CHECK_THROW(f.get(), adv::BrokenPromise);
+	testTryComplete();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryComplete, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TrySuccess, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	adv_folly::Future<int> f = p.future();
-
-	bool result = p.tryComplete(adv::Try<int>(10));
-
-	BOOST_CHECK(result);
-	BOOST_CHECK_EQUAL(10, f.get());
+	testTrySuccess();
 }
 
-BOOST_FIXTURE_TEST_CASE(TrySuccess, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryFailure, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	adv_folly::Future<int> f = p.future();
-
-	bool result = p.trySuccess(10);
-
-	BOOST_CHECK(result);
-	BOOST_CHECK_EQUAL(10, f.get());
+	testTryFailure();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryFailure, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryCompleteWith, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	auto f = p.future();
-	bool result = p.tryFailure(std::runtime_error("Failure!"));
-
-	BOOST_CHECK(result);
-
-	try
-	{
-		f.get();
-		BOOST_FAIL("Expected exception");
-	}
-	catch (const std::exception &e)
-	{
-		BOOST_CHECK_EQUAL("Failure!", e.what());
-	}
+	testTryCompleteWith();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryCompleteWith, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryCompleteWithFailure, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	auto f = p.future();
-	adv_folly::Promise<int> completingPromise(ex);
-	completingPromise.trySuccess(10);
-	auto completingFuture = completingPromise.future();
-	std::move(p).tryCompleteWith(completingFuture);
-
-	BOOST_CHECK_EQUAL(10, f.get());
+	testTryCompleteWithFailure();
 }
 
-BOOST_FIXTURE_TEST_CASE(TryCompleteWithFailure, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TrySuccessWith, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	auto f = p.future();
-	adv_folly::Promise<int> completingPromise(ex);
-	completingPromise.tryFailure(std::runtime_error("Failure!"));
-	auto completingFuture = completingPromise.future();
-
-	std::move(p).tryCompleteWith(completingFuture);
-
-	BOOST_CHECK_THROW(f.get(), std::runtime_error);
+	testTrySuccessWith();
 }
 
-BOOST_FIXTURE_TEST_CASE(TrySuccessWith, adv::TestFixture)
+BOOST_FIXTURE_TEST_CASE(TryFailureWith, TestSuite)
 {
-	adv_folly::Promise<int> p(ex);
-	auto f = p.future();
-	adv_folly::Promise<int> completingPromise(ex);
-	completingPromise.trySuccess(10);
-	auto completingFuture = completingPromise.future();
-
-	std::move(p).trySuccessWith(completingFuture);
-
-	BOOST_CHECK_EQUAL(10, f.get());
-}
-
-BOOST_FIXTURE_TEST_CASE(TryFailureWith, adv::TestFixture)
-{
-	adv_folly::Promise<int> p(ex);
-	auto f = p.future();
-	adv_folly::Promise<int> completingPromise(ex);
-	completingPromise.tryFailure(std::runtime_error("Failure!"));
-	auto completingFuture = completingPromise.future();
-
-	std::move(p).tryFailureWith(completingFuture);
-
-	try
-	{
-		f.get();
-		BOOST_FAIL("Expected exception");
-	}
-	catch (const std::exception &e)
-	{
-		BOOST_CHECK_EQUAL("Failure!", e.what());
-	}
+	testTryFailureWith();
 }
