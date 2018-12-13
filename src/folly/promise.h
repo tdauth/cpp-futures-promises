@@ -16,16 +16,17 @@ class CorePromise
 	using Self = CorePromise<T>;
 	using FutureType = Future<T>;
 
-	CorePromise()
+	CorePromise(folly::Executor *executor) : executor(executor)
 	{
 	}
 
-	CorePromise(Self &&other) : _p(std::move(other._p))
+	CorePromise(Self &&other) : executor(other.executor), _p(std::move(other._p))
 	{
 	}
 
 	Self &operator=(Self &&other)
 	{
+		this->executor = other.executor;
 		this->_p = std::move(other._p);
 		return *this;
 	}
@@ -33,13 +34,14 @@ class CorePromise
 	CorePromise(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	CorePromise(folly::Promise<T> &&p) : _p(std::move(p))
+	folly::Executor *getExecutor() const
 	{
+		return executor;
 	}
 
 	FutureType future()
 	{
-		return _p.getFuture();
+		return FutureType(executor, _p.getFuture());
 	}
 
 	bool tryComplete(adv::Try<T> &&t)
@@ -57,6 +59,7 @@ class CorePromise
 	}
 
 	private:
+	folly::Executor *executor;
 	folly::Promise<T> _p;
 };
 

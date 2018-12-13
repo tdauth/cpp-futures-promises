@@ -3,6 +3,8 @@
 
 #include <exception>
 
+#include <folly/Executor.h>
+
 #include "try.h"
 
 namespace adv
@@ -27,7 +29,7 @@ class Promise : public CoreType
 	// Core methods:
 	using Parent::Parent;
 
-	Promise()
+	Promise(folly::Executor *executor) : Parent(executor)
 	{
 	}
 	Promise(Self &&other) : Parent(std::move(other))

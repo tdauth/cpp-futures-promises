@@ -1,16 +1,19 @@
 #ifndef ADV_TESTFIXTURE_H
 #define ADV_TESTFIXTURE_H
 
-#include "inline_executor.h"
-#include <folly/init/Init.h>
+#include <folly/executors/InlineExecutor.h>
 
 namespace adv
 {
 
 struct TestFixture
 {
-	// Do not use multiple threads to detect invalid blocking.
-	TestFixture() : ex(new InlineExecutor())
+	/*
+	 * Do not use multiple threads to detect invalid blocking.
+	 * The inline executor ensures the immediate execution of callbacks in the same
+	 * thread if the futures is already completed. This simplifies testing.
+	 */
+	TestFixture() : ex(new folly::InlineExecutor())
 	{
 	}
 
@@ -20,7 +23,7 @@ struct TestFixture
 		ex = nullptr;
 	}
 
-	InlineExecutor *ex;
+	folly::InlineExecutor *ex;
 };
 }
 

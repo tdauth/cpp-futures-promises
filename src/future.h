@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <folly/Executor.h>
+
 namespace adv
 {
 
@@ -27,8 +29,6 @@ class OnlyOneCallbackPerFuture : public std::exception
 
 template <typename T>
 class Try;
-
-class Executor;
 
 /**
  * \brief A non-shared future which can only be moved around and has read once
@@ -71,6 +71,13 @@ class Future : public CoreType
 	template <typename Func>
 	typename std::result_of<Func(Try<T>)>::type thenWith(Func &&f);
 
+	/**
+	 *
+	 * @tparam Func
+	 * @param f
+	 * @return
+	 * @throw PredicateNotFulfilled When the function returns false, this exception will be thrown.
+	 */
 	template <typename Func>
 	Self guard(Func &&f)
 	{
@@ -92,22 +99,22 @@ class Future : public CoreType
 
 	Self firstSucc(Self &other);
 
-	static Self successful(T &&v);
+	static Self successful(folly::Executor *ex, T &&v);
 	template <typename E>
-	static Self failed(E &&e);
+	static Self failed(folly::Executor *ex, E &&e);
 };
 
 // Derived methods:
-template <typename PromiseType, typename Executor, typename Func>
-typename PromiseType::FutureType async(Executor *ex, Func &&f);
+template <typename PromiseType, typename Func>
+typename PromiseType::FutureType async(folly::Executor *ex, Func &&f);
 template <typename FutureType>
 typename FutureType::CoreType::template FutureType<
     std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>>
-firstN(std::vector<FutureType> &&c, std::size_t n);
+firstN(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n);
 template <typename FutureType>
 typename FutureType::CoreType::template FutureType<
     std::vector<std::pair<std::size_t, typename FutureType::Type>>>
-firstNSucc(std::vector<FutureType> &&c, std::size_t n);
+firstNSucc(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n);
 }
 
 #endif

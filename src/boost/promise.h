@@ -7,31 +7,35 @@
 namespace adv_boost
 {
 
-template <typename T, typename F>
+template <typename T>
 class CorePromise
 {
 	public:
-	using Self = CorePromise<T, F>;
-	using FutureType = F;
+	using Type = T;
+	using Self = CorePromise<T>;
+	using FutureType = Future<T>;
 
-	CorePromise()
+	CorePromise(folly::Executor *executor) : executor(executor)
 	{
 	}
 
-	CorePromise(Self &&other) : _p(std::move(other._p))
+	CorePromise(Self &&other) : executor(other.executor), _p(std::move(other._p))
 	{
+	}
+
+	Self &operator=(Self &&other)
+	{
+		this->executor = other.executor;
+		this->_p = std::move(other.p);
+		return *this;
 	}
 
 	CorePromise(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	CorePromise(boost::promise<T> &&p) : _p(std::move(p))
-	{
-	}
-
 	FutureType future()
 	{
-		return _p.get_future();
+		return FutureType(executor, _p.get_future());
 	}
 
 	bool tryComplete(adv::Try<T> &&v)
@@ -53,14 +57,15 @@ class CorePromise
 	}
 
 	private:
+	folly::Executor *executor;
 	boost::promise<T> _p;
 };
 
 template <typename T>
-class Promise : public adv::Promise<T, CorePromise<T, Future<T>>>
+class Promise : public adv::Promise<T, CorePromise<T>>
 {
 	public:
-	using Parent = adv::Promise<T, Future<T>, CorePromise<T, Future<T>>>;
+	using Parent = adv::Promise<T, CorePromise<T>>;
 	using Parent::Parent;
 };
 }

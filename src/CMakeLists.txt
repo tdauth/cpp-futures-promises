@@ -1,6 +1,6 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
-#add_subdirectory(boost)
+add_subdirectory(boost)
 add_subdirectory(folly)
 #add_subdirectory(performance)
 

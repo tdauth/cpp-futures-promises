@@ -34,27 +34,36 @@ class Core
 	template <typename S>
 	using FutureType = Future<S>;
 
-	Core() : _f(folly::Future<T>::makeEmpty())
+	Core(folly::Executor *executor)
+	    : executor(executor), _f(folly::Future<T>::makeEmpty())
 	{
 	}
 
-	Core(Self &&other) : _f(std::move(other._f))
+	Core(Self &&other) : executor(other.executor), _f(std::move(other._f))
 	{
 	}
 
 	Self &operator=(Self &&other)
 	{
+		this->executor = other.executor;
 		this->_f = std::move(other._f);
+		return *this;
+	}
+
+	Core(folly::Executor *executor, folly::Future<T> &&f)
+	    : executor(executor), _f(std::move(f))
+	{
 	}
 
 	Core(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	Core(folly::Future<T> &&f) : _f(std::move(f))
-	{
-	}
-
 	SharedFuture<T> share();
+
+	folly::Executor *getExecutor() const
+	{
+		return executor;
+	}
 
 	T get()
 	{
@@ -95,9 +104,10 @@ class Core
 	}
 
 	template <typename S>
-	static Promise<S> createPromise();
+	static Promise<S> createPromise(folly::Executor *ex);
 
 	private:
+	folly::Executor *executor;
 	folly::Future<T> _f;
 };
 

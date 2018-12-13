@@ -35,7 +35,7 @@ BOOST_FIXTURE_TEST_CASE(TryValue, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(FutureFromFollyFuture, adv::TestFixture)
 {
 	folly::Future<int> f1 = folly::makeFuture(10);
-	adv_folly::Future<int> f2(std::move(f1));
+	adv_folly::Future<int> f2(ex, std::move(f1));
 
 	BOOST_REQUIRE(f2.isReady());
 	BOOST_CHECK_EQUAL(10, f2.get());
@@ -44,7 +44,7 @@ BOOST_FIXTURE_TEST_CASE(FutureFromFollyFuture, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(OnComplete, adv::TestFixture)
 {
 	std::string v = "5";
-	adv_folly::Promise<std::string> p;
+	adv_folly::Promise<std::string> p(ex);
 	p.trySuccess("10");
 	auto f = p.future();
 	f.onComplete([&v](adv::Try<std::string> &&t) { v = t.get(); });
@@ -59,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(OnComplete, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(OnSuccess, adv::TestFixture)
 {
 	std::string v = "5";
-	adv_folly::Promise<std::string> p;
+	adv_folly::Promise<std::string> p(ex);
 	p.trySuccess("10");
 	auto f = p.future();
 	f.onSuccess([&v](std::string &&t) { v = std::move(t); });
@@ -70,7 +70,7 @@ BOOST_FIXTURE_TEST_CASE(OnSuccess, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(OnFailure, adv::TestFixture)
 {
 	std::optional<adv::Try<std::string>> t;
-	adv_folly::Promise<std::string> p;
+	adv_folly::Promise<std::string> p(ex);
 	p.tryFailure(std::runtime_error("Failure!"));
 	auto f = p.future();
 	f.onFailure([&t](std::exception_ptr &&e) {
@@ -94,7 +94,7 @@ BOOST_FIXTURE_TEST_CASE(OnFailure, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(Get, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	p.trySuccess(10);
 	auto f = p.future();
 
@@ -103,7 +103,7 @@ BOOST_FIXTURE_TEST_CASE(Get, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(IsReady, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	p.trySuccess(10);
 	auto f = p.future();
 
@@ -112,7 +112,7 @@ BOOST_FIXTURE_TEST_CASE(IsReady, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(Then, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	p.trySuccess(10);
 	auto f = p.future().then([](adv::Try<int> &&t) {
 		if (t.hasValue())
@@ -128,10 +128,10 @@ BOOST_FIXTURE_TEST_CASE(Then, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(ThenWith, adv::TestFixture)
 {
-	adv_folly::Promise<std::string> p0;
+	adv_folly::Promise<std::string> p0(ex);
 	p0.trySuccess("11");
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(10);
 	auto f1 = p1.future();
 	auto f = f1.thenWith([f0 = std::move(f0)](adv::Try<int> &&) mutable {
@@ -143,7 +143,7 @@ BOOST_FIXTURE_TEST_CASE(ThenWith, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(Guard, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	p.trySuccess(10);
 	auto f = p.future().guard([](const int &v) { return v == 10; });
 
@@ -152,7 +152,7 @@ BOOST_FIXTURE_TEST_CASE(Guard, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(GuardFails, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	p.trySuccess(10);
 	auto f = p.future().guard([](const int &v) { return v != 10; });
 
@@ -161,10 +161,10 @@ BOOST_FIXTURE_TEST_CASE(GuardFails, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.trySuccess(10);
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(11);
 	auto f1 = p1.future();
 	auto f2 = f0.orElse(std::move(f1));
@@ -174,10 +174,10 @@ BOOST_FIXTURE_TEST_CASE(OrElseFirstSuccessful, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.tryFailure(std::runtime_error("Failure!"));
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(11);
 	auto f1 = p1.future();
 	auto f2 = f0.orElse(std::move(f1));
@@ -187,10 +187,10 @@ BOOST_FIXTURE_TEST_CASE(OrElseSecondSuccessful, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(OrElseBothFail, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.tryFailure(std::runtime_error("Failure 0!"));
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.tryFailure(std::runtime_error("Failure 1!"));
 	auto f1 = p1.future();
 	auto f2 = f0.orElse(std::move(f1));
@@ -200,10 +200,10 @@ BOOST_FIXTURE_TEST_CASE(OrElseBothFail, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(First, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.trySuccess(10);
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(11);
 	auto f1 = p1.future();
 	auto f2 = f0.first(f1);
@@ -214,10 +214,10 @@ BOOST_FIXTURE_TEST_CASE(First, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(FirstWithException, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.tryFailure(std::runtime_error("Failure 0!"));
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.tryFailure(std::runtime_error("Failure 1!"));
 	auto f1 = p1.future();
 	auto f2 = f0.first(f1);
@@ -235,10 +235,10 @@ BOOST_FIXTURE_TEST_CASE(FirstWithException, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(FirstSucc, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.trySuccess(10);
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(11);
 	auto f1 = p1.future();
 	auto f2 = f0.firstSucc(f1);
@@ -249,10 +249,10 @@ BOOST_FIXTURE_TEST_CASE(FirstSucc, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.tryFailure(std::runtime_error("Failure 0!"));
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.trySuccess(11);
 	auto f1 = p1.future();
 	auto f2 = f0.firstSucc(f1);
@@ -263,10 +263,10 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccWithException, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, adv::TestFixture)
 {
-	adv_folly::Promise<int> p0;
+	adv_folly::Promise<int> p0(ex);
 	p0.tryFailure(std::runtime_error("Failure 0!"));
 	auto f0 = p0.future();
-	adv_folly::Promise<int> p1;
+	adv_folly::Promise<int> p1(ex);
 	p1.tryFailure(std::runtime_error("Failure 1!"));
 	auto f1 = p1.future();
 	auto f2 = f0.firstSucc(f1);
@@ -283,13 +283,13 @@ BOOST_FIXTURE_TEST_CASE(FirstSuccBothFail, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(Successful, adv::TestFixture)
 {
-	auto f = adv_folly::Future<int>::successful(10);
+	auto f = adv_folly::Future<int>::successful(ex, 10);
 	BOOST_CHECK_EQUAL(10, f.get());
 }
 
 BOOST_FIXTURE_TEST_CASE(Failed, adv::TestFixture)
 {
-	auto f = adv_folly::Future<int>::failed(std::runtime_error("Failure!"));
+	auto f = adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!"));
 	BOOST_CHECK_THROW(f.get(), std::runtime_error);
 }
 
@@ -302,13 +302,13 @@ BOOST_FIXTURE_TEST_CASE(Async, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(FirstN, adv::TestFixture)
 {
 	std::vector<adv_folly::Future<int>> futures;
-	futures.push_back(adv_folly::Future<int>::successful(10));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 10));
 	futures.push_back(
-	    adv_folly::Future<int>::failed(std::runtime_error("Failure!")));
-	futures.push_back(adv_folly::Future<int>::successful(12));
-	futures.push_back(adv_folly::Future<int>::successful(13));
+	    adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!")));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 12));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 13));
 
-	auto f = adv::firstN(std::move(futures), 3);
+	auto f = adv::firstN(ex, std::move(futures), 3);
 	auto v = f.get();
 
 	BOOST_CHECK_EQUAL(3u, v.size());
@@ -326,13 +326,13 @@ BOOST_FIXTURE_TEST_CASE(FirstN, adv::TestFixture)
 BOOST_FIXTURE_TEST_CASE(FirstNSucc, adv::TestFixture)
 {
 	std::vector<adv_folly::Future<int>> futures;
-	futures.push_back(adv_folly::Future<int>::successful(10));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 10));
 	futures.push_back(
-	    adv_folly::Future<int>::failed(std::runtime_error("Failure!")));
-	futures.push_back(adv_folly::Future<int>::successful(12));
-	futures.push_back(adv_folly::Future<int>::successful(13));
+	    adv_folly::Future<int>::failed(ex, std::runtime_error("Failure!")));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 12));
+	futures.push_back(adv_folly::Future<int>::successful(ex, 13));
 
-	auto f = adv::firstNSucc(std::move(futures), 3);
+	auto f = adv::firstNSucc(ex, std::move(futures), 3);
 	auto v = f.get();
 
 	BOOST_CHECK_EQUAL(3u, v.size());
@@ -349,7 +349,7 @@ BOOST_FIXTURE_TEST_CASE(FirstNSucc, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(BrokenPromise, adv::TestFixture)
 {
-	adv_folly::Promise<int> *p = new adv_folly::Promise<int>();
+	adv_folly::Promise<int> *p = new adv_folly::Promise<int>(ex);
 	adv_folly::Future<int> f = p->future();
 	delete p;
 	p = nullptr;
@@ -359,7 +359,7 @@ BOOST_FIXTURE_TEST_CASE(BrokenPromise, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TryComplete, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	adv_folly::Future<int> f = p.future();
 
 	bool result = p.tryComplete(adv::Try<int>(10));
@@ -370,7 +370,7 @@ BOOST_FIXTURE_TEST_CASE(TryComplete, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TrySuccess, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	adv_folly::Future<int> f = p.future();
 
 	bool result = p.trySuccess(10);
@@ -381,7 +381,7 @@ BOOST_FIXTURE_TEST_CASE(TrySuccess, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TryFailure, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	auto f = p.future();
 	bool result = p.tryFailure(std::runtime_error("Failure!"));
 
@@ -400,9 +400,9 @@ BOOST_FIXTURE_TEST_CASE(TryFailure, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TryCompleteWith, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	auto f = p.future();
-	adv_folly::Promise<int> completingPromise;
+	adv_folly::Promise<int> completingPromise(ex);
 	completingPromise.trySuccess(10);
 	auto completingFuture = completingPromise.future();
 	std::move(p).tryCompleteWith(completingFuture);
@@ -412,9 +412,9 @@ BOOST_FIXTURE_TEST_CASE(TryCompleteWith, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TryCompleteWithFailure, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	auto f = p.future();
-	adv_folly::Promise<int> completingPromise;
+	adv_folly::Promise<int> completingPromise(ex);
 	completingPromise.tryFailure(std::runtime_error("Failure!"));
 	auto completingFuture = completingPromise.future();
 
@@ -425,9 +425,9 @@ BOOST_FIXTURE_TEST_CASE(TryCompleteWithFailure, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TrySuccessWith, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	auto f = p.future();
-	adv_folly::Promise<int> completingPromise;
+	adv_folly::Promise<int> completingPromise(ex);
 	completingPromise.trySuccess(10);
 	auto completingFuture = completingPromise.future();
 
@@ -438,9 +438,9 @@ BOOST_FIXTURE_TEST_CASE(TrySuccessWith, adv::TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(TryFailureWith, adv::TestFixture)
 {
-	adv_folly::Promise<int> p;
+	adv_folly::Promise<int> p(ex);
 	auto f = p.future();
-	adv_folly::Promise<int> completingPromise;
+	adv_folly::Promise<int> completingPromise(ex);
 	completingPromise.tryFailure(std::runtime_error("Failure!"));
 	auto completingFuture = completingPromise.future();
 
