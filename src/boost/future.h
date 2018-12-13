@@ -2,6 +2,7 @@
 #define ADV_BOOST_FUTURE_H
 
 #include <mutex>
+#include <variant>
 
 #include <boost/thread.hpp>
 
@@ -35,6 +36,8 @@ class Core
 	template <typename S>
 	using FutureType = Future<S>;
 
+	static constexpr bool IsShared = false;
+
 	Core(folly::Executor *executor) : executor(executor)
 	{
 	}
@@ -46,6 +49,7 @@ class Core
 	Self &operator=(Self &&other)
 	{
 		this->executor = other.executor;
+		std::lock_guard<std::mutex> lk(mutex);
 		this->_f = std::move(other._f);
 		return *this;
 	}
@@ -58,8 +62,6 @@ class Core
 	Core(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	SharedFuture<T> share();
-
 	folly::Executor *getExecutor() const
 	{
 		return executor;
@@ -69,7 +71,7 @@ class Core
 	{
 		try
 		{
-			return std::move(_f.get());
+			return _f.get();
 		}
 		catch (const boost::broken_promise &e)
 		{
@@ -85,21 +87,22 @@ class Core
 	template <typename Func>
 	void onComplete(Func &&f)
 	{
-		// non-shared futures become invalid in Boost.Thread after registering one
-		// callback.
-		std::scoped_lock<std::mutex> lock(_callbackFutureMutex);
-		if (_isCallbackSet)
+		std::lock_guard<std::mutex> lk(mutex);
+
+		if (_callbackFuture.has_value())
 		{
 			throw adv::OnlyOneCallbackPerFuture();
 		}
-		this->_callbackFuture = this->_f.then([
+
+		// TODO make sure that the callback is called in the current thread since we
+		// add the callback to the executor manually.
+		this->_callbackFuture = _f.then(boost::launch::async, [
 			f = std::move(f), executor = this->executor
 		](boost::future<T> && future) mutable {
 			executor->add([ f = std::move(f), future = std::move(future) ]() mutable {
 				f(convertFutureIntoTry(std::move(future)));
 			});
 		});
-		_isCallbackSet = true;
 	}
 
 	template <typename S>
@@ -108,11 +111,15 @@ class Core
 	private:
 	folly::Executor *executor;
 	boost::future<T> _f;
-	// TODO Do we have to store the callbackFuture? We could use a shared future.
-	// Use a boolean atomic variable.
-	std::mutex _callbackFutureMutex;
-	bool _isCallbackSet = false;
-	boost::future<void> _callbackFuture;
+	/**
+	 * Since non-shared futures become invalid in Boost.Thread after registering
+	 * one callback, we have to replace the current future when registering a new
+	 * callback. This can be done concurrently. Hence, we need to protect the field
+	 * with a mutex.
+	 * TODO Find a more efficient solution.
+	 */
+	mutable std::mutex mutex;
+	std::optional<boost::future<void>> _callbackFuture;
 };
 
 template <typename T>

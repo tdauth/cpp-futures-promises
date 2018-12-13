@@ -8,11 +8,11 @@ namespace adv_boost
 {
 
 template <typename T>
-inline adv::Try<T> convertFutureIntoTry(boost::future<T> &&f)
+inline adv::Try<T> convertFutureIntoTry(boost::future<T> f)
 {
 	try
 	{
-		return adv::Try<T>(std::move(f.get()));
+		return adv::Try<T>(f.get());
 	}
 	catch (...)
 	{

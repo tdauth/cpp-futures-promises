@@ -83,10 +83,10 @@ The project provides advanced futures and promises which are implemented with th
 The advanced futures and promises are declared in the namespace `adv` and provide the a basic functionality with extensions
 which are missing from Folly and Scala.
 The following classes and class templates are provided by the library:
-* `adv::Try<T>` - Holds either nothing, a value or an exception and is used to store a future's result.
-* `adv::Executor` - Schedules the execution of concurrent function calls.
-* `adv::Future<T>` - Non-sharable template class for futures. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
-* `adv::Promise<T>` - Non-sharable template class for promises. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
+* `adv::Try<T>` - Holds either nothing, a value or an exception and is used to store a future's result. We could use `folly::Try<T>` here instead of a custom type.
+* `adv::Executor` - Schedules the execution of concurrent function calls. Currently we use `folly::Executor`.
+* `adv::Future<T>` - Non-sharable class template for futures. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
+* `adv::Promise<T>` - Non-sharable class template for promises. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
 
 With the help of only four basic functions (`get`, `onComplete`, `isReady` and `tryComplete`) all other functions can be implemented.
 Therefore, every library which is used to implement the advanced futures and promises has only to support these basic functions.

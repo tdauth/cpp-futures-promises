@@ -18,9 +18,9 @@ class TestSuite
 {
 	public:
 	/*
-	 * Do not use multiple threads to detect invalid blocking.
-	 * The inline executor ensures the immediate execution of callbacks in the same
-	 * thread if the futures is already completed. This simplifies testing.
+	 * Do not use multiple executor threads to detect invalid blocking.
+	 * The inline executor ensures the immediate execution of callbacks
+	 * in the main thread. This simplifies testing.
 	 */
 	TestSuite() : ex(new folly::InlineExecutor())
 	{
@@ -56,27 +56,66 @@ class TestSuite
 
 	void testOnComplete()
 	{
-		std::string v = "5";
-		auto p = FutureType::template createPromise<std::string>(ex);
-		p.trySuccess("10");
+		int v = 5;
+		auto p = FutureType::template createPromise<int>(ex);
 		auto f = p.future();
-		f.onComplete([&v](adv::Try<std::string> &&t) { v = t.get(); });
+		BOOST_REQUIRE(!f.isReady());
+		BOOST_REQUIRE(p.trySuccess(10));
+		BOOST_REQUIRE(f.isReady());
 
-		BOOST_CHECK_EQUAL("10", v);
+		f.onComplete([&v](adv::Try<int> &&t) { v = t.get(); });
 
-		// multiple callbacks are not allowed
-		BOOST_CHECK_THROW(f.onComplete([](adv::Try<std::string> &&t) {}),
-		                  adv::OnlyOneCallbackPerFuture);
+		BOOST_CHECK_EQUAL(10, v);
+
+		if (!FutureType::IsShared)
+		{
+			// multiple callbacks are not allowed
+			BOOST_CHECK_THROW(f.onComplete([](adv::Try<int> &&) {}),
+			                  adv::OnlyOneCallbackPerFuture);
+		}
+		else
+		{
+			f.onComplete([&v](adv::Try<int> &&) { v = v + 1; });
+			f.onComplete([&v](adv::Try<int> &&) { v = v + 1; });
+			f.onComplete([&v](adv::Try<int> &&) { v = v + 1; });
+			BOOST_CHECK_EQUAL(11, v);
+		}
+	}
+
+	// TODO Specify the semantics for this behaviour. Boost.Thread and Folly
+	// implementations are quite different here.
+	void testOnCompleteIsReadyAndGet()
+	{
+		auto p = FutureType::template createPromise<std::string>(ex);
+		auto f = p.future();
+		BOOST_REQUIRE(!f.isReady());
+		BOOST_REQUIRE(p.trySuccess("10"));
+		BOOST_REQUIRE(f.isReady());
+
+		f.onComplete([](adv::Try<std::string> &&) {});
+
+		BOOST_REQUIRE(f.isReady());
+
+		if (!FutureType::IsShared)
+		{
+			// after registering the one callback, it became invalid
+			BOOST_CHECK_THROW(f.get(), adv::FutureIsInvalid);
+		}
+		else
+		{
+			BOOST_CHECK_EQUAL("10", f.get());
+		}
 	}
 
 	void testOnSuccess()
 	{
 		std::string v = "5";
 		auto p = FutureType::template createPromise<std::string>(ex);
-		p.trySuccess("10");
+		BOOST_REQUIRE(p.trySuccess("10"));
 		auto f = p.future();
 		f.onSuccess([&v](std::string &&t) { v = std::move(t); });
 
+		BOOST_REQUIRE(f.isReady());
 		BOOST_CHECK_EQUAL("10", v);
 	}
 
@@ -84,12 +123,13 @@ class TestSuite
 	{
 		std::optional<adv::Try<std::string>> t;
 		auto p = FutureType::template createPromise<std::string>(ex);
-		p.tryFailure(std::runtime_error("Failure!"));
+		BOOST_REQUIRE(p.tryFailure(std::runtime_error("Failure!")));
 		auto f = p.future();
 		f.onFailure([&t](std::exception_ptr &&e) {
 			t.emplace(adv::Try<std::string>(std::move(e)));
 		});
 
+		BOOST_REQUIRE(f.isReady());
 		BOOST_CHECK(t.has_value());
 		auto r = std::move(t.value());
 		BOOST_CHECK(r.hasException());
@@ -111,16 +151,47 @@ class TestSuite
 		p.trySuccess(10);
 		auto f = p.future();
 
+		BOOST_REQUIRE(f.isReady());
 		BOOST_CHECK_EQUAL(10, f.get());
+
+		if (!FutureType::IsShared)
+		{
+			// Multiple gets are not allowed:
+			BOOST_CHECK_THROW(f.get(), adv::FutureIsInvalid);
+			BOOST_CHECK_THROW(f.isReady(), adv::FutureIsInvalid);
+		}
+		else
+		{
+			BOOST_CHECK_EQUAL(10, f.get());
+			BOOST_CHECK(f.isReady());
+		}
 	}
 
 	void testIsReady()
 	{
 		auto p = FutureType::template createPromise<int>(ex);
-		p.trySuccess(10);
 		auto f = p.future();
 
+		BOOST_REQUIRE(!f.isReady());
+
+		p.trySuccess(10);
+
 		BOOST_CHECK(f.isReady());
+	}
+
+	void testInvalidFuture()
+	{
+		auto p = FutureType::template createPromise<int>(ex);
+		p.trySuccess(10);
+		auto f = p.future();
+		// makes the future invalid
+		f.get();
+
+		// Multiple gets are not allowed:
+		BOOST_CHECK_THROW(f.get(), adv::FutureIsInvalid);
+		BOOST_CHECK_THROW(f.isReady(), adv::FutureIsInvalid);
+		BOOST_CHECK_THROW(f.onComplete([](adv::Try<int> &&) {}),
+		                  adv::FutureIsInvalid);
 	}
 
 	void testThen()
@@ -313,52 +384,6 @@ class TestSuite
 		BOOST_CHECK_EQUAL(10, f.get());
 	}
 
-	void testFirstN()
-	{
-		std::vector<FutureType> futures;
-		futures.push_back(FutureType::successful(ex, 10));
-		futures.push_back(FutureType::failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(FutureType::successful(ex, 12));
-		futures.push_back(FutureType::successful(ex, 13));
-
-		auto f = adv::firstN(ex, std::move(futures), 3);
-		auto v = f.get();
-
-		BOOST_CHECK_EQUAL(3u, v.size());
-		auto v0 = std::move(v[0]);
-		BOOST_CHECK_EQUAL(0u, v0.first);
-		BOOST_CHECK_EQUAL(10, v0.second.get());
-		auto v1 = std::move(v[1]);
-		BOOST_CHECK_EQUAL(1u, v1.first);
-		BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
-		auto v2 = std::move(v[2]);
-		BOOST_CHECK_EQUAL(2u, v2.first);
-		BOOST_CHECK_EQUAL(12, v2.second.get());
-	}
-
-	void testFirstNSucc()
-	{
-		std::vector<FutureType> futures;
-		futures.push_back(FutureType::successful(ex, 10));
-		futures.push_back(FutureType::failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(FutureType::successful(ex, 12));
-		futures.push_back(FutureType::successful(ex, 13));
-
-		auto f = adv::firstNSucc(ex, std::move(futures), 3);
-		auto v = f.get();
-
-		BOOST_CHECK_EQUAL(3u, v.size());
-		auto v0 = std::move(v[0]);
-		BOOST_CHECK_EQUAL(0u, v0.first);
-		BOOST_CHECK_EQUAL(10, v0.second);
-		auto v1 = std::move(v[1]);
-		BOOST_CHECK_EQUAL(2u, v1.first);
-		BOOST_CHECK_EQUAL(12, v1.second);
-		auto v2 = std::move(v[2]);
-		BOOST_CHECK_EQUAL(3u, v2.first);
-		BOOST_CHECK_EQUAL(13, v2.second);
-	}
-
 	void testBrokenPromise()
 	{
 		using P = typename FutureType::template PromiseType<int>;
@@ -375,9 +400,12 @@ class TestSuite
 		auto p = FutureType::template createPromise<int>(ex);
 		FutureType f = p.future();
 
+		BOOST_REQUIRE(!f.isReady());
+
 		bool result = p.tryComplete(adv::Try<int>(10));
 
-		BOOST_CHECK(result);
+		BOOST_REQUIRE(result);
+		BOOST_REQUIRE(f.isReady());
 		BOOST_CHECK_EQUAL(10, f.get());
 	}
 
@@ -386,9 +414,12 @@ class TestSuite
 		auto p = FutureType::template createPromise<int>(ex);
 		FutureType f = p.future();
 
+		BOOST_REQUIRE(!f.isReady());
+
 		bool result = p.trySuccess(10);
 
-		BOOST_CHECK(result);
+		BOOST_REQUIRE(result);
+		BOOST_REQUIRE(f.isReady());
 		BOOST_CHECK_EQUAL(10, f.get());
 	}
 
@@ -396,9 +427,13 @@ class TestSuite
 	{
 		auto p = FutureType::template createPromise<int>(ex);
 		auto f = p.future();
+
+		BOOST_REQUIRE(!f.isReady());
+
 		bool result = p.tryFailure(std::runtime_error("Failure!"));
 
 		BOOST_CHECK(result);
+		BOOST_REQUIRE(f.isReady());
 
 		try
 		{
@@ -468,6 +503,43 @@ class TestSuite
 		{
 			BOOST_CHECK_EQUAL("Failure!", e.what());
 		}
+	}
+
+	void testAll()
+	{
+		testTryNotInitialized();
+		testTryRuntimeError();
+		testTryValue();
+		testOnComplete();
+		testOnCompleteIsReadyAndGet();
+		testOnSuccess();
+		testOnFailure();
+		testGet();
+		testIsReady();
+		testInvalidFuture();
+		testThen();
+		testThenWith();
+		testGuard();
+		testGuardFails();
+		testOrElseFirstSuccessful();
+		testOrElseSecondSuccessful();
+		testOrElseBothFail();
+		testFirst();
+		testFirstWithException();
+		testFirstSucc();
+		testFirstSuccWithException();
+		testFirstSuccBothFail();
+		testSuccessful();
+		testFailed();
+		testAsync();
+		testBrokenPromise();
+		testTryComplete();
+		testTrySuccess();
+		testTryFailure();
+		testTryCompleteWith();
+		testTryCompleteWithFailure();
+		testTrySuccessWith();
+		testTryFailureWith();
 	}
 
 	private:

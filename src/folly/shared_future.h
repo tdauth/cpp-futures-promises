@@ -19,19 +19,26 @@ namespace adv_folly
  * multiple read semantics by default. It does also allow registering multiple
  * callbacks instead of only one per future. This is not the same for
  * folly::Future (only when value is used).
+ *
+ * TODO Try to make it more abstract and use `adv::SharedFuture<T>`.
  */
 template <typename T>
 class SharedFuture
 {
 	public:
-	typedef std::shared_ptr<folly::SharedPromise<T>> SharedPtr;
+	using SharedPtr = std::shared_ptr<folly::SharedPromise<T>>;
+	using Self = SharedFuture<T>;
+	using Type = T;
+	template <typename S>
+	using PromiseType = Promise<S>;
 	using FutureType = Future<T>;
+	static constexpr bool IsShared = true;
 
 	/**
 	 * Allow conversion from adv::Future<T, ...> into adv_folly::SharedFuture<T>.
 	 */
 	SharedFuture(typename FutureType::Parent &&x)
-	    : me(new folly::SharedPromise<T>())
+	    : ex(x.getExecutor()), me(new folly::SharedPromise<T>())
 	{
 		struct SharedContext
 		{
@@ -63,7 +70,8 @@ class SharedFuture
 	}
 
 	// TODO use the constructor above?
-	SharedFuture(FutureType &&x) : me(new folly::SharedPromise<T>())
+	SharedFuture(FutureType &&x)
+	    : ex(x.getExecutor()), me(new folly::SharedPromise<T>())
 	{
 		struct SharedContext
 		{
@@ -94,12 +102,13 @@ class SharedFuture
 		});
 	}
 
-	SharedFuture(const SharedFuture<T> &other) : me(other.me)
+	SharedFuture(const Self &other) : ex(other.ex), me(other.me)
 	{
 	}
 
-	SharedFuture<T> &operator=(const SharedFuture<T> &other)
+	Self &operator=(const Self &other)
 	{
+		ex = other.ex;
 		me = other.me;
 
 		return *this;
@@ -122,6 +131,11 @@ class SharedFuture
 		return std::move(f).value();
 	}
 
+	/**
+	 * Supports multiple callbacks.
+	 * Creates a new future for each callback which deletes itself when the callback has been executed.
+	 * TODO The returned future seems to already have a callback if one has been registered?
+	 */
 	template <typename Func>
 	void onComplete(Func &&f)
 	{
@@ -139,7 +153,7 @@ class SharedFuture
 	}
 
 	template <typename Func>
-	SharedFuture<T> guard(Func &&f)
+	Self guard(Func &&f)
 	{
 		return getFuture().guard(std::move(f));
 	}
@@ -149,38 +163,47 @@ class SharedFuture
 	{
 		using S = typename std::result_of<Func(adv::Try<T>)>::type;
 		using CoreS = Core<S>;
-		return getFuture().then<CoreS>(std::move(f));
+		return getFuture().template then<CoreS>(std::move(f));
 	}
 
-	SharedFuture<T> orElse(SharedFuture<T> other)
+	Self orElse(SharedFuture<T> other)
 	{
 		return getFuture().orElse(other.getFuture());
 	}
 
-	SharedFuture<T> first(SharedFuture<T> other)
+	Self first(SharedFuture<T> other)
 	{
 		auto otherF = std::make_shared<FutureType>(other.getFuture());
 		using CoreT = Core<T>;
 
-		return getFuture().first(*otherF).then<CoreT>(
+		return getFuture().first(*otherF).template then<CoreT>(
 		    [otherF](adv::Try<T> &&t) { return t.get(); });
 	}
 
-	SharedFuture<T> firstSucc(SharedFuture<T> other)
+	Self firstSucc(SharedFuture<T> other)
 	{
 		auto otherF = std::make_shared<FutureType>(other.getFuture());
 		using CoreT = Core<T>;
 
-		return getFuture().firstSucc(*otherF).then<CoreT>(
+		return getFuture().firstSucc(*otherF).template then<CoreT>(
 		    [otherF](adv::Try<T> &&t) { return t.get(); });
 	}
+
+	static Self successful(folly::Executor *ex, T &&v);
+	template <typename E>
+	static Self failed(folly::Executor *ex, E &&e);
 
 	SharedFuture() = delete;
-	SharedFuture(SharedFuture<T> &&other) : me(std::move(other.me))
+	SharedFuture(folly::Executor *ex, Self &&other)
+	    : ex(ex), me(std::move(other.me))
 	{
 	}
 
+	template <typename S>
+	static Promise<S> createPromise(folly::Executor *ex);
+
 	private:
+	folly::Executor *ex;
 	SharedPtr me;
 
 	folly::Future<T> getFollyFuture()
@@ -190,7 +213,7 @@ class SharedFuture
 
 	Future<T> getFuture()
 	{
-		return Future<T>(getFollyFuture());
+		return Future<T>(ex, getFollyFuture());
 	}
 
 	static adv::Try<T> tryFromFollyTry(folly::Try<T> &&t);

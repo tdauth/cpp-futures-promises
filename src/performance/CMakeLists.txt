@@ -1,4 +1,3 @@
-# Performance tests:
 add_executable(performance_combinators performance_combinators.cpp)
 add_dependencies(performance_combinators boost folly)
 target_link_libraries(performance_combinators ${Boost_LIBRARIES} ${folly_LIBRARIES} pthread)

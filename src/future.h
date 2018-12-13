@@ -27,6 +27,10 @@ class OnlyOneCallbackPerFuture : public std::exception
 {
 };
 
+class FutureIsInvalid : public std::exception
+{
+};
+
 template <typename T>
 class Try;
 
@@ -76,7 +80,8 @@ class Future : public CoreType
 	 * @tparam Func
 	 * @param f
 	 * @return
-	 * @throw PredicateNotFulfilled When the function returns false, this exception will be thrown.
+	 * @throw PredicateNotFulfilled When the function returns false, this exception
+	 * will be thrown.
 	 */
 	template <typename Func>
 	Self guard(Func &&f)

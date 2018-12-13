@@ -34,6 +34,8 @@ class Core
 	template <typename S>
 	using FutureType = Future<S>;
 
+	static constexpr bool IsShared = false;
+
 	Core(folly::Executor *executor)
 	    : executor(executor), _f(folly::Future<T>::makeEmpty())
 	{
@@ -58,8 +60,6 @@ class Core
 	Core(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	SharedFuture<T> share();
-
 	folly::Executor *getExecutor() const
 	{
 		return executor;
@@ -71,15 +71,26 @@ class Core
 		{
 			return std::move(_f).get();
 		}
-		catch (const folly::BrokenPromise &e)
+		catch (const folly::BrokenPromise &)
 		{
 			throw adv::BrokenPromise();
+		}
+		catch (const folly::FutureInvalid &)
+		{
+			throw adv::FutureIsInvalid();
 		}
 	}
 
 	bool isReady() const
 	{
-		return _f.isReady();
+		try
+		{
+			return _f.isReady();
+		}
+		catch (const folly::FutureInvalid &)
+		{
+			throw adv::FutureIsInvalid();
+		}
 	}
 
 	/**
@@ -91,6 +102,11 @@ class Core
 	template <typename Func>
 	void onComplete(Func &&f)
 	{
+		if (!this->_f.valid())
+		{
+			throw adv::FutureIsInvalid();
+		}
+
 		try
 		{
 			this->_f.setCallback_([f = std::move(f)](folly::Try<T> && t) mutable {
