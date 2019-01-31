@@ -1,7 +1,7 @@
 #ifndef ADV_TESTSUITEFIRSTN_H
 #define ADV_TESTSUITEFIRSTN_H
 
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include "future.h"
 #include "future_impl.h"

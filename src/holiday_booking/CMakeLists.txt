@@ -1,0 +1,4 @@
+add_executable(holiday_booking_advanced holiday_booking_advanced.cpp)
+add_dependencies(holiday_booking_advanced boost folly)
+target_link_libraries(holiday_booking_advanced ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(HolidayBookingAdvanced holiday_booking_advanced)

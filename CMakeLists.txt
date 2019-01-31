@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
-set(boost_VERSION "1.68.0")
-set(boost_VERSION_UNDERSCORE "1_68_0")
-set(folly_VERSION "v2018.10.29.00")
+set(boost_VERSION "1.69.0")
+set(boost_VERSION_UNDERSCORE "1_69_0")
+set(folly_VERSION "v2019.01.28.00")
 
 enable_testing()
 
@@ -31,11 +31,11 @@ elseif (HAS_CXX_11)
 	set(ENV{CXXFLAGS} "-std=c++11")
 endif ()
 
-add_compile_options(-Wall)
+add_compile_options(-Wall -pthread)
 # These flags are required for Boost.Thread and Boost.Test:
-add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK)
+add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK -DBOOST_SYSTEM_NO_DEPRECATED -DBOOST_ERROR_CODE_HEADER_ONLY)
 # Workaround for Fedora:
-set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic")
+set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic -lpthread")
 
 # Bash is required for many of the build scripts for the external projects.
 find_program(BASH_PATH bash)
@@ -52,13 +52,19 @@ set(BOOST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boost_install")
 set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
 set(BOOST_LIB_DIR "${BOOST_INSTALL_DIR}/lib")
 
+if ("${CMAKE_BUILD_TYPE}" EQUAL "Release")
+	set(BOOST_VARIANT "release")
+else ()
+	set(BOOST_VARIANT "debug")
+endif()
+
 ExternalProject_Add(
 	boost
 	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
 	INSTALL_COMMAND "" # Disable install step
 	UPDATE_COMMAND "" # Doesn't change often
 	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_LIB_DIR}"
+	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_LIB_DIR}" "${CMAKE_CXX_FLAGS}" "${BOOST_VARIANT}"
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON

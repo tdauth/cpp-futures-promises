@@ -1,7 +1,7 @@
 #ifndef ADV_TESTSUITE_H
 #define ADV_TESTSUITE_H
 
-#include <boost/test/unit_test.hpp>
+#include <boost/test/included/unit_test.hpp>
 
 #include <atomic>
 #include <string>
