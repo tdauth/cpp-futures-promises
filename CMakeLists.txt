@@ -1,93 +1,19 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
-set(boost_VERSION "1.69.0")
-set(boost_VERSION_UNDERSCORE "1_69_0")
 set(folly_VERSION "v2019.01.28.00")
 
 enable_testing()
 
 include(CTest)
 
-include(CheckCXXCompilerFlag)
-
-CHECK_CXX_COMPILER_FLAG(-std=c++17 HAS_CXX_17)
-CHECK_CXX_COMPILER_FLAG(-std=c++14 HAS_CXX_14)
-CHECK_CXX_COMPILER_FLAG(-std=c++11 HAS_CXX_11)
-
-# Try to use standard C++17 but if it is not available fallback until C++11.
-# The environment variables are required for the Bash scripts which often compile external libraries.
-if (HAS_CXX_17)
-	add_compile_options(-std=c++17)
-	set(ENV{CFLAGS} "-std=c11")
-	set(ENV{CXXFLAGS} "-std=c++17")
-elseif (HAS_CXX_14)
-	add_compile_options(-std=c++14)
-	set(ENV{CFLAGS} "-std=c11")
-	set(ENV{CXXFLAGS} "-std=c++14")
-elseif (HAS_CXX_11)
-	add_compile_options(-std=c++11)
-	set(ENV{CFLAGS} "-std=c11")
-	set(ENV{CXXFLAGS} "-std=c++11")
-endif ()
-
-add_compile_options(-Wall -pthread)
+add_compile_options(-std=c++17 -Wall)
 # These flags are required for Boost.Thread and Boost.Test:
-add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK -DBOOST_SYSTEM_NO_DEPRECATED -DBOOST_ERROR_CODE_HEADER_ONLY)
-# Workaround for Fedora:
-set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} -latomic -lpthread")
+add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK) # -DBOOST_SYSTEM_NO_DEPRECATED -DBOOST_ERROR_CODE_HEADER_ONLY
 
-# Bash is required for many of the build scripts for the external projects.
-find_program(BASH_PATH bash)
-
-if (NOT BASH_PATH)
-	message(FATAL_ERROR "bash not found.")
-endif ()
+find_package(Boost REQUIRED COMPONENTS thread chrono context program_options regex filesystem date_time) # test
 
 include(ExternalProject)
-
-# Boost
-set(BOOST_DOWNLOAD_DIR "${CMAKE_CURRENT_BINARY_DIR}/boost-prefix/src/boost/")
-set(BOOST_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/boost_install")
-set(BOOST_INCLUDE_DIR "${BOOST_INSTALL_DIR}/include")
-set(BOOST_LIB_DIR "${BOOST_INSTALL_DIR}/lib")
-
-if ("${CMAKE_BUILD_TYPE}" EQUAL "Release")
-	set(BOOST_VARIANT "release")
-else ()
-	set(BOOST_VARIANT "debug")
-endif()
-
-ExternalProject_Add(
-	boost
-	URL "https://sourceforge.net/projects/boost/files/boost/${boost_VERSION}/boost_${boost_VERSION_UNDERSCORE}.tar.bz2"
-	INSTALL_COMMAND "" # Disable install step
-	UPDATE_COMMAND "" # Doesn't change often
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh" "${BOOST_DOWNLOAD_DIR}" "${BOOST_LIB_DIR}" "${CMAKE_CXX_FLAGS}" "${BOOST_VARIANT}"
-	LOG_DOWNLOAD ON
-	LOG_CONFIGURE ON
-	LOG_BUILD ON
-)
-
-ExternalProject_Add_StepDependencies(boost configure "${CMAKE_CURRENT_SOURCE_DIR}/configureboost.sh")
-ExternalProject_Add_StepDependencies(boost build "${CMAKE_CURRENT_SOURCE_DIR}/buildboost.sh")
-
-include_directories("${BOOST_INCLUDE_DIR}")
-link_directories("${BOOST_LIB_DIR}")
-
-set(Boost_LIBRARIES
-	"${BOOST_LIB_DIR}/libboost_thread.so"
-	"${BOOST_LIB_DIR}/libboost_system.so"
-	"${BOOST_LIB_DIR}/libboost_chrono.so"
-	"${BOOST_LIB_DIR}/libboost_unit_test_framework.so"
-	# For Folly
-	# context, regex, filesystem and program_options are required by Folly
-	"${BOOST_LIB_DIR}/libboost_context.so"
-	"${BOOST_LIB_DIR}/libboost_regex.so"
-	"${BOOST_LIB_DIR}/libboost_filesystem.so"
-	"${BOOST_LIB_DIR}/libboost_program_options.so"
-)
 
 # Folly
 
@@ -138,7 +64,6 @@ endif ()
 
 set(folly_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly-prefix/src/folly")
 set(folly_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly_install")
-set(folly_BUILD_DIR "${CMAKE_BINARY_DIR}/folly-prefix/src/folly-build")
 set(folly_INCLUDE_DIR "${folly_INSTALL_DIR}/include")
 set(folly_LIB_DIR "${folly_INSTALL_DIR}/lib")
 
@@ -154,15 +79,13 @@ set(folly_LIBRARIES
 	${PTHREAD_LIBRARY}
 )
 
-# The Boost libraries have to be linked as well with the static Folly library.
-list(APPEND folly_LIBRARIES ${Boost_LIBRARIES})
-
 ExternalProject_Add(folly
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	INSTALL_COMMAND ""
-	CONFIGURE_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/configurefolly.sh" "${folly_DIR}" "${folly_INSTALL_DIR}" "${BOOST_INSTALL_DIR}"
-	BUILD_COMMAND "${BASH_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/buildfolly.sh" "${folly_BUILD_DIR}"
-	DEPENDS boost
+	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/folly"
+	CMAKE_ARGS -DFOLLY_SUPPORT_SHARED_LIBRARY=ON -DCMAKE_INSTALL_PREFIX=${folly_INSTALL_DIR}
+	LOG_DOWNLOAD ON
+	LOG_CONFIGURE ON
+	LOG_BUILD ON
 )
 
 include_directories("${folly_INCLUDE_DIR}")

@@ -37,7 +37,7 @@ The project requires the following libraries:
 It will download and compile these libraries automatically when being compiled.
 The versions of the libraries are specified in the [CMakeLists.txt](./CMakeLists.txt) file in the top level directory of the project.
 
-Furthermore, the project requires the following packages on Fedora 27:
+Furthermore, the project requires the following packages on Fedora 29:
 * cmake
 * gcc-c++
 * libatomic
@@ -49,7 +49,7 @@ Furthermore, the project requires the following packages on Fedora 27:
 * cppcheck
 * cppcheck-htmlreport
 
-Folly dependencies on Fedora 27:
+Folly dependencies on Fedora 29:
 * glog-devel
 * gflags-devel
 * autoconf

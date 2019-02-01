@@ -5,9 +5,9 @@ services:
   - docker
 # Fedora supports the required libraries. Therefore, use docker with a Fedora image:
 before_install:
-  - docker pull fedora:27
+  - docker pull fedora:29
   - docker ps -a
-  - docker run fedora:27 /bin/sh -c "cd /root; dnf -y install git bash; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./buildtravisci.sh"
+  - docker run fedora:29 /bin/sh -c "cd /root; dnf -y install git bash boost-devel; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./buildtravisci.sh"
 # Use a script to disable the default automake build:
 script:
   - ls

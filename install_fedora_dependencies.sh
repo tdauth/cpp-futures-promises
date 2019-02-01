@@ -1,2 +1,2 @@
 #!/bin/bash
-dnf -y install git cmake gcc-c++ make libatomic bash which rpm-build gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel lcov cppcheck cppcheck-htmlreport
+dnf -y install git cmake gcc-c++ make libatomic bash which boost-devel rpm-build gflags-devel glog-devel valgrind autoconf automake libtool zlib-devel lzma-devel snappy-devel double-conversion-devel openssl-devel libevent-devel lcov cppcheck cppcheck-htmlreport
