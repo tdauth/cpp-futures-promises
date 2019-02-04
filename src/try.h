@@ -30,13 +30,19 @@ class Try
 	{
 	}
 
-	Try(const Try<T> &other) = delete;
+	Try(const Try<T> &other) : _v(other._v)
+	{
+	}
 
 	Try(Try<T> &&other) : _v(std::move(other._v))
 	{
 	}
 
-	Try<T> &operator=(const Try<T> &other) = delete;
+	Try<T> &operator=(const Try<T> &other)
+	{
+		_v = other._v;
+		return *this;
+	}
 
 	T get()
 	{
@@ -54,7 +60,22 @@ class Try
 		return std::move(std::get<T>(std::move(_v.value())));
 	}
 
-	bool hasValue()
+	const T &get() const
+	{
+		if (!_v.has_value())
+		{
+			throw adv::UsingUninitializedTry();
+		}
+
+		if (_v.value().index() != 0)
+		{
+			std::rethrow_exception(std::get<std::exception_ptr>(_v.value()));
+		}
+
+		return std::get<T>(_v.value());
+	}
+
+	bool hasValue() const
 	{
 		if (_v.has_value())
 		{
@@ -64,7 +85,7 @@ class Try
 		return false;
 	}
 
-	bool hasException()
+	bool hasException() const
 	{
 		if (_v.has_value())
 		{
@@ -77,6 +98,6 @@ class Try
 	private:
 	std::optional<std::variant<T, std::exception_ptr>> _v;
 };
-}
+} // namespace adv
 
 #endif

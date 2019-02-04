@@ -1,14 +1,11 @@
 # Advanced Futures and Promises with C++
-This project provides an advanced futures and promises API based on our paper [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
-The API offers functions which are missing from other C++ futures and promises APIs.
-It is implemented with the help of only a few basic functions which allows a much easier adaption to other libraries.
-Currently, the API has two different reference implementations which use the following two C++ libraries:
-* [Boost.Thread](https://github.com/boostorg/thread)
-* [Folly](https://github.com/facebook/folly)
+This project provides an advanced futures and promises library based on our papers [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf) and [Futures and Promises in Haskell and Scala](https://www.researchgate.net/publication/330066278_Futures_and_promises_in_Haskell_and_Scala).
+The library offers functions which are missing from other C++ futures and promises libraries.
+It is implemented with the help of only a few core operations which allows a much easier adaption to different implementations.
+Advanced futures and promises are shared by default.
+Currently, the library has one reference implementation which uses a lock-based approach.
 
-The project does also provide extensions for C++ futures and promises in C++17, Boost.Thread and Folly.
-The extensions are mainly inspired by the [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and functions missing from Folly.
-Some use cases have been implemented to demonstrate the extensions.
+The derived features were inspired by [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and Folly.
 
 ## Automatic Build with TravisCI
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=single-read-and-bugfixes)](https://travis-ci.org/tdauth/cpp-futures-promises)
@@ -84,45 +81,21 @@ The advanced futures and promises are declared in the namespace `adv` and provid
 which are missing from Folly and Scala.
 The following classes and class templates are provided by the library:
 * `adv::Try<T>` - Holds either nothing, a value or an exception and is used to store a future's result. We could use `folly::Try<T>` here instead of a custom type.
-* `adv::Executor` - Schedules the execution of concurrent function calls. Currently we use `folly::Executor`.
-* `adv::Future<T>` - Non-sharable class template for futures. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
-* `adv::Promise<T>` - Non-sharable class template for promises. Allows only moving (not copying) and read once semantics as well as registering only exactly one callback.
+* `adv::Future<T>` - Class template for shared futures. Allows copying and multiple read semantics as well as registering multiple callbacks.
+* `adv::Promise<T>` - Class template for shared promises. Allows copying.
 
-With the help of only four basic functions (`get`, `onComplete`, `isReady` and `tryComplete`) all other functions can be implemented.
-Therefore, every library which is used to implement the advanced futures and promises has only to support these basic functions.
+With the help of only four core operations (`get`, `onComplete`, `isReady` and `tryComplete`) all other functions can be implemented.
+Therefore, every library which is used to implement the advanced futures and promises has only to support these core operations.
 
-#### Abstraction of the basic functions
-`adv::Future<T>` and `adv::Promise<T>` expect core types which provide the basic functions.
-The core type has to specified as template argument similar to type classes in Haskell.
-Another solution would be to specify a pointer internally to a class which provides the core methods.
-The second approach would be much easier to implement but would require a heap allocation and indirection at runtime.
-
-### Folly Implementation
-The advanced futures and promises are implemented for the library Folly in this project since it provides the most extended interface for futures and promises in C++.
-To use them you have to include the file [advanced/advanced_futures_folly.h](./src/advanced/advanced_futures_folly.h).
-The classes wrap classes of Folly itself.
-The Folly implementation uses the namespace `adv_folly` to distinguish it from the Boost.Thread implementation.
-
-### Shared Futures for Folly
-The advanced futures provide the shared future class template `adv_folly::SharedFuture<T>`.
-It allows copying the future around and multiple read semantics with `get` by default.
-It does also allow registering more than one callback.
-It is realized with the help of `folly::SharedPromise<T>` for the implementation of the library with Folly.
-
-### Boost.Thread Implementation
-The advanced futures and promises are also implemented for the library Boost.Thread in this project since it provides another extended interface for futures and promises in C++.
-To use them you have to include the file [advanced/advanced_futures_boost.h](./src/advanced/advanced_futures_boost.h).
-The classes wrap classes of Boost.Thread itself.
-The Boost.Thread implementation uses the namespace `adv_boost` to distinguish it from the Folly implementation.
-The corresponding Boost.Thread executor has to be specified as template argument for `adv_boost::Executor` since Boost.Thread does not provide an abstract class for executors like Folly does.
-Besides, you have to use `boost::exception_ptr` instead of `std::exception_ptr` with the Boost.Thread implementation.
+#### Abstraction of the Core Operations
+The class template `adv::State<T>` has to be implemented.
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:
 * [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
 * [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
 
-### Paper
+### C++ Paper
 We have written a paper about the advanced futures and promises called [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 Here are some TODOs for the paper:
 * Improve the description of the C++ syntax.

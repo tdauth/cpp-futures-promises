@@ -1,8 +1,0 @@
-add_executable(advanced_boost_future future.cpp)
-add_dependencies(advanced_boost_future folly)
-target_link_libraries(advanced_boost_future ${Boost_LIBRARIES} ${folly_LIBRARIES})
-add_test(AdvancedBoostFuture advanced_boost_future)
-
-add_executable(advanced_boost_copy_exception copy_exception.cpp)
-target_link_libraries(advanced_boost_copy_exception ${Boost_LIBRARIES})
-add_test(AdvancedBoostCopyException advanced_boost_copy_exception)

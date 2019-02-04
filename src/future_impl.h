@@ -9,23 +9,23 @@
 namespace adv
 {
 
-template <typename T, typename CoreType>
+template <typename T>
 template <typename Func>
-void Future<T, CoreType>::onSuccess(Func &&f)
+void Future<T>::onSuccess(Func &&f)
 {
-	this->onComplete([f = std::move(f)](Try<T> && t) mutable {
+	this->onComplete([f = std::move(f)](const Try<T> &t) mutable {
 		if (t.hasValue())
 		{
-			f(std::move(t).get());
+			f(t.get());
 		}
 	});
 }
 
-template <typename T, typename CoreType>
+template <typename T>
 template <typename Func>
-void Future<T, CoreType>::onFailure(Func &&f)
+void Future<T>::onFailure(Func &&f)
 {
-	this->onComplete([f = std::move(f)](Try<T> && t) mutable {
+	this->onComplete([f = std::move(f)](const Try<T> &t) mutable {
 		if (t.hasException())
 		{
 			try
@@ -40,140 +40,139 @@ void Future<T, CoreType>::onFailure(Func &&f)
 	});
 }
 
-template <typename T, typename CoreType>
+template <typename T>
 template <typename Func>
-Future<typename std::result_of<Func(Try<T>)>::type,
-       typename CoreType::template CoreType<
-           typename std::result_of<Func(Try<T>)>::type>>
-Future<T, CoreType>::then(Func &&f)
+Future<typename std::result_of<Func(const Try<T> &)>::type>
+Future<T>::then(Func &&f)
 {
-	using S = typename std::result_of<Func(Try<T>)>::type;
-	using CoreTypeS = typename CoreType::template CoreType<S>;
-	using PromiseS =
-	    typename CoreTypeS::template PromiseType<typename CoreTypeS::Type>;
+	using S = typename std::result_of<Func(const Try<T> &)>::type;
 
-	auto p = std::make_shared<PromiseS>(this->getExecutor());
-	auto r = p->future();
+	auto p = createPromise<S>();
 
-	this->onComplete([ f = std::move(f), p ](Try<T> && t) mutable {
+	this->onComplete([f = std::move(f), p](const Try<T> &t) mutable {
 		try
 		{
-			S result = S(f(std::move(t)));
-			p->trySuccess(std::move(result));
+			S result = S(f(t));
+			p.trySuccess(std::move(result));
 		}
 		catch (...)
 		{
-			p->tryFailure(std::current_exception());
+			p.tryFailure(std::current_exception());
 		}
 	});
 
-	return std::move(r);
+	return p.future();
 }
 
-template <typename T, typename CoreType>
+template <typename T>
 template <typename Func>
-typename std::result_of<Func(Try<T>)>::type
-Future<T, CoreType>::thenWith(Func &&f)
+typename std::result_of<Func(const Try<T> &)>::type
+Future<T>::thenWith(Func &&f)
 {
-	using FutureS = typename std::result_of<Func(Try<T>)>::type;
+	using FutureS = typename std::result_of<Func(const Try<T> &)>::type;
 	using S = typename FutureS::Type;
 
-	auto p = CoreType::template createPromise<S>(this->getExecutor());
-	auto r = p.future();
+	auto p = createPromise<S>();
 
-	this->onComplete([ f = std::move(f), p = std::move(p) ](Try<T> && t) mutable {
+	this->onComplete([f = std::move(f), p](const Try<T> &t) mutable {
 		// The future will stay alive until it is completed.
-		std::move(p).tryCompleteWithSafe(f(std::move(t)));
+		Future<S> future = f(t);
+		future.onComplete([future](const Try<S> &) {});
+		p.tryCompleteWith(future);
 	});
 
-	return std::move(r);
+	return p.future();
 }
 
-template <typename T, typename CoreType>
-Future<T, CoreType> Future<T, CoreType>::orElse(Future<T, CoreType> &&other)
+template <typename T>
+Future<T> Future<T>::orElse(Future<T> &&other)
 {
 	// This requires that the concrete future type can be converted into
 	// adv::Future<T, CoreType>.
-	return this->thenWith([other = std::move(other)](
-	                          Try<T> && t) mutable->Future<T, CoreType> {
-		if (t.hasException())
+	return this->thenWith(
+	    [other = std::move(other)](const Try<T> &t) mutable -> Future<T> {
+		    if (t.hasException())
+		    {
+			    return other.template then([&t](const Try<T> &tt) mutable {
+				    if (tt.hasException())
+				    {
+					    return t.get();
+				    }
+				    else
+				    {
+					    return tt.get();
+				    }
+			    });
+		    }
+		    else
+		    {
+			    // Don't ever move first since it would register a second callback which
+			    // is not allowed.
+			    auto p = other.template createPromise<T>();
+			    p.tryComplete(Try<T>(t));
+			    return p.future();
+		    }
+	    });
+}
+
+template <typename T>
+Future<T> Future<T>::first(Future<T> &other)
+{
+	auto p = std::make_shared<Promise<T>>(createPromise<T>());
+
+	this->onComplete([p](const Try<T> &t) { p->tryComplete(Try<T>(t)); });
+
+	other.onComplete([p](const Try<T> &t) { p->tryComplete(Try<T>(t)); });
+
+	return p->future();
+}
+
+template <typename T>
+Future<T> Future<T>::firstSucc(Future<T> &other)
+{
+	auto p = createPromise<T>();
+	struct Context
+	{
+		Context(Promise<T> &&p) : p(p)
 		{
-			return other.template then([t = std::move(t)](Try<T> && tt) mutable {
-				if (tt.hasException())
-				{
-					return std::move(t).get();
-				}
-				else
-				{
-					return std::move(tt).get();
-				}
-			});
 		}
-		else
+
+		Promise<T> p;
+		std::atomic<int> failCounter{0};
+	};
+	auto ctx = std::make_shared<Context>(std::move(p));
+	this->onSuccess([ctx](const T &v) { ctx->p.trySuccess(T(v)); });
+	other.onSuccess([ctx](const T &v) { ctx->p.trySuccess(T(v)); });
+
+	this->onFailure([ctx](const std::exception_ptr &e) {
+		auto c = ++ctx->failCounter;
+
+		if (c == 2)
 		{
-			// Don't ever move first since it would register a second callback which
-			// is not allowed.
-			auto p = CoreType::template createPromise<T>(other.getExecutor());
-			p.tryComplete(std::move(t));
-			return p.future();
+			ctx->p.tryFailure(e);
 		}
 	});
+	other.onFailure([ctx](const std::exception_ptr &e) {
+		auto c = ++ctx->failCounter;
+
+		if (c == 2)
+		{
+			ctx->p.tryFailure(e);
+		}
+	});
+
+	return ctx->p.future();
 }
 
-template <typename T, typename CoreType>
-Future<T, CoreType> Future<T, CoreType>::first(Future<T, CoreType> &other)
-{
-	using PromiseType = typename CoreType::template PromiseType<T>;
-	auto p = std::make_shared<PromiseType>(this->getExecutor());
-
-	this->onComplete([p](Try<T> &&t) { p->tryComplete(std::move(t)); });
-
-	other.onComplete([p](Try<T> &&t) { p->tryComplete(std::move(t)); });
-
-	return p->future();
-}
-
-template <typename T, typename CoreType>
-Future<T, CoreType> Future<T, CoreType>::firstSucc(Future<T, CoreType> &other)
-{
-	using PromiseType = typename CoreType::template PromiseType<T>;
-	auto p = std::make_shared<PromiseType>(this->getExecutor());
-
-	this->onSuccess([p](T &&v) { p->trySuccess(std::move(v)); });
-
-	other.onSuccess([p](T &&v) { p->trySuccess(std::move(v)); });
-
-	return p->future();
-}
-
-template <typename T, typename CoreType>
-Future<T, CoreType> Future<T, CoreType>::successful(folly::Executor *ex, T &&v)
-{
-	using PromiseType = typename CoreType::template PromiseType<T>;
-	PromiseType p(ex);
-	p.trySuccess(std::move(v));
-	return p.future();
-}
-
-template <typename T, typename CoreType>
-template <typename E>
-Future<T, CoreType> Future<T, CoreType>::failed(folly::Executor *ex, E &&e)
-{
-	using PromiseType = typename CoreType::template PromiseType<T>;
-	PromiseType p(ex);
-	p.tryFailure(std::move(e));
-	return p.future();
-}
-
-template <typename PromiseType, typename Func>
-typename PromiseType::FutureType async(folly::Executor *ex, Func &&f)
+template <typename Func>
+Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
+                                                    Func &&f)
 {
 	using T = typename std::result_of<Func()>::type;
-	static_assert(std::is_same<typename PromiseType::Type, T>::value,
-	              "Promise has to have the same type as the function.");
-	auto p = std::make_shared<PromiseType>(ex);
+	auto s = State<T>::template createShared<T>(ex);
+	auto p = std::make_shared<adv::Promise<T>>(s);
 
-	ex->add([ f = std::move(f), p ]() mutable {
+	ex->add([f = std::move(f), p]() mutable {
 		try
 		{
 			p->trySuccess(f());
@@ -187,19 +186,16 @@ typename PromiseType::FutureType async(folly::Executor *ex, Func &&f)
 	return p->future();
 }
 
-template <typename FutureType>
-typename FutureType::CoreType::template FutureType<
-    std::vector<std::pair<std::size_t, Try<typename FutureType::Type>>>>
-firstN(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
+template <typename T>
+Future<std::vector<std::pair<std::size_t, Try<T>>>>
+firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 {
-	using CoreType = typename FutureType::CoreType;
-	using T = typename CoreType::Type;
 	using V = std::vector<std::pair<size_t, Try<T>>>;
-	using PromiseType = typename CoreType::template PromiseType<V>;
 
 	struct FirstNContext
 	{
-		FirstNContext(folly::Executor *ex, std::size_t n) : p(PromiseType(ex))
+		FirstNContext(folly::Executor *ex, std::size_t n)
+		    : p(Promise<V>(State<V>::template createShared<V>(ex)))
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -211,7 +207,7 @@ firstN(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 		V v;
 		std::atomic<std::size_t> vectorSize = {0};
 		std::atomic<std::size_t> completed = {0};
-		PromiseType p;
+		Promise<V> p;
 	};
 
 	auto ctx = std::make_shared<FirstNContext>(ex, n);
@@ -227,7 +223,7 @@ firstN(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 
 		for (auto it = c.begin(); it != c.end(); ++it, ++i)
 		{
-			it->onComplete([ctx, n, total, i](Try<T> t) {
+			it->onComplete([ctx, n, total, i](const Try<T> &t) {
 				auto c = ++ctx->completed;
 
 				if (c <= n)
@@ -256,19 +252,16 @@ firstN(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 	return ctx->p.future();
 }
 
-template <typename FutureType>
-typename FutureType::CoreType::template FutureType<
-    std::vector<std::pair<std::size_t, typename FutureType::Type>>>
-firstNSucc(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
+template <typename T>
+Future<std::vector<std::pair<std::size_t, T>>>
+firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 {
-	using T = typename FutureType::Type;
 	using V = std::vector<std::pair<size_t, T>>;
-	using CoreType = typename FutureType::CoreType;
-	using PromiseType = typename CoreType::template PromiseType<V>;
 
 	struct FirstNSuccContext
 	{
-		FirstNSuccContext(folly::Executor *ex, std::size_t n) : p(PromiseType(ex))
+		FirstNSuccContext(folly::Executor *ex, std::size_t n)
+		    : p(Promise<V>(State<V>::template createShared<V>(ex)))
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -281,7 +274,7 @@ firstNSucc(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 		std::atomic<std::size_t> vectorSize = {0};
 		std::atomic<std::size_t> succeeded = {0};
 		std::atomic<std::size_t> failed = {0};
-		PromiseType p;
+		Promise<V> p;
 	};
 
 	auto ctx = std::make_shared<FirstNSuccContext>(ex, n);
@@ -297,7 +290,7 @@ firstNSucc(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 
 		for (auto it = c.begin(); it != c.end(); ++it, ++i)
 		{
-			it->onComplete([ctx, n, total, i](Try<T> t) {
+			it->onComplete([ctx, n, total, i](const Try<T> &t) {
 				// ignore exceptions until as many futures failed that n futures cannot be
 				// completed successfully anymore
 				if (t.hasException())
@@ -351,6 +344,6 @@ firstNSucc(folly::Executor *ex, std::vector<FutureType> &&c, std::size_t n)
 
 	return ctx->p.future();
 }
-}
+} // namespace adv
 
 #endif

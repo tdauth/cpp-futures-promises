@@ -5,8 +5,13 @@
 #include <folly/futures/Future.h>
 #include <folly/init/Init.h>
 
-#include "advanced_futures_boost.h"
-#include "advanced_futures_folly.h"
+#include "advanced_futures_lock.h"
+#include "future.h"
+#include "future_impl.h"
+#include "promise.h"
+#include "promise_impl.h"
+#include "state.h"
+#include "state_impl.h"
 
 using TREE_TYPE = int;
 constexpr int TREE_HEIGHT = 12;
@@ -237,6 +242,81 @@ boost::future<T> boostWhenAny(std::size_t treeHeight, std::size_t childNodes,
 	    });
 }
 
+template <typename T, typename Func>
+adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
+                         std::size_t childNodes, Func f)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			adv::Promise<T> p(adv::State<T>::template createShared<T>(ex));
+			p.trySuccess(f());
+			auto f = p.future();
+			v.push_back(std::move(f));
+		}
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(advFirstN<T, Func>(ex, treeHeight - 1, childNodes, f));
+		}
+	}
+
+	using ResultType = std::vector<std::pair<std::size_t, adv::Try<T>>>;
+	adv::Future<ResultType> first = adv::firstN<T>(ex, std::move(v), childNodes);
+	adv::Future<T> r = first.then(
+	    [](const adv::Try<ResultType> &t) { return t.get()[0].second.get(); });
+
+	return r;
+}
+
+template <typename T, typename Func>
+adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
+                             std::size_t childNodes, Func f)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			adv::Promise<T> p(adv::State<T>::template createShared<T>(ex));
+			p.trySuccess(f());
+			auto f = p.future();
+			v.push_back(std::move(f));
+		}
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(advFirstNSucc<T, Func>(ex, treeHeight - 1, childNodes, f));
+		}
+	}
+
+	using ResultType = std::vector<std::pair<std::size_t, T>>;
+	adv::Future<ResultType> first =
+	    adv::firstNSucc<T>(ex, std::move(v), childNodes);
+	adv::Future<T> r = first.then(
+	    [](const adv::Try<ResultType> &t) { return t.get()[0].second; });
+
+	return r;
+}
+
 inline int initFuture()
 {
 	return 3;
@@ -283,6 +363,18 @@ BENCHMARK(BoostWhenAll)
 BENCHMARK(BoostWhenAny)
 {
 	boostWhenAny<TREE_TYPE>(TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
+}
+
+BENCHMARK(AdvFirstN)
+{
+	folly::InlineExecutor ex;
+	advFirstN<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
+}
+
+BENCHMARK(AdvFirstNSucc)
+{
+	folly::InlineExecutor ex;
+	advFirstNSucc<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 int main(int argc, char *argv[])

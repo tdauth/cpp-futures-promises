@@ -5,53 +5,82 @@
 
 #include <folly/Executor.h>
 
+#include "state.h"
 #include "try.h"
 
 namespace adv
 {
 
-template <typename T, typename CoreType>
+template <typename T>
 class Future;
 
 /**
- * \brief A non-shared promise with write once semantics. It allows to get one
- * corresponding non-shared future.
+ * \brief A shared promise with multiple writesemantics. It allows to get one
+ * corresponding shared future.
  */
-template <typename T, typename CoreType>
-class Promise : public CoreType
+template <typename T>
+class Promise
 {
 	public:
-	using Parent = CoreType;
 	using Type = T;
-	using Self = Promise<T, CoreType>;
-	using FutureType = typename Parent::FutureType;
+	using Self = Promise<T>;
+	using FutureType = Future<T>;
+	using StateType = std::shared_ptr<State<T>>;
 
 	// Core methods:
-	using Parent::Parent;
+	Promise(StateType s) : _s(s->incrementPromiseCounts(s))
+	{
+	}
 
-	Promise(folly::Executor *executor) : Parent(executor)
+	Promise(Self &&other) : _s(std::move(other._s))
 	{
 	}
-	Promise(Self &&other) : Parent(std::move(other))
+
+	~Promise()
 	{
+		/*
+		 * TODO break promise if necessary
+		if (_s->getPromiseCountsAndDecrement() == 1)
+		{
+		 tryComplete(Try<T>(std::make_exception_ptr(BrokenPromise())));
+		}
+		 */
 	}
+
 	Self &operator=(Self &&other)
 	{
-		return Parent::operator=(std::move(other));
+		_s = std::move(other._s);
+
+		return *this;
 	}
 
-	Promise(const Self &other) = delete;
-	Self &operator=(const Self &other) = delete;
+	Promise(const Self &other)
+	{
+		this->_s = other._s;
+	}
+
+	Self &operator=(const Self &other)
+	{
+		this->_s = other._s;
+		return *this;
+	}
+
+	Future<T> future();
+
+	bool tryComplete(Try<T> &&v)
+	{
+		return _s->tryComplete(std::move(v));
+	}
 
 	// Derived methods:
 	bool trySuccess(T &&v)
 	{
-		return Parent::tryComplete(Try<T>(std::move(v)));
+		return _s->tryComplete(Try<T>(std::move(v)));
 	}
 
 	bool tryFailure(std::exception_ptr e)
 	{
-		return Parent::tryComplete(Try<T>(std::move(e)));
+		return _s->tryComplete(Try<T>(std::move(e)));
 	}
 
 	template <typename Exception>
@@ -60,44 +89,37 @@ class Promise : public CoreType
 		return tryFailure(std::make_exception_ptr(std::move(e)));
 	}
 
-	void tryCompleteWith(FutureType &f) &&
+	void tryCompleteWith(FutureType &f)
 	{
-		f.onComplete([p = std::move(*this)](Try<T> t) mutable {
-			p.tryComplete(std::move(t));
-		});
+		Promise<T> p(*this);
+		f.onComplete([p](const Try<T> &t) mutable { p.tryComplete(Try<T>(t)); });
 	}
 
-	/**
-	 * Keeps the passed future alive until it is completed.
-	 */
-	void tryCompleteWithSafe(FutureType &&f) &&
+	void trySuccessWith(FutureType &f)
 	{
-		auto ctx = std::make_shared<FutureType>(std::move(f));
-		ctx->onComplete([ p = std::move(*this), ctx ](Try<T> t) mutable {
-			p.tryComplete(std::move(t));
-		});
-	}
-
-	void trySuccessWith(FutureType &f) &&
-	{
-		f.onComplete([p = std::move(*this)](Try<T> t) mutable {
+		Promise<T> p(*this);
+		f.onComplete([p](const Try<T> &t) mutable {
 			if (t.hasValue())
 			{
-				p.tryComplete(std::move(t));
+				p.tryComplete(Try<T>(t));
 			}
 		});
 	}
 
-	void tryFailureWith(FutureType &f) &&
+	void tryFailureWith(FutureType &f)
 	{
-		f.onComplete([p = std::move(*this)](Try<T> t) mutable {
+		Promise<T> p(*this);
+		f.onComplete([p](const Try<T> &t) mutable {
 			if (t.hasException())
 			{
-				p.tryComplete(std::move(t));
+				p.tryComplete(Try<T>(t));
 			}
 		});
 	}
+
+	private:
+	StateType _s;
 };
-}
+} // namespace adv
 
 #endif

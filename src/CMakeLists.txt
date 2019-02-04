@@ -1,14 +1,16 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_subdirectory(boost)
-add_subdirectory(folly)
-#add_subdirectory(performance)
+add_subdirectory(lock)
+add_subdirectory(performance)
 
 install(FILES
-    advanced_futures_boost.h
-    advanced_futures_folly.h
+        advanced_futures_lock.h
     future.h
+    future_impl.h
     promise.h
-    shared_future.h
+    promise_impl.h
+    state.h
+    state_impl.h
+    try.h
     DESTINATION include/cpp-futures-promises
 )
