@@ -1,5 +1,6 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
+add_subdirectory(holiday_booking)
 add_subdirectory(lock)
 add_subdirectory(performance)
 
@@ -9,8 +10,8 @@ install(FILES
     future_impl.h
     promise.h
     promise_impl.h
-    state.h
-    state_impl.h
+        core.h
+        core_impl.h
     try.h
     DESTINATION include/cpp-futures-promises
 )

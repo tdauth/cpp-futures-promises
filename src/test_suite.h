@@ -13,7 +13,7 @@
 #include "future_impl.h"
 #include "promise.h"
 #include "promise_impl.h"
-#include "state_impl.h"
+#include "core_impl.h"
 
 namespace adv
 {

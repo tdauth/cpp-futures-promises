@@ -1,23 +1,23 @@
-#ifndef ADV_LOCK_STATE_H
-#define ADV_LOCK_STATE_H
+#ifndef ADV_LOCK_CORE_H
+#define ADV_LOCK_CORE_H
 
-#include "../state.h"
+#include "../core.h"
 
 namespace adv_lock
 {
 
 template <typename T>
-class State : public adv::State<T>
+class Core : public adv::Core<T>
 {
 	public:
-	using Parent = adv::State<T>;
-	using Self = State<T>;
+	using Parent = adv::Core<T>;
+	using Self = Core<T>;
 
-	State(folly::Executor *executor) : Parent(executor)
+	Core(folly::Executor *executor) : Parent(executor)
 	{
 	}
 
-	State(Self &&other) : Parent(std::move(other))
+	Core(Self &&other) : Parent(std::move(other))
 	{
 	}
 
@@ -27,7 +27,7 @@ class State : public adv::State<T>
 		return *this;
 	}
 
-	State(const Self &other) = delete;
+	Core(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
 	virtual bool tryComplete(adv::Try<T> &&v) override

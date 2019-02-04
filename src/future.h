@@ -7,7 +7,7 @@
 
 #include <folly/Executor.h>
 
-#include "state.h"
+#include "core.h"
 #include "try.h"
 
 namespace adv
@@ -39,11 +39,11 @@ class Future
 	public:
 	using Type = T;
 	using Self = Future<T>;
-	using StateType = std::shared_ptr<State<T>>;
+	using CoreType = std::shared_ptr<Core<T>>;
 
 	// Core methods:
 
-	Future(StateType s) : _s(s)
+	Future(CoreType s) : _s(s)
 	{
 	}
 
@@ -84,7 +84,7 @@ class Future
 		return _s->isReady();
 	}
 
-	void onComplete(typename State<T>::Callback &&h)
+	void onComplete(typename Core<T>::Callback &&h)
 	{
 		return _s->onComplete(std::move(h));
 	}
@@ -124,19 +124,19 @@ class Future
 		});
 	}
 
-	Self orElse(Self &&other);
+	Self orElse(Self other);
 
-	Self first(Self &other);
+	Self first(Self other);
 
-	Self firstSucc(Self &other);
+	Self firstSucc(Self other);
 
 	private:
-	StateType _s;
+	CoreType _s;
 
 	template <typename S>
 	Promise<S> createPromise()
 	{
-		return Promise<S>(State<T>::template createShared<S>(getExecutor()));
+		return Promise<S>(Core<T>::template createShared<S>(getExecutor()));
 	}
 };
 

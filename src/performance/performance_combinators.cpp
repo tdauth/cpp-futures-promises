@@ -10,8 +10,8 @@
 #include "future_impl.h"
 #include "promise.h"
 #include "promise_impl.h"
-#include "state.h"
-#include "state_impl.h"
+#include "core.h"
+#include "core_impl.h"
 
 using TREE_TYPE = int;
 constexpr int TREE_HEIGHT = 12;
@@ -257,7 +257,7 @@ adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			adv::Promise<T> p(adv::State<T>::template createShared<T>(ex));
+			adv::Promise<T> p(adv::Core<T>::template createShared<T>(ex));
 			p.trySuccess(f());
 			auto f = p.future();
 			v.push_back(std::move(f));
@@ -294,7 +294,7 @@ adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			adv::Promise<T> p(adv::State<T>::template createShared<T>(ex));
+			adv::Promise<T> p(adv::Core<T>::template createShared<T>(ex));
 			p.trySuccess(f());
 			auto f = p.future();
 			v.push_back(std::move(f));

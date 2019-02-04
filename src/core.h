@@ -1,5 +1,5 @@
-#ifndef ADV_STATE_H
-#define ADV_STATE_H
+#ifndef ADV_CORE_H
+#define ADV_CORE_H
 
 #include "try.h"
 
@@ -7,7 +7,7 @@ namespace adv
 {
 
 template <typename T>
-class State
+class Core
 {
 	public:
 	using Type = T;
@@ -15,13 +15,13 @@ class State
 	using Callback = std::function<void(const ValueType &)>;
 	using Callbacks = std::vector<Callback>;
 	using S = std::variant<ValueType, Callbacks>;
-	using Self = State<T>;
+	using Self = Core<T>;
 
-	State(folly::Executor *executor) : executor(executor)
+	Core(folly::Executor *executor) : executor(executor)
 	{
 	}
 
-	State(Self &&other) : executor(other.executor)
+	Core(Self &&other) : executor(other.executor)
 	{
 	}
 
@@ -31,15 +31,15 @@ class State
 		return *this;
 	}
 
-	State(const Self &other) = delete;
+	Core(const Self &other) = delete;
 
 	Self &operator=(const Self &other) = delete;
 
 	template <typename S>
-	static State<S> *create(folly::Executor *executor);
+	static Core<S> *create(folly::Executor *executor);
 
 	template <typename S>
-	static std::shared_ptr<State<S>> createShared(folly::Executor *executor);
+	static std::shared_ptr<Core<S>> createShared(folly::Executor *executor);
 
 	virtual bool tryComplete(adv::Try<T> &&v) = 0;
 

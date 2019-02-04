@@ -85,38 +85,37 @@ Future<T>::thenWith(Func &&f)
 }
 
 template <typename T>
-Future<T> Future<T>::orElse(Future<T> &&other)
+Future<T> Future<T>::orElse(Future<T> other)
 {
 	// This requires that the concrete future type can be converted into
 	// adv::Future<T, CoreType>.
-	return this->thenWith(
-	    [other = std::move(other)](const Try<T> &t) mutable -> Future<T> {
-		    if (t.hasException())
-		    {
-			    return other.template then([&t](const Try<T> &tt) mutable {
-				    if (tt.hasException())
-				    {
-					    return t.get();
-				    }
-				    else
-				    {
-					    return tt.get();
-				    }
-			    });
-		    }
-		    else
-		    {
-			    // Don't ever move first since it would register a second callback which
-			    // is not allowed.
-			    auto p = other.template createPromise<T>();
-			    p.tryComplete(Try<T>(t));
-			    return p.future();
-		    }
-	    });
+	return this->thenWith([other](const Try<T> &t) mutable -> Future<T> {
+		if (t.hasException())
+		{
+			return other.template then([&t](const Try<T> &tt) mutable {
+				if (tt.hasException())
+				{
+					return t.get();
+				}
+				else
+				{
+					return tt.get();
+				}
+			});
+		}
+		else
+		{
+			// Don't ever move first since it would register a second callback which
+			// is not allowed.
+			auto p = other.template createPromise<T>();
+			p.tryComplete(Try<T>(t));
+			return p.future();
+		}
+	});
 }
 
 template <typename T>
-Future<T> Future<T>::first(Future<T> &other)
+Future<T> Future<T>::first(Future<T> other)
 {
 	auto p = std::make_shared<Promise<T>>(createPromise<T>());
 
@@ -128,7 +127,7 @@ Future<T> Future<T>::first(Future<T> &other)
 }
 
 template <typename T>
-Future<T> Future<T>::firstSucc(Future<T> &other)
+Future<T> Future<T>::firstSucc(Future<T> other)
 {
 	auto p = createPromise<T>();
 	struct Context
@@ -169,7 +168,7 @@ Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
                                                     Func &&f)
 {
 	using T = typename std::result_of<Func()>::type;
-	auto s = State<T>::template createShared<T>(ex);
+	auto s = Core<T>::template createShared<T>(ex);
 	auto p = std::make_shared<adv::Promise<T>>(s);
 
 	ex->add([f = std::move(f), p]() mutable {
@@ -195,7 +194,7 @@ firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	struct FirstNContext
 	{
 		FirstNContext(folly::Executor *ex, std::size_t n)
-		    : p(Promise<V>(State<V>::template createShared<V>(ex)))
+		    : p(Promise<V>(Core<V>::template createShared<V>(ex)))
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -261,7 +260,7 @@ firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	struct FirstNSuccContext
 	{
 		FirstNSuccContext(folly::Executor *ex, std::size_t n)
-		    : p(Promise<V>(State<V>::template createShared<V>(ex)))
+		    : p(Promise<V>(Core<V>::template createShared<V>(ex)))
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the

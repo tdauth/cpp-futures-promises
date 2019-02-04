@@ -5,7 +5,7 @@
 
 #include <folly/Executor.h>
 
-#include "state.h"
+#include "core.h"
 #include "try.h"
 
 namespace adv
@@ -25,10 +25,10 @@ class Promise
 	using Type = T;
 	using Self = Promise<T>;
 	using FutureType = Future<T>;
-	using StateType = std::shared_ptr<State<T>>;
+	using CoreType = std::shared_ptr<Core<T>>;
 
 	// Core methods:
-	Promise(StateType s) : _s(s->incrementPromiseCounts(s))
+	Promise(CoreType s) : _s(s->incrementPromiseCounts(s))
 	{
 	}
 
@@ -118,7 +118,7 @@ class Promise
 	}
 
 	private:
-	StateType _s;
+	CoreType _s;
 };
 } // namespace adv
 

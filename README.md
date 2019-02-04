@@ -63,7 +63,7 @@ Folly dependencies on Fedora 29:
 
 These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
 
-## State of the Art
+## Core of the Art
 There is several C++ libraries for futures and promises:
 * C++17 thread support library (standard library)
 * Boost.Thread
@@ -88,7 +88,7 @@ With the help of only four core operations (`get`, `onComplete`, `isReady` and `
 Therefore, every library which is used to implement the advanced futures and promises has only to support these core operations.
 
 #### Abstraction of the Core Operations
-The class template `adv::State<T>` has to be implemented.
+The class template `adv::Core<T>` has to be implemented.
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:
