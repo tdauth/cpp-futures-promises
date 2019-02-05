@@ -13,15 +13,15 @@ class Core : public adv::Core<T>
 	using Parent = adv::Core<T>;
 	using Self = Core<T>;
 
-	Core(folly::Executor *executor) : Parent(executor)
+	explicit Core(folly::Executor *executor) : Parent(executor)
 	{
 	}
 
-	Core(Self &&other) : Parent(std::move(other))
+	Core(Self &&other) noexcept : Parent(std::move(other))
 	{
 	}
 
-	Self &operator=(Self &&other)
+	Self &operator=(Self &&other) noexcept
 	{
 		Parent::operator=(std::move(other));
 		return *this;
@@ -30,7 +30,7 @@ class Core : public adv::Core<T>
 	Core(const Self &other) = delete;
 	Self &operator=(const Self &other) = delete;
 
-	virtual bool tryComplete(adv::Try<T> &&v) override
+	bool tryComplete(adv::Try<T> &&v) override
 	{
 		std::lock_guard<std::mutex> l(m);
 
@@ -53,7 +53,7 @@ class Core : public adv::Core<T>
 		}
 	}
 
-	virtual void onComplete(typename Parent::Callback &&h) override
+	void onComplete(typename Parent::Callback &&h) override
 	{
 		std::lock_guard<std::mutex> l(m);
 
@@ -70,7 +70,7 @@ class Core : public adv::Core<T>
 		}
 	}
 
-	virtual T get() override
+	T get() override
 	{
 		std::mutex m;
 		std::condition_variable c;
@@ -91,7 +91,7 @@ class Core : public adv::Core<T>
 		return r.get();
 	}
 
-	virtual bool isReady() const override
+	bool isReady() const override
 	{
 		std::lock_guard<std::mutex> l(m);
 

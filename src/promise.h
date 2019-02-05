@@ -15,7 +15,7 @@ template <typename T>
 class Future;
 
 /**
- * \brief A shared promise with multiple writesemantics. It allows to get one
+ * \brief A shared promise with write once semantics. It allows to get one
  * corresponding shared future.
  */
 template <typename T>
@@ -28,11 +28,11 @@ class Promise
 	using CoreType = std::shared_ptr<Core<T>>;
 
 	// Core methods:
-	Promise(CoreType s) : _s(s->incrementPromiseCounts(s))
+	explicit Promise(CoreType s) : _s(s->incrementPromiseCounts(s))
 	{
 	}
 
-	Promise(Self &&other) : _s(std::move(other._s))
+	Promise(Self &&other) noexcept : _s(std::move(other._s))
 	{
 	}
 
@@ -47,7 +47,7 @@ class Promise
 		 */
 	}
 
-	Self &operator=(Self &&other)
+	Self &operator=(Self &&other) noexcept
 	{
 		_s = std::move(other._s);
 

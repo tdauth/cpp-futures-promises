@@ -11,7 +11,7 @@ CXX="/usr/bin/g++"
 
 # Configure and build everything:
 cd "$BUILD_DIR"
-cmake ../ -DCMAKE_MODULE_PATH="$CMAKE_MODULE_PATH" -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="Release"
+cmake ../ -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DCMAKE_BUILD_TYPE="Release"
 make -j1 # Use one job to improve error detection and exit early.
 
 # Show some build logs for TravisCI:

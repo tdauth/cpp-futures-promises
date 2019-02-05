@@ -43,15 +43,15 @@ class Future
 
 	// Core methods:
 
-	Future(CoreType s) : _s(s)
+	explicit Future(CoreType s) : _s(s)
 	{
 	}
 
-	Future(Self &&other) : _s(std::move(other._s))
+	Future(Self &&other) noexcept : _s(std::move(other._s))
 	{
 	}
 
-	Self &operator=(Self &&other)
+	Self &operator=(Self &&other) noexcept
 	{
 		this->_s = std::move(other._s);
 

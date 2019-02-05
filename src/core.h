@@ -17,15 +17,15 @@ class Core
 	using S = std::variant<ValueType, Callbacks>;
 	using Self = Core<T>;
 
-	Core(folly::Executor *executor) : executor(executor)
+	explicit Core(folly::Executor *executor) : executor(executor)
 	{
 	}
 
-	Core(Self &&other) : executor(other.executor)
+	Core(Self &&other) noexcept : executor(other.executor)
 	{
 	}
 
-	Self &operator=(Self &&other)
+	Self &operator=(Self &&other) noexcept
 	{
 		this->executor = other.executor;
 		return *this;

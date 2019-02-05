@@ -18,15 +18,13 @@ template <typename T>
 class Try
 {
 	public:
-	Try()
+	Try() = default;
+
+	explicit Try(T &&v) : _v(std::move(v))
 	{
 	}
 
-	Try(T &&v) : _v(std::move(v))
-	{
-	}
-
-	Try(std::exception_ptr &&e) : _v(std::move(e))
+	explicit Try(std::exception_ptr &&e) : _v(std::move(e))
 	{
 	}
 
@@ -34,7 +32,7 @@ class Try
 	{
 	}
 
-	Try(Try<T> &&other) : _v(std::move(other._v))
+	Try(Try<T> &&other) noexcept : _v(std::move(other._v))
 	{
 	}
 
