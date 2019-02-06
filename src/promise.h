@@ -15,7 +15,7 @@ template <typename T>
 class Future;
 
 /**
- * \brief A shared promise with write once semantics. It allows to get one
+ * A shared promise with write once semantics. It allows to get one
  * corresponding shared future.
  */
 template <typename T>
@@ -25,10 +25,14 @@ class Promise
 	using Type = T;
 	using Self = Promise<T>;
 	using FutureType = Future<T>;
-	using CoreType = std::shared_ptr<Core<T>>;
+	using CoreType = typename Core<T>::SharedPtr;
 
 	// Core methods:
-	explicit Promise(CoreType s) : _s(s->incrementPromiseCounts(s))
+	Promise(folly::Executor *ex) : _s(Core<T>::template createShared<T>(ex))
+	{
+	}
+
+	explicit Promise(CoreType s) : _s(s)
 	{
 	}
 
@@ -38,13 +42,7 @@ class Promise
 
 	~Promise()
 	{
-		/*
-		 * TODO break promise if necessary
-		if (_s->getPromiseCountsAndDecrement() == 1)
-		{
-		 tryComplete(Try<T>(std::make_exception_ptr(BrokenPromise())));
-		}
-		 */
+		_s->decrementPromiseCounter();
 	}
 
 	Self &operator=(Self &&other) noexcept
@@ -56,11 +54,15 @@ class Promise
 
 	Promise(const Self &other)
 	{
+		other._s->incrementPromiseCounter();
+		// TODO possible data race here?
 		this->_s = other._s;
 	}
 
 	Self &operator=(const Self &other)
 	{
+		other._s->incrementPromiseCounter();
+		// TODO possible data race here?
 		this->_s = other._s;
 		return *this;
 	}

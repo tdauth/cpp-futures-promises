@@ -2,3 +2,13 @@ add_executable(holiday_booking_advanced holiday_booking_advanced.cpp)
 add_dependencies(holiday_booking_advanced folly)
 target_link_libraries(holiday_booking_advanced ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(HolidayBookingAdvanced holiday_booking_advanced)
+
+add_executable(holiday_booking_boost holiday_booking_boost.cpp)
+add_dependencies(holiday_booking_boost folly)
+target_link_libraries(holiday_booking_boost ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(HolidayBookingBoost holiday_booking_boost)
+
+add_executable(holiday_booking_folly holiday_booking_folly.cpp)
+add_dependencies(holiday_booking_folly folly)
+target_link_libraries(holiday_booking_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(HolidayBookingFolly holiday_booking_folly)

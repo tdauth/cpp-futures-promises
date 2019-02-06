@@ -9,11 +9,11 @@
 
 #include <boost/thread/synchronized_value.hpp>
 
+#include "core_impl.h"
 #include "future.h"
 #include "future_impl.h"
 #include "promise.h"
 #include "promise_impl.h"
-#include "core_impl.h"
 
 namespace adv
 {
@@ -98,7 +98,7 @@ class TestSuite
 
 		// allow multiple retrievals
 		BOOST_REQUIRE(f.isReady());
-		BOOST_CHECK_EQUAL("10", f.get());
+		BOOST_CHECK_EQUAL(Try<std::string>("10"), f.get());
 	}
 
 	void testOnSuccess()
@@ -141,8 +141,8 @@ class TestSuite
 		auto f = p.future();
 
 		BOOST_REQUIRE(f.isReady());
-		BOOST_CHECK_EQUAL(10, f.get());
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 		BOOST_CHECK(f.isReady());
 	}
 
@@ -164,7 +164,7 @@ class TestSuite
 		p.trySuccess(10);
 		auto f0 = p.future();
 		BOOST_CHECK(f0.isReady());
-		BOOST_CHECK_EQUAL(10, f0.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f0.get());
 		auto f = f0.then([](const Try<int> &t) {
 			if (t.hasValue())
 			{
@@ -174,7 +174,7 @@ class TestSuite
 			return std::string("Failure!");
 		});
 
-		BOOST_CHECK_EQUAL("10", f.get());
+		BOOST_CHECK_EQUAL(Try<std::string>("10"), f.get());
 	}
 
 	void testThenWith()
@@ -187,7 +187,7 @@ class TestSuite
 		auto f1 = p1.future();
 		auto f = f1.thenWith([f0](const Try<int> &) { return f0; });
 
-		BOOST_CHECK_EQUAL("11", f.get());
+		BOOST_CHECK_EQUAL(Try<std::string>("11"), f.get());
 	}
 
 	void testGuard()
@@ -196,7 +196,7 @@ class TestSuite
 		p.trySuccess(10);
 		auto f = p.future().guard([](const int &v) { return v == 10; });
 
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testGuardFails()
@@ -205,7 +205,7 @@ class TestSuite
 		p.trySuccess(10);
 		auto f = p.future().guard([](const int &v) { return v != 10; });
 
-		BOOST_CHECK_THROW(f.get(), PredicateNotFulfilled);
+		BOOST_CHECK_THROW(f.get().get(), PredicateNotFulfilled);
 	}
 
 	void testOrElseFirstSuccessful()
@@ -218,7 +218,7 @@ class TestSuite
 		auto f1 = p1.future();
 		auto f2 = f0.orElse(std::move(f1));
 
-		BOOST_CHECK_EQUAL(10, f2.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f2.get());
 	}
 
 	void testOrElseSecondSuccessful()
@@ -231,7 +231,7 @@ class TestSuite
 		auto f1 = p1.future();
 		auto f2 = f0.orElse(std::move(f1));
 
-		BOOST_CHECK_EQUAL(11, f2.get());
+		BOOST_CHECK_EQUAL(Try<int>(11), f2.get());
 	}
 
 	void testOrElseBothFail()
@@ -258,7 +258,7 @@ class TestSuite
 		auto f2 = f0.first(f1);
 		auto r = f2.get();
 
-		BOOST_CHECK_EQUAL(10, r);
+		BOOST_CHECK_EQUAL(Try<int>(10), r);
 	}
 
 	void testFirstWithException()
@@ -293,7 +293,7 @@ class TestSuite
 		auto f2 = f0.firstSucc(f1);
 		auto r = f2.get();
 
-		BOOST_CHECK_EQUAL(10, r);
+		BOOST_CHECK_EQUAL(Try<int>(10), r);
 	}
 
 	void testFirstSuccWithException()
@@ -307,7 +307,7 @@ class TestSuite
 		auto f2 = f0.firstSucc(f1);
 		auto r = f2.get();
 
-		BOOST_CHECK_EQUAL(11, r);
+		BOOST_CHECK_EQUAL(Try<int>(11), r);
 	}
 
 	void testFirstSuccBothFail()
@@ -334,7 +334,7 @@ class TestSuite
 	void testAsync()
 	{
 		auto f = async<>(ex, []() { return 10; });
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testBrokenPromise()
@@ -358,7 +358,7 @@ class TestSuite
 
 		BOOST_REQUIRE(result);
 		BOOST_REQUIRE(f.isReady());
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testTrySuccess()
@@ -372,7 +372,7 @@ class TestSuite
 
 		BOOST_REQUIRE(result);
 		BOOST_REQUIRE(f.isReady());
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testTryFailure()
@@ -407,7 +407,7 @@ class TestSuite
 		auto completingFuture = completingPromise.future();
 		std::move(p).tryCompleteWith(completingFuture);
 
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testTryCompleteWithFailure()
@@ -433,7 +433,7 @@ class TestSuite
 
 		std::move(p).trySuccessWith(completingFuture);
 
-		BOOST_CHECK_EQUAL(10, f.get());
+		BOOST_CHECK_EQUAL(Try<int>(10), f.get());
 	}
 
 	void testTryFailureWith()
@@ -466,7 +466,7 @@ class TestSuite
 		futures.push_back(successful(ex, 13));
 
 		auto f = firstN(ex, std::move(futures), 3);
-		auto v = f.get();
+		auto v = f.get().get();
 
 		BOOST_CHECK_EQUAL(3u, v.size());
 		auto v0 = std::move(v[0]);
@@ -489,7 +489,7 @@ class TestSuite
 		futures.push_back(successful(ex, 13));
 
 		auto f = firstNSucc(ex, std::move(futures), 3);
-		auto v = f.get();
+		auto v = f.get().get();
 
 		BOOST_CHECK_EQUAL(3u, v.size());
 		auto v0 = std::move(v[0]);
@@ -544,12 +544,12 @@ class TestSuite
 
 	Promise<int> createPromiseInt()
 	{
-		return Promise<int>(std::make_shared<StateType>(ex));
+		return Promise<int>(ex);
 	}
 
 	Promise<std::string> createPromiseString()
 	{
-		return Promise<std::string>(std::make_shared<StateTypeString>(ex));
+		return Promise<std::string>(ex);
 	}
 
 	Future<int> successful(folly::Executor *ex, int &&v)

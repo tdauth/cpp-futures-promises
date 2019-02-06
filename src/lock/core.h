@@ -12,10 +12,12 @@ class Core : public adv::Core<T>
 	public:
 	using Parent = adv::Core<T>;
 	using Self = Core<T>;
+	using StateSharedPtr = std::shared_ptr<typename Parent::State>;
 
-	explicit Core(folly::Executor *executor) : Parent(executor)
-	{
-	}
+	Core() = delete;
+
+	// TODO make protected and only allow access by the shared pointer!
+	virtual ~Core() = default;
 
 	Core(Self &&other) noexcept : Parent(std::move(other))
 	{
@@ -34,19 +36,18 @@ class Core : public adv::Core<T>
 	{
 		std::lock_guard<std::mutex> l(m);
 
-		if (_s.index() == 0)
+		if (_s->index() == 0)
 		{
 			return false;
 		}
 		else
 		{
-			auto hs = std::get<typename Parent::Callbacks>(_s);
-			_s = std::move(v);
+			auto hs = std::get<typename Parent::Callbacks>(*_s);
+			*_s = std::move(v);
 
 			for (std::size_t i = 0; i < hs.size(); ++i)
 			{
-				auto h = std::move(hs.at(i));
-				Parent::getExecutor()->add([h = std::move(h), v]() { h(v); });
+				submitCallback(std::move(hs.at(i)));
 			}
 
 			return true;
@@ -57,50 +58,74 @@ class Core : public adv::Core<T>
 	{
 		std::lock_guard<std::mutex> l(m);
 
-		if (_s.index() == 1)
+		if (_s->index() == 1)
 		{
-			typename Parent::Callbacks &hs = std::get<typename Parent::Callbacks>(_s);
-
+			typename Parent::Callbacks &hs = std::get<typename Parent::Callbacks>(*_s);
 			hs.push_back(h);
 		}
 		else
 		{
-			const adv::Try<T> &v = std::get<adv::Try<T>>(_s);
-			Parent::getExecutor()->add([h = std::move(h), &v]() mutable { h(v); });
+			submitCallback(std::move(h));
 		}
 	}
 
-	T get() override
+	const adv::Try<T> &get() override
 	{
 		std::mutex m;
 		std::condition_variable c;
-		adv::Try<T> r;
-		onComplete([&r, &c, &m](const adv::Try<T> &t) {
+		onComplete([&c, &m](const adv::Try<T> &t) {
 			std::lock_guard<std::mutex> guard(m);
-			r = t;
 			c.notify_one();
 		});
 
-		std::unique_lock<std::mutex> l(m);
-
-		if (!r.hasValue() && !r.hasException())
+		if (!isReady())
 		{
+			std::unique_lock<std::mutex> l(m);
 			c.wait(l);
 		}
 
-		return r.get();
+		std::lock_guard<std::mutex> l(m);
+		return std::get<adv::Try<T>>(*_s);
 	}
 
 	bool isReady() const override
 	{
 		std::lock_guard<std::mutex> l(m);
 
-		return _s.index() == 0;
+		return _s->index() == 0;
+	}
+
+	protected:
+	explicit Core(folly::Executor *executor) : Parent(executor)
+	{
+	}
+
+	/**
+	 * Allow access to create a new Core instance.
+	 */
+	template <typename U>
+	friend class adv::Core;
+
+	/**
+	 * We have to pass a copy of the shared pointer to ensure the lifetime when
+	 * reading the result.
+	 */
+	void submitCallback(typename Parent::Callback &&h)
+	{
+		auto ptr = _s;
+		Parent::getExecutor()->add([h = std::move(h), ptr]() mutable {
+			auto r = std::get<adv::Try<T>>(*ptr);
+			h(r);
+		});
 	}
 
 	private:
 	mutable std::mutex m;
-	typename Parent::S _s{typename Parent::Callbacks()};
+	/*
+	 * We have to use a shared pointer here to keep the result alive in the
+	 * callbacks.
+	 */
+	StateSharedPtr _s{new typename Parent::State(typename Parent::Callbacks())};
 };
 
 } // namespace adv_lock

@@ -13,15 +13,6 @@
 namespace adv
 {
 
-/**
- * \brief This exception is thrown when the result of a future is retrieved but
- * the corresponding promise has already been deleted before completing the
- * future meaning the future would never be completed by the promise.
- */
-class BrokenPromise : public std::exception
-{
-};
-
 class PredicateNotFulfilled : public std::exception
 {
 };
@@ -30,8 +21,8 @@ template <typename T>
 class Promise;
 
 /**
- * \brief A shared future which can be copied around and has multiple read
- * semantics. It can get multiple callbacks.
+ * A shared future which can be copied around and has multiple read semantics.
+ * It can get multiple callbacks.
  */
 template <typename T>
 class Future
@@ -39,15 +30,20 @@ class Future
 	public:
 	using Type = T;
 	using Self = Future<T>;
-	using CoreType = std::shared_ptr<Core<T>>;
+	using CoreType = typename Core<T>::SharedPtr;
 
 	// Core methods:
+	Future() = delete;
 
 	explicit Future(CoreType s) : _s(s)
 	{
 	}
 
 	Future(Self &&other) noexcept : _s(std::move(other._s))
+	{
+	}
+
+	~Future()
 	{
 	}
 
@@ -65,7 +61,6 @@ class Future
 
 	Self &operator=(const Self &other)
 	{
-		this->_s = other._s;
 		return *this;
 	}
 
@@ -74,7 +69,7 @@ class Future
 		return _s->getExecutor();
 	}
 
-	T get()
+	const Try<T> &get()
 	{
 		return _s->get();
 	}
@@ -86,12 +81,13 @@ class Future
 
 	void onComplete(typename Core<T>::Callback &&h)
 	{
-		return _s->onComplete(std::move(h));
+		_s->onComplete(std::move(h));
 	}
 
 	// Derived methods:
 	template <typename Func>
 	void onSuccess(Func &&f);
+
 	template <typename Func>
 	void onFailure(Func &&f);
 
@@ -101,14 +97,6 @@ class Future
 	template <typename Func>
 	typename std::result_of<Func(const Try<T> &)>::type thenWith(Func &&f);
 
-	/**
-	 *
-	 * @tparam Func
-	 * @param f
-	 * @return
-	 * @throw PredicateNotFulfilled When the function returns false, this exception
-	 * will be thrown.
-	 */
 	template <typename Func>
 	Self guard(Func &&f)
 	{
@@ -136,7 +124,7 @@ class Future
 	template <typename S>
 	Promise<S> createPromise()
 	{
-		return Promise<S>(Core<T>::template createShared<S>(getExecutor()));
+		return Promise<S>(getExecutor());
 	}
 };
 
@@ -144,12 +132,14 @@ class Future
 template <typename Func>
 Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
                                                     Func &&f);
+
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n);
+firstN(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n);
+
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(folly::Executor *ex, std::vector<T> &&c, std::size_t n);
+firstNSucc(folly::Executor *ex, std::vector<T> &&futures, std::size_t n);
 } // namespace adv
 
 #endif

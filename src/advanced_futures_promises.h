@@ -1,8 +1,8 @@
 #ifndef ADV_ADVANCEDFUTURESPROMISES_H
 #define ADV_ADVANCEDFUTURESPROMISES_H
 
-#include "advanced_futures_lock.h"
 #include "core.h"
+#include "lock/core.h"
 #include "core_impl.h"
 #include "future.h"
 #include "future_impl.h"

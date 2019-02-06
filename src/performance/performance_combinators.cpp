@@ -5,13 +5,7 @@
 #include <folly/futures/Future.h>
 #include <folly/init/Init.h>
 
-#include "advanced_futures_lock.h"
-#include "future.h"
-#include "future_impl.h"
-#include "promise.h"
-#include "promise_impl.h"
-#include "core.h"
-#include "core_impl.h"
+#include "advanced_futures_promises.h"
 
 using TREE_TYPE = int;
 constexpr int TREE_HEIGHT = 12;
@@ -257,7 +251,7 @@ adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			adv::Promise<T> p(adv::Core<T>::template createShared<T>(ex));
+			adv::Promise<T> p(ex);
 			p.trySuccess(f());
 			auto f = p.future();
 			v.push_back(std::move(f));
@@ -294,7 +288,7 @@ adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
 	{
 		for (std::size_t i = 0; i < childNodes; ++i)
 		{
-			adv::Promise<T> p(adv::Core<T>::template createShared<T>(ex));
+			adv::Promise<T> p(ex);
 			p.trySuccess(f());
 			auto f = p.future();
 			v.push_back(std::move(f));

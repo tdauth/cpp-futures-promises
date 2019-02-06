@@ -96,6 +96,45 @@ class Try
 	private:
 	std::optional<std::variant<T, std::exception_ptr>> _v;
 };
+
+template <typename T>
+bool operator==(const Try<T> &t0, const Try<T> &t1)
+{
+	if (t0.hasValue() && t1.hasValue())
+	{
+		return t0.get() == t1.get();
+	}
+	// TODO compare exceptions
+
+	return false;
+}
+
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const Try<T> t)
+{
+	if (t.hasValue())
+	{
+		out << "Try=" << t.get();
+	}
+	else
+	{
+		try
+		{
+			t.get();
+		}
+		catch (const std::exception &e)
+		{
+			out << "Try=" << e.what();
+		}
+		catch (...)
+		{
+			out << "Try=UnknownException";
+		}
+	}
+
+	return out;
+}
+
 } // namespace adv
 
 #endif

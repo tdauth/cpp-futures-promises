@@ -1,22 +1,4 @@
-#include <iostream>
-
-#include "../advanced_futures_promises.h"
-
-enum Hotel
-{
-	Switzerland,
-	USA
-};
-
-void bookHotel(adv::Try<Hotel> hotel)
-{
-	std::cerr << "Booking hotel." << std::endl;
-}
-
-void informFriends(adv::Try<Hotel> hotel)
-{
-	std::cerr << "Informing friends." << std::endl;
-}
+#include "holiday_booking.h"
 
 int main()
 {

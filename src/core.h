@@ -6,6 +6,15 @@
 namespace adv
 {
 
+/**
+ * This exception is thrown when the result of a future is retrieved but the
+ * corresponding promise has already been deleted before completing the future
+ * meaning the future would never be completed by the promise.
+ */
+class BrokenPromise : public std::exception
+{
+};
+
 template <typename T>
 class Core
 {
@@ -14,38 +23,38 @@ class Core
 	using ValueType = Try<T>;
 	using Callback = std::function<void(const ValueType &)>;
 	using Callbacks = std::vector<Callback>;
-	using S = std::variant<ValueType, Callbacks>;
+	using State = std::variant<ValueType, Callbacks>;
 	using Self = Core<T>;
+	using SharedPtr = std::shared_ptr<Self>;
 
-	explicit Core(folly::Executor *executor) : executor(executor)
-	{
-	}
+	Core() = delete;
+	Core(const Self &) = delete;
+	Self &operator=(const Self &) = delete;
 
-	Core(Self &&other) noexcept : executor(other.executor)
+	// TODO Allow access only by std::shared_ptr!
+	virtual ~Core() = default;
+
+	Core(Self &&other) noexcept
+	    : executor(other.executor), promiseCounter(std::move(other.promiseCounter))
 	{
 	}
 
 	Self &operator=(Self &&other) noexcept
 	{
 		this->executor = other.executor;
+		this->promiseCounter = std::move(promiseCounter);
+
 		return *this;
 	}
 
-	Core(const Self &other) = delete;
-
-	Self &operator=(const Self &other) = delete;
-
 	template <typename S>
-	static Core<S> *create(folly::Executor *executor);
-
-	template <typename S>
-	static std::shared_ptr<Core<S>> createShared(folly::Executor *executor);
+	static typename Core<S>::SharedPtr createShared(folly::Executor *executor);
 
 	virtual bool tryComplete(adv::Try<T> &&v) = 0;
 
 	virtual void onComplete(Callback &&h) = 0;
 
-	virtual T get() = 0;
+	virtual const Try<T> &get() = 0;
 
 	virtual bool isReady() const = 0;
 
@@ -54,25 +63,30 @@ class Core
 		return executor;
 	}
 
-	std::shared_ptr<Self> incrementPromiseCounts(std::shared_ptr<Self> s)
+	void incrementPromiseCounter()
 	{
-		promiseCounter++;
-
-		return s;
+		++promiseCounter;
 	}
 
-	int getPromiseCountsAndDecrement()
+	void decrementPromiseCounter()
 	{
-		auto r = promiseCounter.load();
+		auto r = --promiseCounter;
 
-		--promiseCounter;
+		if (r == 0)
+		{
+			tryComplete(Try<T>(std::make_exception_ptr(BrokenPromise())));
+		}
+	}
 
-		return r;
+	protected:
+	explicit Core(folly::Executor *executor) : executor(executor)
+	{
 	}
 
 	private:
 	folly::Executor *executor;
-	std::atomic<int> promiseCounter{0};
+	// We do always start with one promise.
+	std::atomic<int> promiseCounter{1};
 };
 
 } // namespace adv

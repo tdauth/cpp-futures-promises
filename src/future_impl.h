@@ -52,16 +52,20 @@ Future<T>::then(Func &&f)
 	this->onComplete([f = std::move(f), p](const Try<T> &t) mutable {
 		try
 		{
-			S result = S(f(t));
-			p.trySuccess(std::move(result));
+			p.trySuccess(S(f(t)));
 		}
 		catch (...)
 		{
 			p.tryFailure(std::current_exception());
 		}
-	});
+	}); /* TODO after onComplete p is destructed twice, the second time its shared
+	     * pointer is already null which leads to a memory access violation at
+	     * address: 0x00000010: no mapping at fault address Why is it deleted
+	     * twice?!
+	     */
 
-	return p.future();
+	auto r = p.future();
+	return r;
 }
 
 template <typename T>
@@ -87,8 +91,6 @@ Future<T>::thenWith(Func &&f)
 template <typename T>
 Future<T> Future<T>::orElse(Future<T> other)
 {
-	// This requires that the concrete future type can be converted into
-	// adv::Future<T, CoreType>.
 	return this->thenWith([other](const Try<T> &t) mutable -> Future<T> {
 		if (t.hasException())
 		{
@@ -105,8 +107,6 @@ Future<T> Future<T>::orElse(Future<T> other)
 		}
 		else
 		{
-			// Don't ever move first since it would register a second callback which
-			// is not allowed.
 			auto p = other.template createPromise<T>();
 			p.tryComplete(Try<T>(t));
 			return p.future();
@@ -117,13 +117,11 @@ Future<T> Future<T>::orElse(Future<T> other)
 template <typename T>
 Future<T> Future<T>::first(Future<T> other)
 {
-	auto p = std::make_shared<Promise<T>>(createPromise<T>());
+	auto p = createPromise<T>();
+	this->onComplete([p](const Try<T> &t) mutable { p.tryComplete(Try<T>(t)); });
+	other.onComplete([p](const Try<T> &t) mutable { p.tryComplete(Try<T>(t)); });
 
-	this->onComplete([p](const Try<T> &t) { p->tryComplete(Try<T>(t)); });
-
-	other.onComplete([p](const Try<T> &t) { p->tryComplete(Try<T>(t)); });
-
-	return p->future();
+	return p.future();
 }
 
 template <typename T>
@@ -132,7 +130,7 @@ Future<T> Future<T>::firstSucc(Future<T> other)
 	auto p = createPromise<T>();
 	struct Context
 	{
-		Context(Promise<T> &&p) : p(p)
+		explicit Context(Promise<T> &&p) : p(p)
 		{
 		}
 
@@ -168,33 +166,31 @@ Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
                                                     Func &&f)
 {
 	using T = typename std::result_of<Func()>::type;
-	auto s = Core<T>::template createShared<T>(ex);
-	auto p = std::make_shared<adv::Promise<T>>(s);
+	adv::Promise<T> p(ex);
 
 	ex->add([f = std::move(f), p]() mutable {
 		try
 		{
-			p->trySuccess(f());
+			p.trySuccess(f());
 		}
 		catch (...)
 		{
-			p->tryFailure(std::current_exception());
+			p.tryFailure(std::current_exception());
 		}
 	});
 
-	return p->future();
+	return p.future();
 }
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
+firstN(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, Try<T>>>;
 
 	struct FirstNContext
 	{
-		FirstNContext(folly::Executor *ex, std::size_t n)
-		    : p(Promise<V>(Core<V>::template createShared<V>(ex)))
+		FirstNContext(folly::Executor *ex, std::size_t n) : p(ex)
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -210,7 +206,7 @@ firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	};
 
 	auto ctx = std::make_shared<FirstNContext>(ex, n);
-	const std::size_t total = c.size();
+	const std::size_t total = futures.size();
 
 	if (total < n)
 	{
@@ -220,7 +216,7 @@ firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	{
 		std::size_t i = 0;
 
-		for (auto it = c.begin(); it != c.end(); ++it, ++i)
+		for (auto it = futures.begin(); it != futures.end(); ++it, ++i)
 		{
 			it->onComplete([ctx, n, total, i](const Try<T> &t) {
 				auto c = ++ctx->completed;
@@ -253,14 +249,13 @@ firstN(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
+firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, T>>;
 
 	struct FirstNSuccContext
 	{
-		FirstNSuccContext(folly::Executor *ex, std::size_t n)
-		    : p(Promise<V>(Core<V>::template createShared<V>(ex)))
+		FirstNSuccContext(folly::Executor *ex, std::size_t n) : p(ex)
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -277,7 +272,7 @@ firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	};
 
 	auto ctx = std::make_shared<FirstNSuccContext>(ex, n);
-	const std::size_t total = c.size();
+	const std::size_t total = futures.size();
 
 	if (total < n)
 	{
@@ -287,7 +282,7 @@ firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&c, std::size_t n)
 	{
 		std::size_t i = 0;
 
-		for (auto it = c.begin(); it != c.end(); ++it, ++i)
+		for (auto it = futures.begin(); it != futures.end(); ++it, ++i)
 		{
 			it->onComplete([ctx, n, total, i](const Try<T> &t) {
 				// ignore exceptions until as many futures failed that n futures cannot be
