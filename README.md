@@ -63,7 +63,7 @@ Folly dependencies on Fedora 29:
 
 These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
 
-## Core of the Art
+## State of the Art
 There is several C++ libraries for futures and promises:
 * C++17 thread support library (standard library)
 * Boost.Thread
