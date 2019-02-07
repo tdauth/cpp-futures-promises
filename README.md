@@ -3,7 +3,7 @@ This project provides an advanced futures and promises library based on our pape
 The library offers functions which are missing from other C++ futures and promises libraries.
 It is implemented with the help of only a few core operations which allows a much easier adaption to different implementations.
 Advanced futures and promises are shared by default.
-Currently, the library has one reference implementation which uses a lock-based approach.
+Currently, the library has one reference implementation which uses [MVars](http://hackage.haskell.org/package/base-4.12.0.0/docs/Control-Concurrent-MVar.html).
 
 The derived features were inspired by [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and Folly.
 

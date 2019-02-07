@@ -7,8 +7,6 @@
 #include <future>
 #include <string>
 
-#include <boost/thread/synchronized_value.hpp>
-
 #include "core_impl.h"
 #include "future.h"
 #include "future_impl.h"
@@ -18,7 +16,6 @@
 namespace adv
 {
 
-template <typename StateType, typename StateTypeString>
 class TestSuite
 {
 	public:

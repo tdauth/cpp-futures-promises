@@ -2,7 +2,8 @@
 #define ADV_ADVANCEDFUTURESPROMISES_H
 
 #include "core.h"
-#include "lock/core.h"
+#include "mvar/core.h"
+#include "mvar/mvar.h"
 #include "core_impl.h"
 #include "future.h"
 #include "future_impl.h"
