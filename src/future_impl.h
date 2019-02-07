@@ -58,11 +58,7 @@ Future<T>::then(Func &&f)
 		{
 			p.tryFailure(std::current_exception());
 		}
-	}); /* TODO after onComplete p is destructed twice, the second time its shared
-	     * pointer is already null which leads to a memory access violation at
-	     * address: 0x00000010: no mapping at fault address Why is it deleted
-	     * twice?!
-	     */
+	});
 
 	auto r = p.future();
 	return r;
@@ -140,23 +136,6 @@ Future<T> Future<T>::firstSucc(Future<T> other)
 	auto ctx = std::make_shared<Context>(std::move(p));
 	this->onSuccess([ctx](const T &v) { ctx->p.trySuccess(T(v)); });
 	other.onSuccess([ctx](const T &v) { ctx->p.trySuccess(T(v)); });
-
-	this->onFailure([ctx](const std::exception_ptr &e) {
-		auto c = ++ctx->failCounter;
-
-		if (c == 2)
-		{
-			ctx->p.tryFailure(e);
-		}
-	});
-	other.onFailure([ctx](const std::exception_ptr &e) {
-		auto c = ++ctx->failCounter;
-
-		if (c == 2)
-		{
-			ctx->p.tryFailure(e);
-		}
-	});
 
 	return ctx->p.future();
 }

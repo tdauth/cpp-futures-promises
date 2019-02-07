@@ -28,15 +28,9 @@ class Promise
 	using CoreType = typename Core<T>::SharedPtr;
 
 	// Core methods:
+	Promise() = delete;
+
 	Promise(folly::Executor *ex) : _s(Core<T>::template createShared<T>(ex))
-	{
-	}
-
-	explicit Promise(CoreType s) : _s(s)
-	{
-	}
-
-	Promise(Self &&other) noexcept : _s(std::move(other._s))
 	{
 	}
 
@@ -45,25 +39,18 @@ class Promise
 		_s->decrementPromiseCounter();
 	}
 
-	Self &operator=(Self &&other) noexcept
-	{
-		_s = std::move(other._s);
-
-		return *this;
-	}
-
 	Promise(const Self &other)
 	{
-		other._s->incrementPromiseCounter();
+		_s = other._s;
 		// TODO possible data race here?
-		this->_s = other._s;
+		_s->incrementPromiseCounter();
 	}
 
 	Self &operator=(const Self &other)
 	{
-		other._s->incrementPromiseCounter();
+		_s = other._s;
 		// TODO possible data race here?
-		this->_s = other._s;
+		other._s->incrementPromiseCounter();
 		return *this;
 	}
 

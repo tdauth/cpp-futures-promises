@@ -35,23 +35,8 @@ class Future
 	// Core methods:
 	Future() = delete;
 
-	explicit Future(CoreType s) : _s(s)
-	{
-	}
-
-	Future(Self &&other) noexcept : _s(std::move(other._s))
-	{
-	}
-
 	~Future()
 	{
-	}
-
-	Self &operator=(Self &&other) noexcept
-	{
-		this->_s = std::move(other._s);
-
-		return *this;
 	}
 
 	Future(const Self &other)
@@ -116,10 +101,22 @@ class Future
 
 	Self first(Self other);
 
+	/**
+	 * @return A new future which is completed with the first successful future of
+	 * this and other. If both futures fail, it will be completed with \ref
+	 * BrokenPromise.
+	 */
 	Self firstSucc(Self other);
 
 	private:
 	CoreType _s;
+
+	template <typename S>
+	friend class Promise;
+
+	explicit Future(CoreType s) : _s(s)
+	{
+	}
 
 	template <typename S>
 	Promise<S> createPromise()

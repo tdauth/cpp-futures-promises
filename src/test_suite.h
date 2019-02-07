@@ -151,8 +151,10 @@ class TestSuite
 		auto p = createPromiseInt();
 		p.trySuccess(10);
 		auto f0 = p.future();
+
 		BOOST_CHECK(f0.isReady());
 		BOOST_CHECK_EQUAL(Try<int>(10), f0.get());
+
 		auto f = f0.then([](const Try<int> &t) {
 			if (t.hasValue())
 			{
@@ -231,8 +233,10 @@ class TestSuite
 		p1.tryFailure(std::runtime_error("Failure 1!"));
 		auto f1 = p1.future();
 		auto f2 = f0.orElse(std::move(f1));
+		auto r = f2.get();
 
-		BOOST_CHECK_THROW(f2.get(), std::runtime_error);
+		BOOST_REQUIRE(r.hasException());
+		BOOST_CHECK_THROW(r.get(), std::runtime_error);
 	}
 
 	void testFirst()
@@ -258,10 +262,12 @@ class TestSuite
 		p1.tryFailure(std::runtime_error("Failure 1!"));
 		auto f1 = p1.future();
 		auto f2 = f0.first(f1);
+		auto r = f2.get();
+		BOOST_REQUIRE(r.hasException());
 
 		try
 		{
-			f2.get();
+			r.get();
 			BOOST_FAIL("Expecting exception.");
 		}
 		catch (const std::runtime_error &e)
@@ -307,16 +313,10 @@ class TestSuite
 		p1.tryFailure(std::runtime_error("Failure 1!"));
 		auto f1 = p1.future();
 		auto f2 = f0.firstSucc(f1);
+		auto r = f2.get();
 
-		try
-		{
-			f2.get();
-			BOOST_FAIL("Expecting exception.");
-		}
-		catch (const std::exception &e)
-		{
-			BOOST_CHECK_EQUAL("Failure 1!", e.what());
-		}
+		BOOST_REQUIRE(r.hasException());
+		BOOST_CHECK_THROW(r.get(), BrokenPromise);
 	}
 
 	void testAsync()
@@ -331,8 +331,10 @@ class TestSuite
 		Future<int> f = p->future();
 		delete p;
 		p = nullptr;
+		auto r = f.get();
 
-		BOOST_CHECK_THROW(f.get(), BrokenPromise);
+		BOOST_REQUIRE(r.hasException());
+		BOOST_CHECK_THROW(r.get(), BrokenPromise);
 	}
 
 	void testTryComplete()
@@ -374,10 +376,12 @@ class TestSuite
 
 		BOOST_CHECK(result);
 		BOOST_REQUIRE(f.isReady());
+		auto r = f.get();
+		BOOST_REQUIRE(r.hasException());
 
 		try
 		{
-			f.get();
+			r.get();
 			BOOST_FAIL("Expected exception");
 		}
 		catch (const std::exception &e)
@@ -408,7 +412,9 @@ class TestSuite
 
 		std::move(p).tryCompleteWith(completingFuture);
 
-		BOOST_CHECK_THROW(f.get(), std::runtime_error);
+		auto r = f.get();
+		BOOST_REQUIRE(r.hasException());
+		BOOST_CHECK_THROW(r.get(), std::runtime_error);
 	}
 
 	void testTrySuccessWith()
@@ -433,10 +439,13 @@ class TestSuite
 		auto completingFuture = completingPromise.future();
 
 		std::move(p).tryFailureWith(completingFuture);
+		auto r = f.get();
+
+		BOOST_REQUIRE(r.hasException());
 
 		try
 		{
-			f.get();
+			r.get();
 			BOOST_FAIL("Expected exception");
 		}
 		catch (const std::exception &e)
@@ -457,13 +466,14 @@ class TestSuite
 		auto v = f.get().get();
 
 		BOOST_CHECK_EQUAL(3u, v.size());
-		auto v0 = std::move(v[0]);
+		auto v0 = v[0];
 		BOOST_CHECK_EQUAL(0u, v0.first);
 		BOOST_CHECK_EQUAL(10, v0.second.get());
-		auto v1 = std::move(v[1]);
+		auto v1 = v[1];
 		BOOST_CHECK_EQUAL(1u, v1.first);
+		BOOST_REQUIRE(v1.second.hasException());
 		BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
-		auto v2 = std::move(v[2]);
+		auto v2 = v[2];
 		BOOST_CHECK_EQUAL(2u, v2.first);
 		BOOST_CHECK_EQUAL(12, v2.second.get());
 	}
@@ -489,6 +499,21 @@ class TestSuite
 		auto v2 = std::move(v[2]);
 		BOOST_CHECK_EQUAL(3u, v2.first);
 		BOOST_CHECK_EQUAL(13, v2.second);
+	}
+
+	void testFirstNSuccFails()
+	{
+		std::vector<Future<int>> futures;
+		futures.push_back(successful(ex, 10));
+		futures.push_back(failed(ex, std::runtime_error("Failure!")));
+		futures.push_back(failed(ex, std::runtime_error("Failure!")));
+		futures.push_back(successful(ex, 13));
+
+		auto f = firstNSucc(ex, std::move(futures), 3);
+		auto v = f.get();
+
+		BOOST_REQUIRE(v.hasException());
+		BOOST_CHECK_THROW(v.get(), std::runtime_error);
 	}
 
 	void testAll()
@@ -525,6 +550,7 @@ class TestSuite
 		testTryFailureWith();
 		testFirstN();
 		testFirstNSucc();
+		testFirstNSuccFails();
 	}
 
 	private:

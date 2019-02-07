@@ -42,6 +42,7 @@ class Try
 		return *this;
 	}
 
+	// TODO Only allow this when the Try gets invalid
 	T get()
 	{
 		if (!_v.has_value())
