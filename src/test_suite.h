@@ -4,7 +4,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <atomic>
-#include <future>
 #include <string>
 
 #include "core_impl.h"
@@ -63,17 +62,9 @@ class TestSuite
 		BOOST_REQUIRE(!f.isReady());
 		BOOST_REQUIRE(p.trySuccess(10));
 		BOOST_REQUIRE(f.isReady());
-		/*
-		 * We have to use a synchronized value here since Boost.Thread's
-		 * implementation does not execute the callback in the specified executor
-		 * immediately.
-		 */
-		std::promise<int> valuePromise;
-		f.onComplete(
-		    [&valuePromise](const Try<int> &t) { valuePromise.set_value(t.get()); });
-
-		auto r = valuePromise.get_future().get();
-		BOOST_CHECK_EQUAL(10, r);
+		int v = 11;
+		f.onComplete([&v](const Try<int> &t) { v = t.get(); });
+		BOOST_CHECK_EQUAL(10, v);
 
 		std::atomic<int> c(0);
 		f.onComplete([&c](const Try<int> &) { ++c; });

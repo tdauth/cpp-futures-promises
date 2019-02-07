@@ -20,10 +20,10 @@ class Core
 {
 	public:
 	using Type = T;
-	using ValueType = Try<T>;
-	using Callback = std::function<void(const ValueType &)>;
+	using Value = Try<T>;
+	using Callback = std::function<void(const Value &)>;
 	using Callbacks = std::vector<Callback>;
-	using State = std::variant<ValueType, Callbacks>;
+	using State = std::variant<Value, Callbacks>;
 	using Self = Core<T>;
 	using SharedPtr = std::shared_ptr<Self>;
 
@@ -50,11 +50,11 @@ class Core
 	template <typename S>
 	static typename Core<S>::SharedPtr createShared(folly::Executor *executor);
 
-	virtual bool tryComplete(adv::Try<T> &&v) = 0;
+	virtual bool tryComplete(Value &&v) = 0;
 
 	virtual void onComplete(Callback &&h) = 0;
 
-	virtual const Try<T> &get() = 0;
+	virtual const Value &get() = 0;
 
 	virtual bool isReady() const = 0;
 

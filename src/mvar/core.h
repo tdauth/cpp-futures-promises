@@ -13,9 +13,10 @@ class Core : public adv::Core<T>
 	public:
 	using Parent = adv::Core<T>;
 	using Self = Core<T>;
+	using Callback = typename Parent::Callback;
 	using Callbacks = typename Parent::Callbacks;
 	using State = typename Parent::State;
-	using Try = adv::Try<T>;
+	using Value = typename Parent::Value;
 	using MVar = adv_mvar::MVar<State>;
 	using StateSharedPtr = std::shared_ptr<MVar>;
 	using MVarSignal = adv_mvar::MVar<void>;
@@ -36,9 +37,10 @@ class Core : public adv::Core<T>
 	}
 
 	Core(const Self &other) = delete;
+
 	Self &operator=(const Self &other) = delete;
 
-	bool tryComplete(adv::Try<T> &&v) override
+	bool tryComplete(Value &&v) override
 	{
 		auto s = _s->take();
 
@@ -49,7 +51,7 @@ class Core : public adv::Core<T>
 		}
 		else
 		{
-			auto hs = std::get<typename Parent::Callbacks>(s);
+			auto hs = std::get<Callbacks>(s);
 			_s->put(std::move(v));
 			_signal.put();
 
@@ -62,13 +64,13 @@ class Core : public adv::Core<T>
 		}
 	}
 
-	void onComplete(typename Parent::Callback &&h) override
+	void onComplete(Callback &&h) override
 	{
 		auto s = _s->take();
 
 		if (s.index() == 1)
 		{
-			auto hs = std::get<typename Parent::Callbacks>(s);
+			auto hs = std::get<Callbacks>(s);
 			hs.push_back(h);
 			s = std::move(hs);
 			_s->put(std::move(s));
@@ -80,10 +82,10 @@ class Core : public adv::Core<T>
 		}
 	}
 
-	const adv::Try<T> &get() override
+	const Value &get() override
 	{
 		_signal.read();
-		return std::get<Try>(_s->read());
+		return std::get<Value>(_s->read());
 	}
 
 	bool isReady() const override
@@ -111,11 +113,11 @@ class Core : public adv::Core<T>
 	 * We have to pass a copy of the shared pointer to ensure the lifetime when
 	 * reading the result.
 	 */
-	void submitCallback(typename Parent::Callback &&h)
+	void submitCallback(Callback &&h)
 	{
 		auto ptr = _s;
 		Parent::getExecutor()->add([h = std::move(h), ptr]() mutable {
-			auto r = std::get<Try>(ptr->read());
+			auto r = std::get<Value>(ptr->read());
 			h(r);
 		});
 	}
