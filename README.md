@@ -1,4 +1,4 @@
-# Advanced Futures and Promises with C++
+# Advanced Futures and Promises in C++
 This project provides an advanced futures and promises library based on our papers [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf) and [Futures and Promises in Haskell and Scala](https://www.researchgate.net/publication/330066278_Futures_and_promises_in_Haskell_and_Scala).
 The library offers functions which are missing from other C++ futures and promises libraries.
 It is implemented with the help of only a few core operations which allows a much easier adaption to different implementations.
@@ -64,31 +64,24 @@ Folly dependencies on Fedora 29:
 These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
 
 ## State of the Art
-There is several C++ libraries for futures and promises:
-* C++17 thread support library (standard library)
-* Boost.Thread
-* Folly
+Existing C++ libraries for futures and promises:
+* C++17 thread support library (standard library): Rather limited not support (not even callbacks)
+* Boost.Thread: Callbacks, executors, only basic combinators
+* Folly: Callbacks, executors, more combinators
 
-Qt provides futures support as well but no promises.
-All of these libraries are missing non-blocking combinators, especially compared to Scala's futures and promises library.
-Folly seems to be the most advanced library by far but is also missing non-blocking combinators.
-Therefore, we need to provide a C++ library with all the missing non-blocking combinators.
-The new library should also clarify the semantics of the different non-blocking combinators as well as shared and non-shared futures and promises.
+Disadvantages of Folly:
+* Missing non-blocking combinators compared to Scala
+* Only one callback per future
+* Futures and promises require move semantics
+* No multiple read semantics
 
 ## Advanced Futures and Promises
-The project provides advanced futures and promises which are implemented with the help of Folly and Boost.Thread only at the moment.
-The advanced futures and promises are declared in the namespace `adv` and provide the a basic functionality with extensions
-which are missing from Folly and Scala.
-The following classes and class templates are provided by the library:
-* `adv::Try<T>` - Holds either nothing, a value or an exception and is used to store a future's result. We could use `folly::Try<T>` here instead of a custom type.
-* `adv::Future<T>` - Class template for shared futures. Allows copying and multiple read semantics as well as registering multiple callbacks.
-* `adv::Promise<T>` - Class template for shared promises. Allows copying.
 
-With the help of only four core operations (`get`, `onComplete`, `isReady` and `tryComplete`) all other functions can be implemented.
-Therefore, every library which is used to implement the advanced futures and promises has only to support these core operations.
+This library addresses the disadvantages of Folly.
+It adds missing non-blocking combinators, futures support multiple callbacks, futures and promises can be copied and futures allow multiple read semantics.
 
 #### Abstraction of the Core Operations
-The class template `adv::Core<T>` has to be implemented.
+The class template `adv::Core<T>` has to be implemented to provide a custom implementation.
 
 ## Performance Tests
 The project provides several performance tests using the benchmark suite from Folly:
