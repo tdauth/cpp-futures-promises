@@ -5,13 +5,13 @@ add_subdirectory(mvar)
 add_subdirectory(performance)
 
 install(FILES
-        advanced_futures_lock.h
+    advanced_futures_lock.h
     future.h
     future_impl.h
     promise.h
     promise_impl.h
-        core.h
-        core_impl.h
+    core.h
+    core_impl.h
     try.h
     DESTINATION include/cpp-futures-promises
 )

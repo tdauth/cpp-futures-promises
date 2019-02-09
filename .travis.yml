@@ -1,13 +1,32 @@
 sudo: required
 os: linux
 language: cpp
-services:
-  - docker
-# Fedora supports the required libraries. Therefore, use docker with a Fedora image:
-before_install:
-  - docker pull fedora:29
-  - docker ps -a
-  - docker run fedora:29 /bin/sh -c "cd /root; dnf -y install git bash boost-devel; git clone https://github.com/tdauth/cpp-futures-promises.git; cd ./cpp-futures-promises; bash ./buildtravisci.sh"
-# Use a script to disable the default automake build:
+
 script:
+  - cd ./src
+  - ./buildtravisci.sh
   - ls
+
+addons:
+  apt:
+    packages:
+      g++
+      cmake
+      libboost-all-dev
+      libevent-dev
+      libdouble-conversion-dev
+      libgoogle-glog-dev
+      libgflags-dev
+      libiberty-dev
+      liblz4-dev
+      liblzma-dev
+      libsnappy-dev
+      make
+      zlib1g-dev
+      binutils-dev
+      libjemalloc-dev
+      libssl-dev
+      pkg-config
+      libunwind8-dev
+      libelf-dev
+      libdwarf-dev

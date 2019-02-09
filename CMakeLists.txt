@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(cpp-futures-promises)
 
+set(googletest_VERSION "1.8.0")
 set(folly_VERSION "v2019.01.28.00")
 
 enable_testing()
@@ -62,6 +63,10 @@ if (NOT PTHREAD_LIBRARY)
 	message(FATAL_ERROR "Library pthread not found.")
 endif ()
 
+set(googletest_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest_install")
+set(googletest_INCLUDE_DIR "${googletest_INSTALL_DIR}/include")
+set(googletest_LIB_DIR "${googletest_INSTALL_DIR}/lib")
+
 set(folly_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly-prefix/src/folly")
 set(folly_INSTALL_DIR "${CMAKE_CURRENT_BINARY_DIR}/folly_install")
 set(folly_INCLUDE_DIR "${folly_INSTALL_DIR}/include")
@@ -79,13 +84,21 @@ set(folly_LIBRARIES
 	${PTHREAD_LIBRARY}
 )
 
-ExternalProject_Add(folly
-	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	PREFIX "${CMAKE_CURRENT_BINARY_DIR}/folly"
-	CMAKE_ARGS -DFOLLY_SUPPORT_SHARED_LIBRARY=ON -DCMAKE_INSTALL_PREFIX=${folly_INSTALL_DIR}
+ExternalProject_Add(googletest
+	URL "https://github.com/google/googletest/archive/release-${googletest_VERSION}.tar.gz"
+	CMAKE_ARGS  -DCMAKE_INSTALL_PREFIX=${googletest_INSTALL_DIR}
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON
+)
+
+ExternalProject_Add(folly
+	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
+	CMAKE_ARGS -DFOLLY_SUPPORT_SHARED_LIBRARY=ON -DCMAKE_INSTALL_PREFIX=${folly_INSTALL_DIR} -DCMAKE_INCLUDE_PATH=${googletest_INCLUDE_DIR}  -DCMAKE_LIBRARY_PATH=${googletest_LIB_DIR}
+	LOG_DOWNLOAD ON
+	LOG_CONFIGURE ON
+	LOG_BUILD ON
+	DEPENDS googletest
 )
 
 include_directories("${folly_INCLUDE_DIR}")
