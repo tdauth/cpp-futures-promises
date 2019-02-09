@@ -10,8 +10,8 @@ The derived features were inspired by [Scala library for futures and promises](h
 
 ## Automatic Build with TravisCI
 
-[![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=single-read-and-bugfixes)](https://travis-ci.org/tdauth/cpp-futures-promises)
-[![Code Coverage](https://img.shields.io/codecov/c/github/tdauth/cpp-futures-promises/master.svg)](https://codecov.io/github/tdauth/cpp-futures-promises?branch=single-read-and-bugfixes)
+[![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
+[![Code Coverage](https://img.shields.io/codecov/c/github/tdauth/cpp-futures-promises/master.svg)](https://codecov.io/github/tdauth/cpp-futures-promises?branch=master)
 
 ## Manual Build
 
