@@ -61,6 +61,11 @@ class Promise
 		return _s->tryComplete(std::move(v));
 	}
 
+	bool tryComplete(const Try<T> &v)
+	{
+		return _s->tryComplete(Try<T>(v));
+	}
+
 	// Derived methods:
 	bool trySuccess(T &&v)
 	{
@@ -78,30 +83,27 @@ class Promise
 		return tryFailure(std::make_exception_ptr(std::move(e)));
 	}
 
-	void tryCompleteWith(FutureType &f)
+	void tryCompleteWith(FutureType f)
 	{
-		Promise<T> p(*this);
-		f.onComplete([p](const Try<T> &t) mutable { p.tryComplete(Try<T>(t)); });
+		f.onComplete([p = *this](const Try<T> &t) mutable { p.tryComplete(t); });
 	}
 
-	void trySuccessWith(FutureType &f)
+	void trySuccessWith(FutureType f)
 	{
-		Promise<T> p(*this);
-		f.onComplete([p](const Try<T> &t) mutable {
+		f.onComplete([p = *this](const Try<T> &t) mutable {
 			if (t.hasValue())
 			{
-				p.tryComplete(Try<T>(t));
+				p.tryComplete(t);
 			}
 		});
 	}
 
-	void tryFailureWith(FutureType &f)
+	void tryFailureWith(FutureType f)
 	{
-		Promise<T> p(*this);
-		f.onComplete([p](const Try<T> &t) mutable {
+		f.onComplete([p = *this](const Try<T> &t) mutable {
 			if (t.hasException())
 			{
-				p.tryComplete(Try<T>(t));
+				p.tryComplete(t);
 			}
 		});
 	}

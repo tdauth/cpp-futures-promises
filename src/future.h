@@ -97,7 +97,7 @@ class Future
 		});
 	}
 
-	Self orElse(Self other);
+	Self fallbackTo(Self other);
 
 	Self first(Self other);
 

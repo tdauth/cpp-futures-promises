@@ -5,9 +5,9 @@ using namespace adv;
 int main()
 {
 	folly::InlineExecutor ex;
-	Future<Hotel> switzerland = async(&ex, getHotelSwitzerland);
-	Future<Hotel> usa = async(&ex, getHotelUSA);
-	Future<Hotel> hotel = switzerland.orElse(usa);
+	auto switzerland = async(&ex, getHotelSwitzerland);
+	auto usa = async(&ex, getHotelUSA);
+	auto hotel = switzerland.fallbackTo(usa);
 	hotel.onComplete(bookHotelAdv);
 	hotel.onComplete(informFriendsAdv);
 

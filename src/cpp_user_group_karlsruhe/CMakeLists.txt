@@ -18,6 +18,11 @@ add_dependencies(holiday_booking_folly folly)
 target_link_libraries(holiday_booking_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(HolidayBookingFolly holiday_booking_folly)
 
+add_executable(try_complete_with_advanced try_complete_with_advanced.cpp)
+add_dependencies(try_complete_with_advanced folly)
+target_link_libraries(try_complete_with_advanced ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(TryCompleteWithAdvanced try_complete_with_advanced)
+
 add_executable(try_complete_with_folly try_complete_with_folly.cpp)
 add_dependencies(try_complete_with_folly folly)
 target_link_libraries(try_complete_with_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})

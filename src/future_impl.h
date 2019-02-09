@@ -85,7 +85,7 @@ Future<T>::thenWith(Func &&f)
 }
 
 template <typename T>
-Future<T> Future<T>::orElse(Future<T> other)
+Future<T> Future<T>::fallbackTo(Future<T> other)
 {
 	return this->thenWith([other](const Try<T> &t) mutable -> Future<T> {
 		if (t.hasException())
