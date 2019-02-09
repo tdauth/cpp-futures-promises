@@ -103,7 +103,7 @@ class Future
 
 	/**
 	 * @return A new future which is completed with the first successful future of
-	 * this and other. If both futures fail, it will be completed with \ref
+	 * this and other. If both futures fail, it will be comdpleted with \ref
 	 * BrokenPromise.
 	 */
 	Self firstSucc(Self other);

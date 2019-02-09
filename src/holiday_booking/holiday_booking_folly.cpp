@@ -9,16 +9,14 @@ using namespace std;
 
 int main()
 {
-	/*
-	TODO fix it
-	auto switzerland = async(&getHotelSwitzerland);
-	auto usa = async(&getHotelUSA);
-	auto c = vector<Future<Hotel>>{move(switzerland), move(usa)};
-	auto hotel = collectAnyWithoutException(move(c))
-	                 .via(getCPUExecutor().get())
-	                 .thenValue(toHotel); //  Combinator!
+	InlineExecutor ex;
+	auto switzerland = via(&ex, &getHotelSwitzerland);
+	auto usa = via(&ex, &getHotelUSA);
+	vector<Future<Hotel>> c;
+	c.push_back(move(switzerland));
+	c.push_back(move(usa));
+	auto hotel = collectAnyWithoutException(move(c)).via(&ex).thenValue(toHotel);
 	move(hotel).thenValue(bookHotelFolly).thenValue(informFriendsFolly);
-	*/
 
 	return 0;
 }

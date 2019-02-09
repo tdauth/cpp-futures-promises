@@ -8,7 +8,17 @@ add_dependencies(holiday_booking_boost folly)
 target_link_libraries(holiday_booking_boost ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(HolidayBookingBoost holiday_booking_boost)
 
+add_executable(holiday_booking_cpp17 holiday_booking_cpp17.cpp)
+add_dependencies(holiday_booking_cpp17 folly)
+target_link_libraries(holiday_booking_cpp17 ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(HolidayBookingCpp17 holiday_booking_cpp17)
+
 add_executable(holiday_booking_folly holiday_booking_folly.cpp)
 add_dependencies(holiday_booking_folly folly)
 target_link_libraries(holiday_booking_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(HolidayBookingFolly holiday_booking_folly)
+
+add_executable(try_complete_with_folly try_complete_with_folly.cpp)
+add_dependencies(try_complete_with_folly folly)
+target_link_libraries(try_complete_with_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(TryCompleteWithFolly try_complete_with_folly)

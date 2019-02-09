@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include <boost/thread.hpp>
+
 #include <folly/Try.h>
 
 #include "../advanced_futures_promises.h"
@@ -23,41 +25,75 @@ std::string hotelToString(Hotel h)
 		return "USA";
 	}
 
-	return "Unknow hotel";
+	return "Unknown hotel";
 }
 
-Hotel getHotelSwitzerland();
-Hotel getHotelUSA();
+Hotel getHotelSwitzerland()
+{
+	return Switzerland;
+}
+
+Hotel getHotelUSA()
+{
+	return USA;
+}
+
+Hotel bookHotel(Hotel hotel)
+{
+	std::cerr << "Booking hotel " << hotelToString(hotel) << std::endl;
+	return hotel;
+}
+
+Hotel informFriends(Hotel hotel)
+{
+	std::cerr << "Informing friends about hotel " << hotelToString(hotel)
+	          << std::endl;
+	return hotel;
+}
 
 Hotel toHotel(std::pair<std::size_t, Hotel> &&pair)
 {
 	return pair.second;
 }
 
-void bookHotel(const adv::Try<Hotel> &hotel)
+Hotel bookHotelBoost(boost::future<Hotel> &&hotel)
 {
-	std::cerr << "Booking hotel " << hotelToString(hotel.get()) << std::endl;
+	return bookHotel(hotel.get());
 }
 
-void informFriends(const adv::Try<Hotel> &hotel)
+Hotel informFriendsBoost(boost::future<Hotel> &&hotel)
 {
-	std::cerr << "Informing friends about hotel " << hotelToString(hotel.get())
-	          << std::endl;
+	return informFriends(hotel.get());
+}
+
+Hotel informFriendsCpp17(Hotel hotel)
+{
+	return bookHotel(hotel);
+}
+
+Hotel bookHotelCpp17(Hotel hotel)
+{
+	return informFriends(hotel);
 }
 
 Hotel bookHotelFolly(Hotel &&hotel)
 {
-	std::cerr << "Booking hotel " << hotelToString(hotel) << std::endl;
-
-	return hotel;
+	return bookHotel(hotel);
 }
 
 Hotel informFriendsFolly(Hotel &&hotel)
 {
-	std::cerr << "Informing friends about hotel " << hotelToString(hotel)
-	          << std::endl;
+	return informFriends(hotel);
+}
 
-	return hotel;
+void bookHotelAdv(const adv::Try<Hotel> &hotel)
+{
+	bookHotel(hotel.get());
+}
+
+void informFriendsAdv(const adv::Try<Hotel> &hotel)
+{
+	informFriends(hotel.get());
 }
 
 #endif

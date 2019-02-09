@@ -9,7 +9,7 @@ include(CTest)
 
 add_compile_options(-std=c++17 -Wall)
 # These flags are required for Boost.Thread and Boost.Test:
-add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK) # -DBOOST_SYSTEM_NO_DEPRECATED -DBOOST_ERROR_CODE_HEADER_ONLY
+add_definitions(-DBOOST_THREAD_VERSION=4 -DBOOST_THREAD_PROVIDES_EXECUTORS -DBOOST_TEST_DYN_LINK)
 
 find_package(Boost REQUIRED COMPONENTS thread chrono context program_options regex filesystem date_time) # test
 
