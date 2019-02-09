@@ -32,18 +32,26 @@ class MVar
 
 	void put(T &&v)
 	{
-		std::unique_lock<std::mutex> l(m);
-		putCondition.wait(l, [this] { return !this->v; });
-		this->v = v;
+		{
+			std::unique_lock<std::mutex> l(m);
+			putCondition.wait(l, [this] { return !this->v; });
+			this->v = v;
+		}
+
 		takeCondition.notify_all();
 	}
 
 	T take()
 	{
-		std::unique_lock<std::mutex> l(m);
-		takeCondition.wait(l, [this] { return this->v; });
-		auto r = std::move(*v);
-		v.reset();
+		T r;
+
+		{
+			std::unique_lock<std::mutex> l(m);
+			takeCondition.wait(l, [this] { return this->v; });
+			r = std::move(*v);
+			v.reset();
+		}
+
 		putCondition.notify_all();
 
 		return r;
@@ -82,17 +90,23 @@ class MVar<void>
 
 	void put()
 	{
-		std::unique_lock<std::mutex> l(m);
-		putCondition.wait(l, [this] { return !this->v; });
-		this->v = true;
+		{
+			std::unique_lock<std::mutex> l(m);
+			putCondition.wait(l, [this] { return !this->v; });
+			this->v = true;
+		}
+
 		takeCondition.notify_all();
 	}
 
 	void take()
 	{
-		std::unique_lock<std::mutex> l(m);
-		takeCondition.wait(l, [this] { return this->v; });
-		this->v = false;
+		{
+			std::unique_lock<std::mutex> l(m);
+			takeCondition.wait(l, [this] { return this->v; });
+			this->v = false;
+		}
+
 		putCondition.notify_all();
 	}
 
