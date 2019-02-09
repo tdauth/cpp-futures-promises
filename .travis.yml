@@ -7,8 +7,6 @@ compiler:
   - gcc
 
 script:
-  - cd ./src
-  - ls
   - ./buildcoverage.sh
   - ./cppcheck.sh
 
