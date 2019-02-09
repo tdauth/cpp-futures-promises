@@ -13,7 +13,7 @@ addons:
       - llvm-toolchain-precise-3.6
       - george-edison55-precise-backports
     packages:
-      - g++
+      - g++-6
       - cmake-data
       - cmake
       - libboost-all-dev
