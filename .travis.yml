@@ -3,8 +3,8 @@ os: linux
 language: cpp
 
 script:
-  - ./buildcoverage.sh
-  - ./cppcheck.sh
+  - bash ./buildcoverage.sh
+  - bash ./cppcheck.sh
 
 addons:
   apt:
