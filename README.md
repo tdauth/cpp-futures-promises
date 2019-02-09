@@ -1,4 +1,5 @@
 # Advanced Futures and Promises in C++
+
 This project provides an advanced futures and promises library based on our papers [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf) and [Futures and Promises in Haskell and Scala](https://www.researchgate.net/publication/330066278_Futures_and_promises_in_Haskell_and_Scala).
 The library offers functions which are missing from other C++ futures and promises libraries.
 It is implemented with the help of only a few core operations which allows a much easier adaption to different implementations.
@@ -8,10 +9,12 @@ Currently, the library has one reference implementation which uses [MVars](http:
 The derived features were inspired by [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and Folly.
 
 ## Automatic Build with TravisCI
+
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=single-read-and-bugfixes)](https://travis-ci.org/tdauth/cpp-futures-promises)
 [![Code Coverage](https://img.shields.io/codecov/c/github/tdauth/cpp-futures-promises/master.svg)](https://codecov.io/github/tdauth/cpp-futures-promises?branch=single-read-and-bugfixes)
 
 ## Manual Build
+
 To compile the project run one of the the following Bash scripts on Linux:
 * [build.sh](./build.sh)
 * [buildcoverage.sh](./buildcoverage.sh)
@@ -25,6 +28,7 @@ The dependencies will be downloaded and compiled automatically.
 Therefore, you need Internet access when building for the first time.
 
 ## Dependencies
+
 The project requires the GCC with C++17 support and CMake to be built.
 
 The project requires the following libraries:
@@ -64,6 +68,7 @@ Folly dependencies on Fedora 29:
 These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
 
 ## State of the Art
+
 Existing C++ libraries for futures and promises:
 * C++17 thread support library (standard library): Rather limited not support (not even callbacks)
 * Boost.Thread: Callbacks, executors, only basic combinators
@@ -80,15 +85,22 @@ Disadvantages of Folly:
 This library addresses the disadvantages of Folly.
 It adds missing non-blocking combinators, futures support multiple callbacks, futures and promises can be copied and futures allow multiple read semantics.
 
-#### Abstraction of the Core Operations
+### Abstraction of the Core Operations
+
 The class template `adv::Core<T>` has to be implemented to provide a custom implementation.
 
 ## Performance Tests
+
 The project provides several performance tests using the benchmark suite from Folly:
 * [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
 * [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
 
-### C++ Paper
+## Presentation at C++ User Group Karlsruhe
+
+The folder [cpp_user_group_karlsruhe](./src/cpp_user_group_karlsruhe) contains examples from the presentation for the C++ User Group Karlsruhe.
+
+## C++ Paper
+
 We have written a paper about the advanced futures and promises called [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 Here are some TODOs for the paper:
 * Improve the description of the C++ syntax.
@@ -111,11 +123,13 @@ Here are some TODOs for the paper:
 * The Scala FP `find` is implemented the way that one future after another is searched for the result. Hence, it cannot be used to implement `firstSucc` with a guard. TODO Look again at the implementation.
 * Introduce the derived method `thenWith` similiar to Scala FP's `transformWith`. It has to be used to implement `orElse`. Do not ever use `get` to implement `orElse` since it is blocking. This would lead to a deadlock if there are not enough threads.
 
-#### Boost.Thread Implementation
+### Boost.Thread Implementation
+
 * Describe the implementation with the help of Boost.Thread.
 * Mention that the Boost.Thread implementation has to use `boost::current_exception` instead of `std::current_exception`: <https://svn.boost.org/trac10/ticket/9710> and <https://stackoverflow.com/questions/52043506/how-to-rethrow-the-original-exception-stored-by-an-stdexception-ptr-with-a-boo>
 
-#### Folly Changes
+### Folly Changes
+
 * Consider the updated Folly library which does now provide the type `folly::SemiFuture` and the executors which previously belonged to Wangle.
 * The changes of Folly do also include changes of the non-blocking combinators such as `collectN` where the data race bug probably has been removed with the current implementation. Recheck it!
 * Consider the following changes in the latest Folly version (done in August 2018):
@@ -134,12 +148,14 @@ then(F&& func) & = delete;
 * `folly::Timeout` has been replaced by `folly::FutureTimeout`.
 * The latest README.md file can be found [here](https://github.com/facebook/folly/blob/master/folly/docs/Futures.md) rather than in the futures source code directory.
 
-#### Performance Analysis
+### Performance Analysis
+
 * Update the performance analysis. Create several tables or plots: Folly, Boost.Thread, Adanced Futures and Promises implemented with Folly, Adanced Futures and Promises implemented with Boost.Thread.
 * Test several executors in the empirical results section to show the usage of multiple cores.
 * Produce longer durations rather than small ms durations.
 
-#### Better Abstraction
+### Better Abstraction
+
 These changes bring a lot of performance issues with them.
 You should look into Rust futures which use traits -> more like template meta programming.
 Maybe this approach would be better to avoid virtual methods and heap allocation.
@@ -147,7 +163,8 @@ Maybe this approach would be better to avoid virtual methods and heap allocation
 * Make the classes `Try`, `Executor`, `Future`, `Promise` and `SharedFuture` abstract with virtual methods. The Folly and Boost.Thread implementations should inherit these classes. The abstract classes should be part of the namespace `adv`. The Folly and Boost.Thread implementations should have the namespaces `adv_folly` and `adv_boost`. They share generic classes such as `adv::PredicateNotFulfilled`. However, this is probably not possible for the classes `Future` and `SharedFuture` since the methods return stack-allocated objects of abstract types. It should also decrease the performance due to virtual methods.
 * After making all basic classes abstract, try to implement the derived methods already in the abstract classes since they only require the basic methods.
 
-#### New Features
+### New Features
+
 Maybe add the new derived methods to `adv::Future`:
 * `onSuccess`: Registers a callback which takes the successful result value. If the future has failed, it is not called. This method could be used in listing 4 to simplify the code.
 * `onFail`: Takes the failed exception. If the future has been completed successfully, it is not called.

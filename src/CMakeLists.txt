@@ -1,6 +1,6 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_subdirectory(holiday_booking)
+add_subdirectory(cpp_user_group_karlsruhe)
 add_subdirectory(mvar)
 add_subdirectory(performance)
 
