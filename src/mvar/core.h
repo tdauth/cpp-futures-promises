@@ -42,18 +42,18 @@ class Core : public adv::Core<T>
 
 	bool tryComplete(Value &&v) override
 	{
-		auto s = _s->take();
+		auto s = state->take();
 
 		if (s.index() == 0)
 		{
-			_s->put(std::move(s));
+			state->put(std::move(s));
 			return false;
 		}
 		else
 		{
 			auto hs = std::get<Callbacks>(s);
-			_s->put(std::move(v));
-			_signal.put();
+			state->put(std::move(v));
+			signal.put();
 
 			for (std::size_t i = 0; i < hs.size(); ++i)
 			{
@@ -66,33 +66,33 @@ class Core : public adv::Core<T>
 
 	void onComplete(Callback &&h) override
 	{
-		auto s = _s->take();
+		auto s = state->take();
 
 		if (s.index() == 1)
 		{
 			auto hs = std::get<Callbacks>(s);
 			hs.push_back(h);
 			s = std::move(hs);
-			_s->put(std::move(s));
+			state->put(std::move(s));
 		}
 		else
 		{
-			_s->put(std::move(s));
+			state->put(std::move(s));
 			submitCallback(std::move(h));
 		}
 	}
 
 	const Value &get() override
 	{
-		_signal.read();
-		return std::get<Value>(_s->read());
+		signal.read();
+		return std::get<Value>(state->read());
 	}
 
 	bool isReady() const override
 	{
-		auto s = _s->take();
+		auto s = state->take();
 		auto r = s.index() == 0;
-		_s->put(std::move(s));
+		state->put(std::move(s));
 
 		return r;
 	}
@@ -100,7 +100,7 @@ class Core : public adv::Core<T>
 	protected:
 	explicit Core(folly::Executor *executor) : Parent(executor)
 	{
-		_s = std::make_shared<MVar>(State(Callbacks()));
+		state = std::make_shared<MVar>(State(Callbacks()));
 	}
 
 	/**
@@ -115,7 +115,7 @@ class Core : public adv::Core<T>
 	 */
 	void submitCallback(Callback &&h)
 	{
-		auto ptr = _s;
+		auto ptr = state;
 		Parent::getExecutor()->add([h = std::move(h), ptr]() mutable {
 			auto r = std::get<Value>(ptr->read());
 			h(r);
@@ -127,8 +127,8 @@ class Core : public adv::Core<T>
 	 * We have to use a shared pointer here to keep the result alive in the
 	 * callbacks.
 	 */
-	StateSharedPtr _s;
-	MVarSignal _signal;
+	StateSharedPtr state;
+	MVarSignal signal;
 };
 
 } // namespace adv_mvar
