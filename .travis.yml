@@ -12,6 +12,7 @@ addons:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-precise-3.6
       - george-edison55-precise-backports
+    update: true
     packages:
       - g++-6
       - cmake-data
