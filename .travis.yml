@@ -2,10 +2,6 @@ sudo: required
 os: linux
 language: cpp
 
-compiler:
-  - clang
-  - gcc
-
 script:
   - ./buildcoverage.sh
   - ./cppcheck.sh
