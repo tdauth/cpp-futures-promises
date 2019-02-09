@@ -34,3 +34,4 @@ addons:
       - libunwind8-dev
       - libelf-dev
       - libdwarf-dev
+      - valgrind
