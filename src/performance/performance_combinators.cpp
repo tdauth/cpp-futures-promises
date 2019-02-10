@@ -8,7 +8,7 @@
 #include "advanced_futures_promises.h"
 
 using TREE_TYPE = int;
-constexpr int TREE_HEIGHT = 12;
+constexpr int TREE_HEIGHT = 22;
 constexpr int TREE_CHILDS = 2;
 static_assert(TREE_CHILDS == 2,
               "The custom combinators only support passing two futures.");
@@ -237,7 +237,29 @@ boost::future<T> boostWhenAny(std::size_t treeHeight, std::size_t childNodes,
 }
 
 template <typename T, typename Func>
-adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
+std::vector<adv::Future<T>>
+createCompletedFutures(adv::Executor *ex, std::size_t childNodes, Func func)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	for (std::size_t i = 0; i < childNodes; ++i)
+	{
+		adv::Promise<T> p(ex);
+		p.trySuccess(func());
+		auto f = p.future();
+		v.push_back(std::move(f));
+	}
+
+	return v;
+}
+
+template <typename T, typename Func>
+adv::Future<T> advFirstN(adv::Executor *ex, std::size_t treeHeight,
                          std::size_t childNodes, Func f)
 {
 	std::vector<adv::Future<T>> v;
@@ -249,13 +271,7 @@ adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
 
 	if (treeHeight == 0)
 	{
-		for (std::size_t i = 0; i < childNodes; ++i)
-		{
-			adv::Promise<T> p(ex);
-			p.trySuccess(f());
-			auto f = p.future();
-			v.push_back(std::move(f));
-		}
+		v = createCompletedFutures<T, Func>(ex, childNodes, f);
 	}
 	else
 	{
@@ -274,7 +290,7 @@ adv::Future<T> advFirstN(folly::Executor *ex, std::size_t treeHeight,
 }
 
 template <typename T, typename Func>
-adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
+adv::Future<T> advFirstNSucc(adv::Executor *ex, std::size_t treeHeight,
                              std::size_t childNodes, Func f)
 {
 	std::vector<adv::Future<T>> v;
@@ -286,13 +302,7 @@ adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
 
 	if (treeHeight == 0)
 	{
-		for (std::size_t i = 0; i < childNodes; ++i)
-		{
-			adv::Promise<T> p(ex);
-			p.trySuccess(f());
-			auto f = p.future();
-			v.push_back(std::move(f));
-		}
+		v = createCompletedFutures<T, Func>(ex, childNodes, f);
 	}
 	else
 	{
@@ -309,6 +319,84 @@ adv::Future<T> advFirstNSucc(folly::Executor *ex, std::size_t treeHeight,
 	    [](const adv::Try<ResultType> &t) { return t.get()[0].second; });
 
 	return r;
+}
+
+template <typename T, typename Func>
+adv::Future<T> advFirst(adv::Executor *ex, std::size_t treeHeight,
+                        std::size_t childNodes, Func f)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		v = createCompletedFutures<T, Func>(ex, childNodes, f);
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(advFirst<T, Func>(ex, treeHeight - 1, childNodes, f));
+		}
+	}
+
+	return v[0].first(v[1]);
+}
+
+template <typename T, typename Func>
+adv::Future<T> advFirstSucc(adv::Executor *ex, std::size_t treeHeight,
+                            std::size_t childNodes, Func f)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		v = createCompletedFutures<T, Func>(ex, childNodes, f);
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(advFirstSucc<T, Func>(ex, treeHeight - 1, childNodes, f));
+		}
+	}
+
+	return v[0].firstSucc(v[1]);
+}
+
+template <typename T, typename Func>
+adv::Future<T> advFallbackTo(adv::Executor *ex, std::size_t treeHeight,
+                             std::size_t childNodes, Func f)
+{
+	std::vector<adv::Future<T>> v;
+
+	BENCHMARK_SUSPEND
+	{
+		v.reserve(childNodes);
+	}
+
+	if (treeHeight == 0)
+	{
+		v = createCompletedFutures<T, Func>(ex, childNodes, f);
+	}
+	else
+	{
+		for (std::size_t i = 0; i < childNodes; ++i)
+		{
+			v.push_back(advFirstSucc<T, Func>(ex, treeHeight - 1, childNodes, f));
+		}
+	}
+
+	return v[0].fallbackTo(v[1]);
 }
 
 inline int initFuture()
@@ -361,14 +449,30 @@ BENCHMARK(BoostWhenAny)
 
 BENCHMARK(AdvFirstN)
 {
-	folly::InlineExecutor ex;
+	folly::InlineExecutor follyExecutor;
+	adv::FollyExecutor ex(&follyExecutor);
 	advFirstN<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 BENCHMARK(AdvFirstNSucc)
 {
-	folly::InlineExecutor ex;
+	folly::InlineExecutor follyExecutor;
+	adv::FollyExecutor ex(&follyExecutor);
 	advFirstNSucc<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
+}
+
+BENCHMARK(AdvFirst)
+{
+	folly::InlineExecutor follyExecutor;
+	adv::FollyExecutor ex(&follyExecutor);
+	advFirst<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
+}
+
+BENCHMARK(AdvFallbackTo)
+{
+	folly::InlineExecutor follyExecutor;
+	adv::FollyExecutor ex(&follyExecutor);
+	advFallbackTo<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).get();
 }
 
 int main(int argc, char *argv[])

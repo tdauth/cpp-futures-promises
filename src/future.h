@@ -41,7 +41,7 @@ class Future
 
 	Future(const Self &other)
 	{
-		this->_s = other._s;
+		this->core = other.core;
 	}
 
 	Self &operator=(const Self &other)
@@ -49,24 +49,24 @@ class Future
 		return *this;
 	}
 
-	folly::Executor *getExecutor() const
+	Executor *getExecutor() const
 	{
-		return _s->getExecutor();
+		return core->getExecutor();
 	}
 
 	const Try<T> &get()
 	{
-		return _s->get();
+		return core->get();
 	}
 
 	bool isReady() const
 	{
-		return _s->isReady();
+		return core->isReady();
 	}
 
 	void onComplete(typename Core<T>::Callback &&h)
 	{
-		_s->onComplete(std::move(h));
+		core->onComplete(std::move(h));
 	}
 
 	// Derived methods:
@@ -85,7 +85,7 @@ class Future
 	template <typename Func>
 	Self guard(Func &&f)
 	{
-		return this->then([f{std::move(f)}](const Try<T> &t) mutable {
+		return this->then([f = std::move(f)](const Try<T> &t) mutable {
 			auto x = t.get();
 
 			if (!f(x))
@@ -109,12 +109,12 @@ class Future
 	Self firstSucc(Self other);
 
 	private:
-	CoreType _s;
+	CoreType core;
 
 	template <typename S>
 	friend class Promise;
 
-	explicit Future(CoreType s) : _s(s)
+	explicit Future(CoreType s) : core(s)
 	{
 	}
 
@@ -127,16 +127,16 @@ class Future
 
 // Derived methods:
 template <typename Func>
-Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
+Future<typename std::result_of<Func()>::type> async(adv::Executor *ex,
                                                     Func &&f);
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n);
+firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n);
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(folly::Executor *ex, std::vector<T> &&futures, std::size_t n);
+firstNSucc(Executor *ex, std::vector<T> &&futures, std::size_t n);
 } // namespace adv
 
 #endif

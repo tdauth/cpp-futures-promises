@@ -9,10 +9,17 @@ namespace adv
 
 template <typename T>
 template <typename S>
-typename Core<S>::SharedPtr Core<T>::createShared(folly::Executor *executor)
+typename Core<S>::SharedPtr Core<T>::createShared(Executor *executor,
+                                                  Implementation implementation)
 {
 	// TODO Support different implementations
-	return typename Core<S>::SharedPtr(new adv_mvar::Core<S>(executor));
+	switch (implementation)
+	{
+	case MVar:
+		return typename Core<S>::SharedPtr(new adv_mvar::Core<S>(executor));
+	}
+
+	throw std::runtime_error("Invalid implementation");
 }
 
 } // namespace adv

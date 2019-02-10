@@ -4,7 +4,8 @@ using namespace adv;
 
 int main()
 {
-	folly::InlineExecutor ex;
+	folly::InlineExecutor follyEx;
+	FollyExecutor ex(&follyEx);
 	auto switzerland = async(&ex, getHotelSwitzerland);
 	auto usa = async(&ex, getHotelUSA);
 	auto hotel = switzerland.fallbackTo(usa);

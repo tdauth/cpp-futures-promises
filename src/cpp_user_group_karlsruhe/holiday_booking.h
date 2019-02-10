@@ -66,6 +66,16 @@ Hotel informFriendsBoost(boost::future<Hotel> &&hotel)
 	return informFriends(hotel.get());
 }
 
+Hotel bookHotelBoostShared(boost::shared_future<Hotel> &&hotel)
+{
+	return bookHotel(hotel.get());
+}
+
+Hotel informFriendsBoostShared(boost::shared_future<Hotel> &&hotel)
+{
+	return informFriends(hotel.get());
+}
+
 Hotel informFriendsCpp17(Hotel hotel)
 {
 	return bookHotel(hotel);

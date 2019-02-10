@@ -23,6 +23,11 @@ add_dependencies(try_complete_with_advanced folly)
 target_link_libraries(try_complete_with_advanced ${Boost_LIBRARIES} ${folly_LIBRARIES})
 add_test(TryCompleteWithAdvanced try_complete_with_advanced)
 
+add_executable(try_complete_with_boost try_complete_with_boost.cpp)
+add_dependencies(try_complete_with_boost folly)
+target_link_libraries(try_complete_with_boost ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(TryCompleteWithBoost try_complete_with_boost)
+
 add_executable(try_complete_with_folly try_complete_with_folly.cpp)
 add_dependencies(try_complete_with_folly folly)
 target_link_libraries(try_complete_with_folly ${Boost_LIBRARIES} ${folly_LIBRARIES})

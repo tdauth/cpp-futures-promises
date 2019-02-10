@@ -98,7 +98,7 @@ class Core : public adv::Core<T>
 	}
 
 	protected:
-	explicit Core(folly::Executor *executor) : Parent(executor)
+	explicit Core(adv::Executor *executor) : Parent(executor)
 	{
 		state = std::make_shared<MVar>(State(Callbacks()));
 	}

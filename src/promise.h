@@ -3,8 +3,6 @@
 
 #include <exception>
 
-#include <folly/Executor.h>
-
 #include "core.h"
 #include "try.h"
 
@@ -30,27 +28,30 @@ class Promise
 	// Core methods:
 	Promise() = delete;
 
-	Promise(folly::Executor *ex) : _s(Core<T>::template createShared<T>(ex))
+	explicit Promise(
+	    Executor *ex,
+	    typename Core<T>::Implementation implementation = Core<T>::MVar)
+	    : core(Core<T>::template createShared<T>(ex, implementation))
 	{
 	}
 
 	~Promise()
 	{
-		_s->decrementPromiseCounter();
+		core->decrementPromiseCounter();
 	}
 
 	Promise(const Self &other)
 	{
-		_s = other._s;
+		core = other.core;
 		// TODO possible data race here?
-		_s->incrementPromiseCounter();
+		core->incrementPromiseCounter();
 	}
 
 	Self &operator=(const Self &other)
 	{
-		_s = other._s;
+		core = other.core;
 		// TODO possible data race here?
-		other._s->incrementPromiseCounter();
+		other.core->incrementPromiseCounter();
 		return *this;
 	}
 
@@ -58,23 +59,23 @@ class Promise
 
 	bool tryComplete(Try<T> &&v)
 	{
-		return _s->tryComplete(std::move(v));
+		return core->tryComplete(std::move(v));
 	}
 
 	bool tryComplete(const Try<T> &v)
 	{
-		return _s->tryComplete(Try<T>(v));
+		return core->tryComplete(Try<T>(v));
 	}
 
 	// Derived methods:
 	bool trySuccess(T &&v)
 	{
-		return _s->tryComplete(Try<T>(std::move(v)));
+		return core->tryComplete(Try<T>(std::move(v)));
 	}
 
 	bool tryFailure(std::exception_ptr e)
 	{
-		return _s->tryComplete(Try<T>(std::move(e)));
+		return core->tryComplete(Try<T>(std::move(e)));
 	}
 
 	template <typename Exception>
@@ -109,7 +110,7 @@ class Promise
 	}
 
 	private:
-	CoreType _s;
+	CoreType core;
 };
 } // namespace adv
 

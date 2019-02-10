@@ -10,10 +10,13 @@ void tryCompleteWith(Promise<T> p, Future<T> f)
 
 int main()
 {
-	folly::InlineExecutor ex;
+	folly::InlineExecutor follyExecutor;
+	FollyExecutor ex(&follyExecutor);
 	auto switzerland = async(&ex, getHotelSwitzerland);
 	Promise<Hotel> p(&ex);
 	tryCompleteWith(p, switzerland);
+	switzerland.onComplete(
+	    [](const Try<Hotel> &t) { std::cerr << "After getting Switzerland"; });
 
 	auto f = p.future();
 	f.onComplete(bookHotelAdv);

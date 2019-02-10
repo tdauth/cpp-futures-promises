@@ -141,8 +141,7 @@ Future<T> Future<T>::firstSucc(Future<T> other)
 }
 
 template <typename Func>
-Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
-                                                    Func &&f)
+Future<typename std::result_of<Func()>::type> async(adv::Executor *ex, Func &&f)
 {
 	using T = typename std::result_of<Func()>::type;
 	adv::Promise<T> p(ex);
@@ -163,13 +162,13 @@ Future<typename std::result_of<Func()>::type> async(folly::Executor *ex,
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
+firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, Try<T>>>;
 
 	struct FirstNContext
 	{
-		FirstNContext(folly::Executor *ex, std::size_t n) : p(ex)
+		FirstNContext(Executor *ex, std::size_t n) : p(ex)
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the
@@ -228,13 +227,13 @@ firstN(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(folly::Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
+firstNSucc(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, T>>;
 
 	struct FirstNSuccContext
 	{
-		FirstNSuccContext(folly::Executor *ex, std::size_t n) : p(ex)
+		FirstNSuccContext(Executor *ex, std::size_t n) : p(ex)
 		{
 			/*
 			 * Reserve enough space for the vector, so emplace_back won't modify the

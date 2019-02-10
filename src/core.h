@@ -1,6 +1,7 @@
 #ifndef ADV_CORE_H
 #define ADV_CORE_H
 
+#include "executor.h"
 #include "try.h"
 
 namespace adv
@@ -27,6 +28,11 @@ class Core
 	using Self = Core<T>;
 	using SharedPtr = std::shared_ptr<Self>;
 
+	enum Implementation
+	{
+		MVar
+	};
+
 	Core() = delete;
 	Core(const Self &) = delete;
 	Self &operator=(const Self &) = delete;
@@ -48,7 +54,8 @@ class Core
 	}
 
 	template <typename S>
-	static typename Core<S>::SharedPtr createShared(folly::Executor *executor);
+	static typename Core<S>::SharedPtr
+	createShared(Executor *executor, Implementation implementation = MVar);
 
 	virtual bool tryComplete(Value &&v) = 0;
 
@@ -58,7 +65,7 @@ class Core
 
 	virtual bool isReady() const = 0;
 
-	folly::Executor *getExecutor() const
+	Executor *getExecutor() const
 	{
 		return executor;
 	}
@@ -79,12 +86,12 @@ class Core
 	}
 
 	protected:
-	explicit Core(folly::Executor *executor) : executor(executor)
+	explicit Core(Executor *executor) : executor(executor)
 	{
 	}
 
 	private:
-	folly::Executor *executor;
+	Executor *executor;
 	// We do always start with one promise.
 	std::atomic<int> promiseCounter{1};
 };

@@ -9,7 +9,7 @@ namespace adv
 template <typename T>
 adv::Future<T> Promise<T>::future()
 {
-	return adv::Future<T>(_s);
+	return adv::Future<T>(core);
 }
 
 } // namespace adv

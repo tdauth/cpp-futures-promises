@@ -6,11 +6,7 @@
 #include <atomic>
 #include <string>
 
-#include "core_impl.h"
-#include "future.h"
-#include "future_impl.h"
-#include "promise.h"
-#include "promise_impl.h"
+#include "advanced_futures_promises.h"
 
 namespace adv
 {
@@ -23,7 +19,9 @@ class TestSuite
 	 * The inline executor ensures the immediate execution of callbacks
 	 * in the main thread. This simplifies testing.
 	 */
-	TestSuite() : ex(new folly::InlineExecutor())
+	TestSuite()
+	    : follyExecutor(new folly::InlineExecutor()),
+	      ex(new FollyExecutor(follyExecutor))
 	{
 	}
 
@@ -31,6 +29,8 @@ class TestSuite
 	{
 		delete ex;
 		ex = nullptr;
+		delete follyExecutor;
+		follyExecutor = nullptr;
 	}
 
 	void testTryNotInitialized()
@@ -206,7 +206,7 @@ class TestSuite
 		auto p1 = createPromiseInt();
 		p1.trySuccess(11);
 		auto f1 = p1.future();
-		auto f2 = f0.fallbackTo(std::move(f1));
+		auto f2 = f0.fallbackTo(f1);
 
 		BOOST_CHECK_EQUAL(Try<int>(10), f2.get());
 	}
@@ -219,7 +219,7 @@ class TestSuite
 		auto p1 = createPromiseInt();
 		p1.trySuccess(11);
 		auto f1 = p1.future();
-		auto f2 = f0.fallbackTo(std::move(f1));
+		auto f2 = f0.fallbackTo(f1);
 
 		BOOST_CHECK_EQUAL(Try<int>(11), f2.get());
 	}
@@ -232,7 +232,7 @@ class TestSuite
 		auto p1 = createPromiseInt();
 		p1.tryFailure(std::runtime_error("Failure 1!"));
 		auto f1 = p1.future();
-		auto f2 = f0.fallbackTo(std::move(f1));
+		auto f2 = f0.fallbackTo(f1);
 		auto r = f2.get();
 
 		BOOST_REQUIRE(r.hasException());
@@ -457,10 +457,10 @@ class TestSuite
 	void testFirstN()
 	{
 		std::vector<Future<int>> futures;
-		futures.push_back(successful(ex, 10));
-		futures.push_back(failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(successful(ex, 12));
-		futures.push_back(successful(ex, 13));
+		futures.push_back(successful(10));
+		futures.push_back(failed(std::runtime_error("Failure!")));
+		futures.push_back(successful(12));
+		futures.push_back(successful(13));
 
 		auto f = firstN(ex, std::move(futures), 3);
 		auto v = f.get().get();
@@ -482,10 +482,10 @@ class TestSuite
 	void testFirstNSucc()
 	{
 		std::vector<Future<int>> futures;
-		futures.push_back(successful(ex, 10));
-		futures.push_back(failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(successful(ex, 12));
-		futures.push_back(successful(ex, 13));
+		futures.push_back(successful(10));
+		futures.push_back(failed(std::runtime_error("Failure!")));
+		futures.push_back(successful(12));
+		futures.push_back(successful(13));
 
 		auto f = firstNSucc(ex, std::move(futures), 3);
 		auto v = f.get().get();
@@ -505,10 +505,10 @@ class TestSuite
 	void testFirstNSuccFails()
 	{
 		std::vector<Future<int>> futures;
-		futures.push_back(successful(ex, 10));
-		futures.push_back(failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(failed(ex, std::runtime_error("Failure!")));
-		futures.push_back(successful(ex, 13));
+		futures.push_back(successful(10));
+		futures.push_back(failed(std::runtime_error("Failure!")));
+		futures.push_back(failed(std::runtime_error("Failure!")));
+		futures.push_back(successful(13));
 
 		auto f = firstNSucc(ex, std::move(futures), 3);
 		auto v = f.get();
@@ -556,7 +556,8 @@ class TestSuite
 	}
 
 	private:
-	folly::InlineExecutor *ex;
+	folly::Executor *follyExecutor;
+	FollyExecutor *ex;
 
 	Promise<int> createPromiseInt()
 	{
@@ -568,14 +569,14 @@ class TestSuite
 		return Promise<std::string>(ex);
 	}
 
-	Future<int> successful(folly::Executor *ex, int &&v)
+	Future<int> successful(int &&v)
 	{
 		auto p = createPromiseInt();
 		p.trySuccess(std::move(v));
 		return p.future();
 	}
 
-	Future<int> failed(folly::Executor *ex, std::exception &&e)
+	Future<int> failed(std::exception &&e)
 	{
 		auto p = createPromiseInt();
 		p.tryFailure(std::move(e));
