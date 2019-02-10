@@ -32,49 +32,23 @@ Therefore, you need Internet access when building for the first time.
 The project requires the GCC with C++17 support and CMake to be built.
 
 The project requires the following libraries:
+
 * [Boost](http://www.boost.org/)
 * [Folly](https://github.com/facebook/folly)
 
-It will download and compile these libraries automatically when being compiled.
-The versions of the libraries are specified in the [CMakeLists.txt](./CMakeLists.txt) file in the top level directory of the project.
-
-Furthermore, the project requires the following packages on Fedora 29:
-* cmake
-* gcc-c++
-* libatomic
-* bash
-* which
-* rpm-build
-* valgrind
-* lcov
-* cppcheck
-* cppcheck-htmlreport
-
-Folly dependencies on Fedora 29:
-* glog-devel
-* gflags-devel
-* autoconf
-* automake
-* autoconf
-* automake
-* libtool
-* zlib-devel
-* lzma-devel
-* snappy-devel
-* double-conversion-devel
-* openssl-devel
-* libevent-devel
-
-These dependencies can be installed with the script [install_fedora_dependencies.sh](./install_fedora_dependencies.sh).
+It will download and compile Folly automatically when being compiled.
+The version of Folly is specified in the [CMakeLists.txt](./CMakeLists.txt) file.
 
 ## State of the Art
 
 Existing C++ libraries for futures and promises:
+
 * C++17 thread support library (standard library): Rather limited not support (not even callbacks)
 * Boost.Thread: Callbacks, executors, only basic combinators
 * Folly: Callbacks, executors, more combinators
 
 Disadvantages of Folly:
+
 * Missing non-blocking combinators compared to Scala
 * Only one callback per future
 * Futures and promises require move semantics
@@ -91,9 +65,9 @@ The class template `adv::Core<T>` has to be implemented to provide a custom impl
 
 ## Performance Tests
 
-The project provides several performance tests using the benchmark suite from Folly:
-* [Shared vs unique future and promise creation](./src/performance/performance_shared.cpp) - Creates n unique and shared futures and promises from all three C++ libraries and compares the performance.
-* [Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp) - Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case. Every node in the tree is the call of a non-blocking combinator.
+[Recursive non-blocking combinator calls](./src/performance/performance_combinators.cpp):
+Compares the performance of the different non-blocking combinators. It creates a binary tree with a fixed height per test case.
+Every node in the tree is the call of a non-blocking combinator.
 
 ## Presentation at C++ User Group Karlsruhe
 
@@ -103,6 +77,7 @@ The folder [cpp_user_group_karlsruhe](./src/cpp_user_group_karlsruhe) contains e
 
 We have written a paper about the advanced futures and promises called [Advanced Futures and Promises in C++](http://www.home.hs-karlsruhe.de/~suma0002/publications/advanced-futures-promises-cpp.pdf).
 Here are some TODOs for the paper:
+
 * Improve the description of the C++ syntax.
 * Show examples in other programming languages like ConcurrentML etc. as comparison.
 * Clarify the semantics of `Try`. `Try::get` throws an exception if the object is not initialized yet. Add the type `adv::UsingUninitializedTry`. Can the Try trait in Scala even be empty? In Folly it can be empty. What happens if `hasValue` and `hasException` are called? They should return `false` if the Try instance is empty. Make sure that `tryComplete` does also complete the promise/future with this exception when an empty Try is passed.
@@ -166,5 +141,6 @@ Maybe this approach would be better to avoid virtual methods and heap allocation
 ### New Features
 
 Maybe add the new derived methods to `adv::Future`:
+
 * `onSuccess`: Registers a callback which takes the successful result value. If the future has failed, it is not called. This method could be used in listing 4 to simplify the code.
 * `onFail`: Takes the failed exception. If the future has been completed successfully, it is not called.
