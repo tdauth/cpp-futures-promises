@@ -7,9 +7,9 @@
 using namespace boost;
 
 template <typename T>
-shared_ptr<promise<T>> tryCompleteWith(promise<T> &&p, shared_future<T> f)
+std::shared_ptr<promise<T>> tryCompleteWith(promise<T> &&p, shared_future<T> f)
 {
-	auto ctx = make_shared<promise<T>>(move(p));
+	auto ctx = std::make_shared<promise<T>>(move(p));
 	f.then([ctx](shared_future<T> &&f) {
 		try
 		{

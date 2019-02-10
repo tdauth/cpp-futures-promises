@@ -8,19 +8,21 @@ script:
   - sudo ln -sf /usr/bin/gcc-8 /usr/bin/gcc
   - sudo ln -sf /usr/bin/g++-8 /usr/bin/g++
   # Check versions of gcc, g++ and cmake
-  - gcc -v && g++ -v && cmake -v
+  - gcc -v && g++ -v && cmake --version
   - bash ./buildcoverage.sh
   - bash ./cppcheck.sh
 
 addons:
   apt:
     sources:
+      - sourceline: 'ppa:mhier/libboost-latest'
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
     update: true
     packages:
       - gcc-8
       - g++-8
+      - boost1.67
       - cmake-data
       - cmake
       - libboost-all-dev
