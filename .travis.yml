@@ -4,14 +4,11 @@ os: linux
 language: cpp
 
 script:
-  - # Link gcc-6 and g++-6 to their standard commands
-  - sudo ln -sf /usr/bin/gcc-6 /usr/bin/gcc
-  - sudo ln -sf /usr/bin/g++-6 /usr/bin/g++
-  # Export CC and CXX to tell cmake which compiler to use
-  - export CC=/usr/bin/gcc-6
-  - export CXX=/usr/bin/g++-6
+  # Link gcc-6 and g++-6 to their standard commands
+  - sudo ln -sf /usr/bin/gcc-8 /usr/bin/gcc
+  - sudo ln -sf /usr/bin/g++-8 /usr/bin/g++
   # Check versions of gcc, g++ and cmake
-  - gcc -v && g++ -v
+  - gcc -v && g++ -v && cmake -v
   - bash ./buildcoverage.sh
   - bash ./cppcheck.sh
 
@@ -19,11 +16,11 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
-      - llvm-toolchain-precise-3.6
       - george-edison55-precise-backports
     update: true
     packages:
-      - g++-6
+      - gcc-8
+      - g++-8
       - cmake-data
       - cmake
       - libboost-all-dev

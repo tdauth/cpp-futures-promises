@@ -40,9 +40,7 @@ ctest -T test --timeout 5000
 # Collect coverage data:
 lcov --directory . --capture --output-file my_prog.info
 # Remove coverage data from test code and external libraries:
-lcov --remove my_prog.info '/usr/include/*' '/usr/lib/*' '*/build_coverage/folly_install/*' \
-'*/build_coverage/boost_install/*' '*/src/extensions.cpp' '*/src/folly_fixture.h' '*/src/performance/*' '*/src/advanced/boost/test/*' '*/src/advanced/folly/test/*' \
--o my_prog_filtered.info
+lcov --remove my_prog.info '/usr/include/*' '/usr/lib/*' '*$BUILD_DIR/*' '*/src/performance/*' '*/src/cpp_user_group_karlsruhe/*' '*/src/mvar/test/*' -o my_prog_filtered.info
 # Generate coverage HTML output:
 genhtml --output-directory coverage \
   --demangle-cpp --num-spaces 2 --sort \
