@@ -8,6 +8,7 @@ fi
 
 CC="/usr/bin/gcc"
 CXX="/usr/bin/g++"
+
 GCC_COVERAGE_COMPILE_FLAGS="-g -O0 -coverage -fprofile-arcs -ftest-coverage"
 GCC_COVERAGE_LINK_FLAGS="-coverage -lgcov"
 
