@@ -55,9 +55,9 @@ class Core : public adv::Core<T>
 			state->put(std::move(v));
 			signal.put();
 
-			for (std::size_t i = 0; i < hs.size(); ++i)
+			for (auto h : hs)
 			{
-				submitCallback(std::move(hs.at(i)));
+				submitCallback(std::move(h));
 			}
 
 			return true;
