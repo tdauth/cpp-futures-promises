@@ -25,7 +25,6 @@ addons:
       - boost1.67
       - cmake-data
       - cmake
-      - libboost-all-dev
       - libevent-dev
       - libdouble-conversion-dev
       - libgoogle-glog-dev
