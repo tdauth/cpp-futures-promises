@@ -33,14 +33,6 @@ class TestSuite
 		follyExecutor = nullptr;
 	}
 
-	void testTryNotInitialized()
-	{
-		Try<int> t;
-		BOOST_REQUIRE(!t.hasValue());
-		BOOST_REQUIRE(!t.hasException());
-		BOOST_CHECK_THROW(t.get(), UsingUninitializedTry);
-	}
-
 	void testTryRuntimeError()
 	{
 		Try<int> t(std::make_exception_ptr(std::runtime_error("Error")));
@@ -520,7 +512,6 @@ class TestSuite
 
 	void testAll()
 	{
-		testTryNotInitialized();
 		testTryRuntimeError();
 		testTryValue();
 		testOnComplete();

@@ -43,7 +43,7 @@ class MVar
 
 	T take()
 	{
-		T r;
+		std::optional<T> r;
 
 		{
 			std::unique_lock<std::mutex> l(m);
@@ -54,7 +54,7 @@ class MVar
 
 		putCondition.notify_all();
 
-		return r;
+		return *r;
 	}
 
 	const T &read()
