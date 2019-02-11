@@ -1,7 +1,7 @@
-add_executable(holiday_booking_advanced holiday_booking_advanced.cpp)
-add_dependencies(holiday_booking_advanced folly)
-target_link_libraries(holiday_booking_advanced ${Boost_LIBRARIES} ${folly_LIBRARIES})
-add_test(HolidayBookingAdvanced holiday_booking_advanced)
+add_executable(broken_promise_cpp17 broken_promise_cpp17.cpp)
+add_dependencies(broken_promise_cpp17 folly)
+target_link_libraries(broken_promise_cpp17 ${Boost_LIBRARIES} ${folly_LIBRARIES})
+add_test(BrokenPromiseCpp17 broken_promise_cpp17)
 
 add_executable(holiday_booking_boost holiday_booking_boost.cpp)
 add_dependencies(holiday_booking_boost folly)
