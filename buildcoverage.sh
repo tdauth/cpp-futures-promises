@@ -20,11 +20,10 @@ make -j1 # Use one job to improve error detection and exit early.
 
 # Show some build logs for TravisCI:
 if [ "$?" -ne 0 ] ; then
-    echo "Folly configure logs:"
-    cat "./folly-prefix/src/folly-stamp/folly-configure-"*.log
-    echo "Folly build logs:"
-    cat "./folly-prefix/src/folly-stamp/folly-build-"*.log
-
+    #echo "Folly configure logs:"
+    #cat "./folly-prefix/src/folly-stamp/folly-configure-"*.log
+    #echo "Folly build logs:"
+    #cat "./folly-prefix/src/folly-stamp/folly-build-"*.log
 	exit 1
 fi
 
