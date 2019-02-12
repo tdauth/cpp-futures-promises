@@ -40,19 +40,6 @@ class Core
 	// TODO Allow access only by std::shared_ptr!
 	virtual ~Core() = default;
 
-	Core(Self &&other) noexcept
-	    : executor(other.executor), promiseCounter(std::move(other.promiseCounter))
-	{
-	}
-
-	Self &operator=(Self &&other) noexcept
-	{
-		this->executor = other.executor;
-		this->promiseCounter = std::move(promiseCounter);
-
-		return *this;
-	}
-
 	template <typename S>
 	static typename Core<S>::SharedPtr
 	createShared(Executor *executor, Implementation implementation = MVar);
