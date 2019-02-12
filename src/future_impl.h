@@ -162,7 +162,7 @@ Future<typename std::result_of<Func()>::type> async(adv::Executor *ex, Func &&f)
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
+firstN(Executor *ex, std::vector<Future<T>> futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, Try<T>>>;
 
@@ -206,7 +206,7 @@ firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 					 * Since we allocated enough space, it should never happen and therefore we
 					 * don't need a mutex to protect it from data races.
 					 */
-					ctx->v.emplace_back(i, std::move(t));
+					ctx->v.emplace_back(i, t);
 					/**
 					 * Compare to the actual size of the vector, after adding the element, to
 					 * prevent possible data races which would occur if we had used c instead.
@@ -227,7 +227,7 @@ firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
+firstNSucc(Executor *ex, std::vector<Future<T>> futures, std::size_t n)
 {
 	using V = std::vector<std::pair<size_t, T>>;
 
@@ -278,7 +278,7 @@ firstNSucc(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 					{
 						try
 						{
-							std::move(t).get();
+							t.get();
 						}
 						catch (...)
 						{
@@ -297,7 +297,7 @@ firstNSucc(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n)
 						 * Since we allocated enough space, it should never happen and therefore
 						 * we don't need a mutex to protect it from data races.
 						 */
-						ctx->v.emplace_back(i, std::move(t).get());
+						ctx->v.emplace_back(i, t.get());
 						/**
 						 * Compare to the actual size of the vector, after adding the element, to
 						 * prevent possible data races which would occur if we had used c instead.

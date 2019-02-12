@@ -38,6 +38,10 @@ class TestSuite
 		Try<int> t(std::make_exception_ptr(std::runtime_error("Error")));
 		BOOST_REQUIRE(t.hasException());
 		BOOST_CHECK_THROW(t.get(), std::runtime_error);
+
+		Try<int> copy(t);
+		BOOST_REQUIRE(copy.hasException());
+		BOOST_CHECK_THROW(copy.get(), std::runtime_error);
 	}
 
 	void testTryValue()
@@ -454,7 +458,7 @@ class TestSuite
 		futures.push_back(successful(12));
 		futures.push_back(successful(13));
 
-		auto f = firstN(ex, std::move(futures), 3);
+		auto f = firstN(ex, futures, 3);
 		auto v = f.get().get();
 
 		BOOST_CHECK_EQUAL(3u, v.size());
@@ -464,8 +468,7 @@ class TestSuite
 		auto v1 = v[1];
 		BOOST_CHECK_EQUAL(1u, v1.first);
 		BOOST_REQUIRE(v1.second.hasException());
-		// TODO Fatal error.
-		// BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
+		BOOST_CHECK_THROW(v1.second.get(), std::runtime_error);
 		auto v2 = v[2];
 		BOOST_CHECK_EQUAL(2u, v2.first);
 		BOOST_CHECK_EQUAL(12, v2.second.get());
@@ -506,8 +509,7 @@ class TestSuite
 		auto v = f.get();
 
 		BOOST_REQUIRE(v.hasException());
-		// TODO Fatal error: std::exception: std::exception
-		// BOOST_CHECK_THROW(v.get(), std::runtime_error);
+		BOOST_CHECK_THROW(v.get(), std::runtime_error);
 	}
 
 	void testAll()
@@ -560,14 +562,15 @@ class TestSuite
 		return Promise<std::string>(ex);
 	}
 
-	Future<int> successful(int &&v)
+	Future<int> successful(int v)
 	{
 		auto p = createPromiseInt();
 		p.trySuccess(std::move(v));
 		return p.future();
 	}
 
-	Future<int> failed(std::exception &&e)
+	template <typename Exception>
+	Future<int> failed(Exception &&e)
 	{
 		auto p = createPromiseInt();
 		p.tryFailure(std::move(e));

@@ -12,11 +12,11 @@ template <typename S>
 typename Core<S>::SharedPtr Core<T>::createShared(Executor *executor,
                                                   Implementation implementation)
 {
-	// TODO Support different implementations
+	// TODO Support different implementations like CAS and STM
 	switch (implementation)
 	{
-	case MVar:
-		return typename Core<S>::SharedPtr(new adv_mvar::Core<S>(executor));
+		case MVar:
+			return typename Core<S>::SharedPtr(new adv_mvar::Core<S>(executor));
 	}
 
 	throw std::runtime_error("Invalid implementation");

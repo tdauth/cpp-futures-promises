@@ -39,13 +39,13 @@ class Future
 	{
 	}
 
-	Future(const Self &other)
+	Future(const Self &other) : core(other.core)
 	{
-		this->core = other.core;
 	}
 
 	Self &operator=(const Self &other)
 	{
+		this->core = other.core;
 		return *this;
 	}
 
@@ -132,11 +132,11 @@ Future<typename std::result_of<Func()>::type> async(adv::Executor *ex,
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, Try<T>>>>
-firstN(Executor *ex, std::vector<Future<T>> &&futures, std::size_t n);
+firstN(Executor *ex, std::vector<Future<T>> futures, std::size_t n);
 
 template <typename T>
 Future<std::vector<std::pair<std::size_t, T>>>
-firstNSucc(Executor *ex, std::vector<T> &&futures, std::size_t n);
+firstNSucc(Executor *ex, std::vector<T> futures, std::size_t n);
 } // namespace adv
 
 #endif

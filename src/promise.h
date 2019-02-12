@@ -73,7 +73,7 @@ class Promise
 		return core->tryComplete(Try<T>(std::move(v)));
 	}
 
-	bool tryFailure(std::exception_ptr e)
+	bool tryFailure(std::exception_ptr &&e)
 	{
 		return core->tryComplete(Try<T>(std::move(e)));
 	}

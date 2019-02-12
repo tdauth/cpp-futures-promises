@@ -71,7 +71,6 @@ bool operator==(const Try<T> &t0, const Try<T> &t1)
 	{
 		return t0.get() == t1.get();
 	}
-	// TODO compare exceptions
 
 	return false;
 }

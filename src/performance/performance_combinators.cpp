@@ -251,8 +251,7 @@ createCompletedFutures(adv::Executor *ex, std::size_t childNodes, Func func)
 	{
 		adv::Promise<T> p(ex);
 		p.trySuccess(func());
-		auto f = p.future();
-		v.push_back(std::move(f));
+		v.push_back(p.future());
 	}
 
 	return v;
@@ -282,7 +281,7 @@ adv::Future<T> advFirstN(adv::Executor *ex, std::size_t treeHeight,
 	}
 
 	using ResultType = std::vector<std::pair<std::size_t, adv::Try<T>>>;
-	adv::Future<ResultType> first = adv::firstN<T>(ex, std::move(v), childNodes);
+	adv::Future<ResultType> first = adv::firstN<T>(ex, v, childNodes);
 	adv::Future<T> r = first.then(
 	    [](const adv::Try<ResultType> &t) { return t.get()[0].second.get(); });
 
@@ -313,8 +312,7 @@ adv::Future<T> advFirstNSucc(adv::Executor *ex, std::size_t treeHeight,
 	}
 
 	using ResultType = std::vector<std::pair<std::size_t, T>>;
-	adv::Future<ResultType> first =
-	    adv::firstNSucc<T>(ex, std::move(v), childNodes);
+	adv::Future<ResultType> first = adv::firstNSucc<T>(ex, v, childNodes);
 	adv::Future<T> r = first.then(
 	    [](const adv::Try<ResultType> &t) { return t.get()[0].second; });
 
@@ -416,8 +414,6 @@ BENCHMARK(FollyCollect)
 
 BENCHMARK(FollyCollectN)
 {
-	// TODO Why does folly::collectN produce a foilly::SemiFuture and not a
-	// folly::Future like the other non-blocking combinators?
 	folly::InlineExecutor ex;
 	follyCollectN<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS, initFuture).wait();
 }
@@ -429,8 +425,6 @@ BENCHMARK(FollyCollectAny)
 
 BENCHMARK(FollyCollectAnyWithoutException)
 {
-	// TODO Why does folly::collectAnyWithoutException produce a foilly::SemiFuture
-	// and not a folly::Future like the other non-blocking combinators?
 	folly::InlineExecutor ex;
 	follyCollectAnyWithoutException<TREE_TYPE>(&ex, TREE_HEIGHT, TREE_CHILDS,
 	                                           initFuture)
