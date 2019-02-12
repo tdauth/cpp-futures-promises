@@ -86,7 +86,7 @@ set(folly_LIBRARIES
 
 ExternalProject_Add(googletest
 	URL "https://github.com/google/googletest/archive/release-${googletest_VERSION}.tar.gz"
-	CMAKE_ARGS  -DCMAKE_INSTALL_PREFIX=${googletest_INSTALL_DIR}
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${googletest_INSTALL_DIR}
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON
@@ -94,7 +94,7 @@ ExternalProject_Add(googletest
 
 ExternalProject_Add(folly
 	URL "https://github.com/facebook/folly/archive/${folly_VERSION}.tar.gz"
-	CMAKE_ARGS -DFOLLY_SUPPORT_SHARED_LIBRARY=ON -DCMAKE_INSTALL_PREFIX=${folly_INSTALL_DIR} -DCMAKE_INCLUDE_PATH=${googletest_INCLUDE_DIR}  -DCMAKE_LIBRARY_PATH=${googletest_LIB_DIR}
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${folly_INSTALL_DIR} -DCMAKE_INCLUDE_PATH=${googletest_INCLUDE_DIR} -DCMAKE_LIBRARY_PATH=${googletest_LIB_DIR}
 	LOG_DOWNLOAD ON
 	LOG_CONFIGURE ON
 	LOG_BUILD ON

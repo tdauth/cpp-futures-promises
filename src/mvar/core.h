@@ -47,6 +47,7 @@ class Core : public adv::Core<T>
 		if (s.index() == 0)
 		{
 			state->put(std::move(s));
+
 			return false;
 		}
 		else
@@ -54,11 +55,7 @@ class Core : public adv::Core<T>
 			auto hs = std::get<Callbacks>(s);
 			state->put(std::move(v));
 			signal.put();
-
-			for (auto h : hs)
-			{
-				submitCallback(std::move(h));
-			}
+			executeCallbacks(std::move(hs));
 
 			return true;
 		}
@@ -68,17 +65,14 @@ class Core : public adv::Core<T>
 	{
 		auto s = state->take();
 
-		if (s.index() == 1)
+		if (s.index() == 0)
 		{
-			auto hs = std::get<Callbacks>(s);
-			hs.push_back(h);
-			s = std::move(hs);
 			state->put(std::move(s));
+			executeCallback(std::move(h));
 		}
 		else
 		{
-			state->put(std::move(s));
-			submitCallback(std::move(h));
+			state->put(addCallback(std::move(s), std::move(h)));
 		}
 	}
 
@@ -113,13 +107,28 @@ class Core : public adv::Core<T>
 	 * We have to pass a copy of the shared pointer to ensure the lifetime when
 	 * reading the result.
 	 */
-	void submitCallback(Callback &&h)
+	void executeCallback(Callback &&h)
 	{
 		auto ptr = state;
 		Parent::getExecutor()->add([h = std::move(h), ptr]() mutable {
 			auto r = std::get<Value>(ptr->read());
 			h(r);
 		});
+	}
+
+	void executeCallbacks(Callbacks &&hs)
+	{
+		for (auto h : hs)
+		{
+			executeCallback(std::move(h));
+		}
+	}
+
+	Callbacks addCallback(State &&state, Callback &&h)
+	{
+		auto hs = std::get<Callbacks>(state);
+		hs.push_back(h);
+		return hs;
 	}
 
 	private:
