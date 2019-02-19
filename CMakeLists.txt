@@ -84,6 +84,8 @@ set(folly_LIBRARIES
 	${PTHREAD_LIBRARY}
 )
 
+message(STATUS "Folly libraries: ${folly_LIBRARIES}")
+
 ExternalProject_Add(googletest
 	URL "https://github.com/google/googletest/archive/release-${googletest_VERSION}.tar.gz"
 	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${googletest_INSTALL_DIR}
