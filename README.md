@@ -8,6 +8,9 @@ Currently, the library has one reference implementation which uses [MVars](http:
 
 The derived features were inspired by [Scala library for futures and promises](http://docs.scala-lang.org/overviews/core/futures.html) and Folly.
 
+You can watch this [German Presentation](https://www.youtube.com/watch?v=T5P1CT2J_XI&list=PLfk0Dfh13pBMYw0d5kKxi3eQOE3XK4Hiq) about this project.
+The slides can be found [here](./doc/cpp-futures-promises-presentation.pdf).
+
 ## Automatic Build with TravisCI
 
 [![Build Status](https://travis-ci.org/tdauth/cpp-futures-promises.svg?branch=master)](https://travis-ci.org/tdauth/cpp-futures-promises)
